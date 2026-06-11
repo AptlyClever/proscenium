@@ -36,8 +36,13 @@ assert(
   "previewVisual.effectPresets required",
 );
 assert(
-  contract.previewVisual.defaultEffectPreset === "transporter_soft",
-  "default effect preset should be transporter_soft",
+  contract.previewVisual.scaleGrammar &&
+    contract.previewVisual.scaleGrammar.tiers.small,
+  "scaleGrammar tiers required",
+);
+assert(
+  contract.previewVisual.defaultHailScaleTier === "medium",
+  "default hail scale tier should be medium",
 );
 
 console.log("smoke: control-alt-hails web preview OK");

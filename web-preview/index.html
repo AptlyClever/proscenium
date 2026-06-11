@@ -11,7 +11,7 @@
       <aside class="rail" aria-label="Preview workbench controls">
         <header class="rail-header">
           <h1>Control Alt Hails</h1>
-          <p class="rail-subtitle">Visual workbench · team pass v001</p>
+          <p class="rail-subtitle">Visual workbench · scale + color grammar</p>
         </header>
 
         <div class="rail-body">
@@ -43,16 +43,28 @@
               <select id="glyph-id"></select>
             </label>
             <p class="field-label">Hail size</p>
-            <div class="segmented segmented-3" role="group" aria-label="Hail size preset">
-              <button type="button" class="segmented-btn" data-hail-scale-preset="small">S</button>
-              <button type="button" class="segmented-btn active" data-hail-scale-preset="medium">M</button>
-              <button type="button" class="segmented-btn" data-hail-scale-preset="large">L</button>
+            <div class="segmented segmented-3" role="group" aria-label="Hail size tier">
+              <button type="button" class="segmented-btn" data-hail-scale-tier="small" title="Ambient — corner notices">
+                <span class="preset-short">S</span>
+                <span class="preset-id">Ambient</span>
+              </button>
+              <button type="button" class="segmented-btn active" data-hail-scale-tier="medium" title="Default hail">
+                <span class="preset-short">M</span>
+                <span class="preset-id">Default</span>
+              </button>
+              <button type="button" class="segmented-btn" data-hail-scale-tier="large" title="Attention — center placements">
+                <span class="preset-short">L</span>
+                <span class="preset-id">Attention</span>
+              </button>
             </div>
-            <label class="field-compact block">
-              <span>Scale %</span>
-              <input id="hail-scale" type="range" min="50" max="150" value="100" />
-              <span id="hail-scale-label" class="range-value">100%</span>
-            </label>
+            <details class="control-details">
+              <summary>Advanced size</summary>
+              <label class="field-compact block">
+                <span>Manual layout %</span>
+                <input id="hail-scale" type="range" min="50" max="150" value="100" />
+                <span id="hail-scale-label" class="range-value">100%</span>
+              </label>
+            </details>
           </section>
 
           <section class="card" aria-labelledby="group-effect">
@@ -61,8 +73,8 @@
             <div id="effect-preset-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Effect preset"></div>
             <p class="field-label">Beam</p>
             <div class="segmented" role="group" aria-label="Beam enabled">
-              <button type="button" class="segmented-btn active" data-beam-enabled="off">Off</button>
-              <button type="button" class="segmented-btn" data-beam-enabled="on">On</button>
+              <button type="button" class="segmented-btn" data-beam-enabled="off">Off</button>
+              <button type="button" class="segmented-btn active" data-beam-enabled="on">On</button>
             </div>
             <p class="field-label">Beam shape</p>
             <div id="beam-shape-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Beam shape"></div>

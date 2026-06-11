@@ -1,6 +1,6 @@
 {
-  "version": "v001-team-pass-visual-language",
-  "description": "Shared Control Alt Hails render payload and layout constants. Browser preview reads this file; Android mirrors via HailRenderContract.kt after preview acceptance.",
+  "version": "v001-scale-color-grammar",
+  "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color grammar is preview-only until Axiom owns the visual contract.",
   "payloadFields": [
     "hail_id",
     "effect_id",
@@ -55,54 +55,54 @@
   },
   "palettes": {
     "axiom_dark_cyan": {
-      "beamCyan": "#38C9A8",
-      "beamWhite": "#C8EDE4",
-      "beamBase": "#0A3528",
-      "messageColor": "#E6F8F2",
-      "backdropTint": "#0A3528",
-      "glyphGlow": "#3DD4B0",
+      "beamCyan": "#32B5A0",
+      "beamWhite": "#D4F5EC",
+      "beamBase": "#0A2E24",
+      "messageColor": "#F0FAF6",
+      "backdropTint": "#0A2E24",
+      "glyphGlow": "#3AA890",
       "roles": {
-        "primary": "#38C9A8",
-        "accent": "#C8EDE4",
-        "glow": "#3DD4B0",
-        "particle": "#A8E8D8",
-        "text": "#E6F8F2",
-        "messageBacking": "#000000",
-        "messageBackingOpacity": 0.46
+        "primary": "#2FB89A",
+        "accent": "#D4F5EC",
+        "particle": "#E8FAF5",
+        "glow": "#3AA890",
+        "text": "#F0FAF6",
+        "messageBacking": "#121618",
+        "messageBackingOpacity": 0.5
       }
     },
     "transporter_white": {
-      "beamCyan": "#A8C8C8",
-      "beamWhite": "#E8F0F0",
+      "beamCyan": "#8AA8B8",
+      "beamWhite": "#EEF4F4",
       "beamBase": "#1A2430",
-      "messageColor": "#EEF2F6",
+      "messageColor": "#F4F8FA",
       "backdropTint": "#161e28",
-      "glyphGlow": "#D0E8E8",
+      "glyphGlow": "#C8DCE8",
       "roles": {
-        "primary": "#98B8B8",
-        "accent": "#E8F0F0",
-        "glow": "#D0E8E8",
-        "particle": "#C8D8D8",
-        "text": "#EEF2F6",
-        "messageBacking": "#0A0E14",
+        "primary": "#7A9AAA",
+        "accent": "#EEF4F4",
+        "particle": "#E8ECEE",
+        "glow": "#C8DCE8",
+        "text": "#F4F8FA",
+        "messageBacking": "#14181C",
         "messageBackingOpacity": 0.52
       }
     },
     "cute_purple": {
-      "beamCyan": "#D66A9A",
-      "beamWhite": "#F8E8F2",
-      "beamBase": "#3D1568",
-      "messageColor": "#FDECF6",
-      "backdropTint": "#341260",
-      "glyphGlow": "#E879A8",
+      "beamCyan": "#9B5A8C",
+      "beamWhite": "#F4E0EE",
+      "beamBase": "#2E1048",
+      "messageColor": "#FCEEF8",
+      "backdropTint": "#2E1048",
+      "glyphGlow": "#C878A8",
       "roles": {
-        "primary": "#D66A9A",
-        "accent": "#F8E8F2",
-        "glow": "#E879A8",
-        "particle": "#F0C0D8",
-        "text": "#FDECF6",
-        "messageBacking": "#1A0828",
-        "messageBackingOpacity": 0.48
+        "primary": "#9B5A8C",
+        "accent": "#F4E0EE",
+        "particle": "#F0D8EC",
+        "glow": "#C878A8",
+        "text": "#FCEEF8",
+        "messageBacking": "#140A1C",
+        "messageBackingOpacity": 0.5
       }
     }
   },
@@ -114,13 +114,60 @@
   },
   "visual": {
     "groupBackdropAlpha": 0.24,
-    "glyphGlowAlpha": 0.26
+    "glyphGlowAlpha": 0.22
   },
   "previewVisual": {
-    "note": "Preview harness only — not part of production payloadFields until renderer contract expands.",
+    "note": "Preview harness only — future Axiom-owned candidates: scaleGrammar, palette role catalog, effectPresets, defaults.",
     "defaultEffectPreset": "transporter_soft",
-    "defaultHailScalePercent": 100,
-    "hailScale": { "min": 50, "max": 150, "presets": { "small": 85, "medium": 100, "large": 115 } },
+    "defaultHailScaleTier": "medium",
+    "scaleGrammar": {
+      "defaultTier": "medium",
+      "manualPercent": { "min": 50, "max": 150, "default": 100 },
+      "tiers": {
+        "small": {
+          "label": "Ambient",
+          "intent": "Corner passive notices — compact footprint, reduced beam and particles",
+          "layoutScale": 0.76,
+          "glyphScale": 0.86,
+          "messageScale": 0.9,
+          "beamWidthMul": 0.82,
+          "beamHeightMul": 0.68,
+          "particleDensityMul": 0.58,
+          "particleSpreadMul": 0.75,
+          "glowIntensityMul": 0.62,
+          "effectIntensityMul": 0.82,
+          "messagePaddingMul": 0.88
+        },
+        "medium": {
+          "label": "Default",
+          "intent": "Normal hail — balanced beam, glyph, and message",
+          "layoutScale": 1,
+          "glyphScale": 1,
+          "messageScale": 1,
+          "beamWidthMul": 1,
+          "beamHeightMul": 1,
+          "particleDensityMul": 1,
+          "particleSpreadMul": 1,
+          "glowIntensityMul": 1,
+          "effectIntensityMul": 1,
+          "messagePaddingMul": 1
+        },
+        "large": {
+          "label": "Attention",
+          "intent": "Upper-center and center-soft — larger effect field without ghost column",
+          "layoutScale": 1.14,
+          "glyphScale": 1.1,
+          "messageScale": 1.05,
+          "beamWidthMul": 1.1,
+          "beamHeightMul": 1.18,
+          "particleDensityMul": 1.2,
+          "particleSpreadMul": 1.05,
+          "glowIntensityMul": 1.15,
+          "effectIntensityMul": 1.06,
+          "messagePaddingMul": 1.08
+        }
+      }
+    },
     "effectPresetIds": [
       "clean_hail",
       "transporter_soft",
@@ -133,67 +180,67 @@
       "clean_hail": {
         "beamEnabled": false,
         "beamShape": "none",
-        "particleDensity": 18,
-        "particleSpread": 25,
-        "particleSpeed": 30,
-        "particleSize": 35,
-        "glowIntensity": 35,
-        "effectIntensity": 0.75,
-        "shimmerIntensity": 0.2
+        "particleDensity": 14,
+        "particleSpread": 22,
+        "particleSpeed": 28,
+        "particleSize": 32,
+        "glowIntensity": 30,
+        "effectIntensity": 0.72,
+        "shimmerIntensity": 0.18
       },
       "transporter_soft": {
         "beamEnabled": true,
-        "beamShape": "column",
-        "beamWidth": 0.2,
-        "beamHeight": 0.52,
-        "beamOpacity": 0.82,
-        "particleDensity": 42,
-        "particleSpread": 36,
-        "particleSpeed": 40,
-        "particleSize": 45,
-        "glowIntensity": 48,
-        "shimmerIntensity": 0.4
+        "beamShape": "shimmer",
+        "beamWidth": 0.18,
+        "beamHeight": 0.48,
+        "beamOpacity": 0.78,
+        "particleDensity": 36,
+        "particleSpread": 32,
+        "particleSpeed": 38,
+        "particleSize": 42,
+        "glowIntensity": 40,
+        "shimmerIntensity": 0.38
       },
       "transporter_dense": {
         "beamEnabled": true,
         "beamShape": "column",
-        "beamWidth": 0.26,
-        "beamHeight": 0.62,
-        "beamOpacity": 0.92,
-        "particleDensity": 78,
-        "particleSpread": 48,
-        "particleSpeed": 55,
-        "particleSize": 58,
-        "glowIntensity": 62,
-        "shimmerIntensity": 0.55
+        "beamWidth": 0.24,
+        "beamHeight": 0.58,
+        "beamOpacity": 0.88,
+        "particleDensity": 72,
+        "particleSpread": 44,
+        "particleSpeed": 52,
+        "particleSize": 54,
+        "glowIntensity": 56,
+        "shimmerIntensity": 0.5
       },
       "subtle_ping": {
         "beamEnabled": true,
         "beamShape": "orb",
-        "beamWidth": 0.18,
-        "beamHeight": 0.38,
-        "beamOpacity": 0.65,
-        "particleDensity": 22,
-        "particleSpread": 30,
-        "particleSpeed": 28,
-        "particleSize": 40,
-        "glowIntensity": 42,
-        "shimmerIntensity": 0.35
+        "beamWidth": 0.16,
+        "beamHeight": 0.34,
+        "beamOpacity": 0.6,
+        "particleDensity": 18,
+        "particleSpread": 26,
+        "particleSpeed": 26,
+        "particleSize": 36,
+        "glowIntensity": 36,
+        "shimmerIntensity": 0.32
       },
       "high_attention": {
         "beamEnabled": true,
         "beamShape": "cone",
-        "beamWidth": 0.28,
-        "beamHeight": 0.68,
-        "beamOpacity": 0.95,
-        "beamBlur": 2,
-        "particleDensity": 85,
-        "particleSpread": 55,
-        "particleSpeed": 62,
-        "particleSize": 62,
-        "glowIntensity": 72,
-        "shimmerIntensity": 0.65,
-        "effectIntensity": 1.05
+        "beamWidth": 0.26,
+        "beamHeight": 0.64,
+        "beamOpacity": 0.9,
+        "beamBlur": 1.5,
+        "particleDensity": 80,
+        "particleSpread": 50,
+        "particleSpeed": 58,
+        "particleSize": 58,
+        "glowIntensity": 66,
+        "shimmerIntensity": 0.58,
+        "effectIntensity": 1.02
       }
     },
     "groupBackground": {
@@ -220,13 +267,15 @@
     "message": "What's sniffing?",
     "duration_ms": 5500,
     "placement_id": "top_right",
-    "placement_mode": "preset"
+    "placement_mode": "preset",
+    "hail_scale_tier": "medium"
   },
   "recommendedTvDefaults": {
     "placement_id": "top_right",
     "placement_mode": "preset",
     "palette_id": "axiom_dark_cyan",
     "effect_preset": "transporter_soft",
-    "note": "Corner presets keep overlay noticeable without dominating the screen."
+    "hail_scale_tier": "medium",
+    "note": "Medium default hail at top_right — visible, elegant, Control Alt-native."
   }
 }

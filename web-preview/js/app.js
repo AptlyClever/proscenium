@@ -1,10 +1,12 @@
 import {
+  applyScaleGrammarToEffectParams,
   BEAM_SHAPE_LABELS,
   PRESET_LABELS,
   getEffectPreset,
   mergeEffectParams,
   previewVisualPayload,
   resolvePaletteRoles,
+  resolveScaleGrammar,
   scaleLayoutFractions,
   scaledTypography,
 } from "./effect-config.js";
@@ -42,8 +44,10 @@ const state = {
   lifecycleDurationMs: 0,
   effectPreset: "transporter_soft",
   effectParams: null,
+  scaledEffectParams: null,
   effectTouched: false,
-  hailScalePercent: 100,
+  hailScaleTier: "medium",
+  hailScaleManualPercent: 100,
   groupBgEnabled: false,
   groupBgShape: "rounded_rect",
   groupBgSizePercent: 100,
@@ -65,7 +69,7 @@ function cacheElements() {
     effectPresetPills: document.getElementById("effect-preset-pills"),
     beamEnabledBtns: document.querySelectorAll("[data-beam-enabled]"),
     beamShapePills: document.getElementById("beam-shape-pills"),
-    hailScalePresetBtns: document.querySelectorAll("[data-hail-scale-preset]"),
+    hailScaleTierBtns: document.querySelectorAll("[data-hail-scale-tier]"),
     hailScale: document.getElementById("hail-scale"),
     hailScaleLabel: document.getElementById("hail-scale-label"),
     beamWidth: document.getElementById("beam-width"),
@@ -206,7 +210,9 @@ function applyDefaults() {
   state.paletteId = d.palette_id;
   state.screenPreset = "1920x1080";
   state.effectPreset = pv.defaultEffectPreset || "transporter_soft";
-  state.hailScalePercent = pv.defaultHailScalePercent || 100;
+  state.hailScaleTier = pv.defaultHailScaleTier || d.hail_scale_tier || "medium";
+  state.hailScaleManualPercent =
+    (pv.scaleGrammar && pv.scaleGrammar.manualPercent && pv.scaleGrammar.manualPercent.default) || 100;
   state.effectParams = getEffectPreset(state.contract, state.effectPreset);
   state.effectTouched = false;
   els.glyph.value = d.glyph_id;
@@ -214,8 +220,13 @@ function applyDefaults() {
   els.duration.value = String(d.duration_ms);
   els.xPercent.value = "72";
   els.yPercent.value = "18";
-  els.hailScale.min = String((pv.hailScale && pv.hailScale.min) || 50);
-  els.hailScale.max = String((pv.hailScale && pv.hailScale.max) || 150);
+  els.hailScale.min = String(
+    (pv.scaleGrammar && pv.scaleGrammar.manualPercent && pv.scaleGrammar.manualPercent.min) || 50,
+  );
+  els.hailScale.max = String(
+    (pv.scaleGrammar && pv.scaleGrammar.manualPercent && pv.scaleGrammar.manualPercent.max) || 150,
+  );
+  refreshScaledEffectParams();
   applyGroupBgDefaults();
   syncAllUi();
 }
@@ -238,6 +249,7 @@ function applyPresetToState(presetId) {
   state.effectPreset = presetId;
   state.effectParams = getEffectPreset(state.contract, presetId);
   state.effectTouched = false;
+  refreshScaledEffectParams();
   syncEffectUiFromState();
 }
 
@@ -283,13 +295,26 @@ function syncEffectUiFromState() {
   });
 }
 
+function currentScaleGrammar() {
+  return resolveScaleGrammar(
+    state.contract,
+    state.hailScaleTier,
+    state.hailScaleManualPercent,
+  );
+}
+
+function refreshScaledEffectParams() {
+  state.scaledEffectParams = applyScaleGrammarToEffectParams(
+    state.effectParams,
+    currentScaleGrammar(),
+  );
+}
+
 function syncHailScaleUi() {
-  els.hailScale.value = String(state.hailScalePercent);
-  els.hailScaleLabel.textContent = state.hailScalePercent + "%";
-  const presets = state.contract.previewVisual.hailScale.presets;
-  els.hailScalePresetBtns.forEach(function (btn) {
-    const val = presets[btn.dataset.hailScalePreset];
-    btn.classList.toggle("active", val === state.hailScalePercent);
+  els.hailScale.value = String(state.hailScaleManualPercent);
+  els.hailScaleLabel.textContent = state.hailScaleManualPercent + "%";
+  els.hailScaleTierBtns.forEach(function (btn) {
+    btn.classList.toggle("active", btn.dataset.hailScaleTier === state.hailScaleTier);
   });
 }
 
@@ -349,7 +374,7 @@ function syncAllUi() {
 function scaledContract() {
   return Object.assign({}, state.contract, {
     placement: Object.assign({}, state.contract.placement, {
-      layoutFractions: scaleLayoutFractions(state.contract, state.hailScalePercent),
+      layoutFractions: scaleLayoutFractions(state.contract, currentScaleGrammar()),
     }),
   });
 }
@@ -395,8 +420,9 @@ function bindEvents() {
       if (!state.effectParams.beamEnabled) {
         state.effectParams.beamShape = "none";
       } else if (state.effectParams.beamShape === "none") {
-        state.effectParams.beamShape = "column";
+        state.effectParams.beamShape = "shimmer";
       }
+      refreshScaledEffectParams();
       syncEffectUiFromState();
       onControlChange();
     });
@@ -429,10 +455,11 @@ function bindEvents() {
     });
   });
 
-  els.hailScalePresetBtns.forEach(function (btn) {
+  els.hailScaleTierBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
-      const presets = state.contract.previewVisual.hailScale.presets;
-      state.hailScalePercent = presets[btn.dataset.hailScalePreset] || 100;
+      state.hailScaleTier = btn.dataset.hailScaleTier;
+      state.hailScaleManualPercent = 100;
+      refreshScaledEffectParams();
       syncHailScaleUi();
       onControlChange();
       resizeStage();
@@ -440,12 +467,13 @@ function bindEvents() {
   });
 
   els.hailScale.addEventListener("input", function () {
-    state.hailScalePercent = clampInt(
+    state.hailScaleManualPercent = clampInt(
       els.hailScale.value,
       50,
       150,
       100,
     );
+    refreshScaledEffectParams();
     syncHailScaleUi();
     onControlChange();
     resizeStage();
@@ -541,6 +569,7 @@ function toggleBackgroundFile() {
 }
 
 function onControlChange() {
+  refreshScaledEffectParams();
   updatePayloadPreview();
   if (!els.overlayGroup.hidden) {
     state.useLifecycle = false;
@@ -678,6 +707,7 @@ function applyBackground() {
 function renderStaticOverlay() {
   applyBackground();
   readEffectParamsFromControls();
+  refreshScaledEffectParams();
   const payload = currentPayload();
   const validation = validateMessage(payload.message, state.contract.message.maxLength);
   if (!validation.ok) {
@@ -690,10 +720,11 @@ function renderStaticOverlay() {
   const rect = resolveGroupRect(payload, size.width, size.height, contractForLayout);
   const palette = state.contract.palettes[payload.palette_id];
   const roles = resolvePaletteRoles(palette, state.contract);
-  const typography = scaledTypography(state.contract, state.hailScalePercent);
+  const grammar = currentScaleGrammar();
+  const typography = scaledTypography(state.contract, grammar);
   const visual = state.contract.visual || {};
-  const glowAlpha = visual.glyphGlowAlpha != null ? visual.glyphGlowAlpha : 0.26;
-  const glowStrength = state.effectParams.glowIntensity / 100;
+  const glowAlpha = visual.glyphGlowAlpha != null ? visual.glyphGlowAlpha : 0.22;
+  const glowStrength = state.scaledEffectParams.glowIntensity / 100;
 
   els.overlayGroup.style.left = rect.left + "px";
   els.overlayGroup.style.top = rect.top + "px";
@@ -727,7 +758,14 @@ function renderStaticOverlay() {
   els.overlayMessage.style.color = roles.text;
   els.overlayMessage.style.fontSize = fontSize + "px";
   els.overlayMessage.style.textShadow = typography.messageShadow;
-  els.overlayMessage.style.background = hexWithAlpha(roles.messageBacking, msgAlpha);
+  els.overlayMessage.style.background = hexWithAlpha(
+    roles.messageBacking,
+    msgAlpha,
+  );
+  const padMul = typography.messagePaddingMul || 1;
+  els.overlayMessage.style.padding =
+    Math.round(5 * padMul) + "px " + Math.round(9 * padMul) + "px";
+  els.overlayMessage.style.marginTop = Math.round(5 * padMul) + "px";
 
   if (state.stopAnimation) {
     state.stopAnimation();
@@ -736,7 +774,7 @@ function renderStaticOverlay() {
   state.stopAnimation = createOverlayAnimator(
     canvas,
     roles,
-    state.effectParams,
+    state.scaledEffectParams,
     state.contract,
     function (frame) {
       els.overlayGlyph.style.opacity = String(frame.glyphAlpha);
