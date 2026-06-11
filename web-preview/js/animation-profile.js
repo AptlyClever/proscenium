@@ -54,33 +54,33 @@ const NAMED_EFFECT_ENTRANCE_STAGES = {
     beamClearStart: 180,
   },
   pop: {
-    beamSeedEnd: 90,
-    particleStart: 70,
-    particleEnd: 180,
-    glyphStart: 110,
-    glyphEnd: 260,
-    messageStart: 170,
-    messageEnd: 280,
-    beamClearStart: 230,
+    beamSeedEnd: 60,
+    particleStart: 30,
+    particleEnd: 160,
+    glyphStart: 50,
+    glyphEnd: 170,
+    messageStart: 130,
+    messageEnd: 240,
+    beamClearStart: 180,
   },
   burst: {
-    beamSeedEnd: 160,
-    particleStart: 140,
-    particleEnd: 360,
-    glyphStart: 200,
-    glyphEnd: 580,
+    beamSeedEnd: 100,
+    particleStart: 60,
+    particleEnd: 420,
+    glyphStart: 160,
+    glyphEnd: 380,
     messageStart: 340,
-    messageEnd: 660,
-    beamClearStart: 580,
+    messageEnd: 580,
+    beamClearStart: 460,
   },
   transporter: {
     beamSeedEnd: 680,
     particleStart: 100,
     particleEnd: 660,
-    glyphStart: 520,
-    glyphEnd: 660,
-    messageStart: 540,
-    messageEnd: 690,
+    glyphStart: 480,
+    glyphEnd: 640,
+    messageStart: 600,
+    messageEnd: 720,
     beamClearStart: 640,
   },
 };
@@ -103,6 +103,9 @@ export const NAMED_EFFECT_PROFILES = {
     particle_mode_exit: "collapse",
     glyph_resolve_style: "fade",
     glyph_overshoot: 0,
+    field_style: "none",
+    particle_style: "none",
+    message_reveal_style: "fade",
   },
   pop: {
     named_effect_id: "pop",
@@ -118,12 +121,15 @@ export const NAMED_EFFECT_PROFILES = {
     particle_mode_enter: "spark_burst",
     particle_mode_hold: "drift",
     particle_mode_exit: "collapse",
-    glyph_resolve_style: "snap",
-    glyph_overshoot: 0.1,
+    glyph_resolve_style: "overshoot_pop",
+    glyph_overshoot: 0.14,
+    field_style: "micro_flash",
+    particle_style: "tiny_sparks",
+    message_reveal_style: "quick_follow",
   },
   burst: {
     named_effect_id: "burst",
-    entrance_style: "achievement_snap",
+    entrance_style: "radial_burst",
     entrance_ms: 700,
     entrance_intensity: 1.08,
     beam_in_seed_ms: 180,
@@ -132,15 +138,18 @@ export const NAMED_EFFECT_PROFILES = {
     exit_ms: 520,
     exit_intensity: 1.04,
     beam_out_seed_ms: 150,
-    particle_mode_enter: "materialize",
+    particle_mode_enter: "radial_burst",
     particle_mode_hold: "drift",
     particle_mode_exit: "collapse",
-    glyph_resolve_style: "snap",
-    glyph_overshoot: 0.08,
+    glyph_resolve_style: "center_snap",
+    glyph_overshoot: 0.1,
+    field_style: "radial_bloom",
+    particle_style: "radial_burst",
+    message_reveal_style: "post_impact_fade",
   },
   transporter: {
     named_effect_id: "transporter",
-    entrance_style: "beam_materialize",
+    entrance_style: "scan_resolve",
     entrance_ms: 1500,
     entrance_intensity: 1,
     beam_in_seed_ms: 720,
@@ -149,11 +158,14 @@ export const NAMED_EFFECT_PROFILES = {
     exit_ms: 1150,
     exit_intensity: 1,
     beam_out_seed_ms: 380,
-    particle_mode_enter: "materialize",
+    particle_mode_enter: "scanfall",
     particle_mode_hold: "drift",
-    particle_mode_exit: "collapse",
-    glyph_resolve_style: "resolve",
+    particle_mode_exit: "scanfall",
+    glyph_resolve_style: "scan_resolve",
     glyph_overshoot: 0.04,
+    field_style: "vertical_phase",
+    particle_style: "scanfall",
+    message_reveal_style: "secondary_scan_fade",
   },
 };
 
@@ -187,7 +199,8 @@ const BEAM_IN_TUNING = {
   fade: { seedMul: 0.55, beamPeak: 0.36, materializeMul: 0.88, clearMul: 1.15, fieldMul: 0.55 },
   beam_materialize: { seedMul: 1, beamPeak: 1, materializeMul: 1, clearMul: 1, fieldMul: 1 },
   scan_resolve: { seedMul: 1.12, beamPeak: 1.24, materializeMul: 1.06, clearMul: 0.92, fieldMul: 1.18 },
-  pop_ping: { seedMul: 0.55, beamPeak: 0.82, materializeMul: 0.78, clearMul: 1.3, fieldMul: 0.86 },
+  pop_ping: { seedMul: 0.55, beamPeak: 0.72, materializeMul: 0.78, clearMul: 1.3, fieldMul: 0.78 },
+  radial_burst: { seedMul: 0.48, beamPeak: 0.68, materializeMul: 0.82, clearMul: 1.25, fieldMul: 1.08 },
   achievement_snap: { seedMul: 0.62, beamPeak: 0.92, materializeMul: 0.84, clearMul: 1.2, fieldMul: 0.9 },
 };
 
@@ -353,14 +366,21 @@ const DEFAULT_PROFILE = {
   glyph_overshoot: 0,
 };
 
+function contractNamedEffectBlock(contract, namedId) {
+  const ne = contract && contract.previewVisual && contract.previewVisual.namedEffects;
+  if (!ne) {
+    return null;
+  }
+  if (ne.effects && ne.effects[namedId]) {
+    return ne.effects[namedId];
+  }
+  return ne[namedId] || null;
+}
+
 export function getAnimationProfile(contract, presetId) {
   const namedId = resolveNamedEffectId(presetId);
   const namedBase = NAMED_EFFECT_PROFILES[namedId] || NAMED_EFFECT_PROFILES.transporter;
-  const contractNamed =
-    contract &&
-    contract.previewVisual &&
-    contract.previewVisual.namedEffects &&
-    contract.previewVisual.namedEffects[namedId];
+  const contractNamed = contractNamedEffectBlock(contract, namedId);
   const legacy =
     contract &&
     contract.previewVisual &&
@@ -370,6 +390,16 @@ export function getAnimationProfile(contract, presetId) {
     contractNamed && contractNamed.animationProfile
       ? contractNamed.animationProfile
       : {};
+  const identityFromContract = contractNamed
+    ? {
+        glyph_resolve_style:
+          contractNamed.glyphResolveStyle || contractNamed.glyph_resolve_style,
+        field_style: contractNamed.fieldStyle || contractNamed.field_style,
+        particle_style: contractNamed.particleStyle || contractNamed.particle_style,
+        message_reveal_style:
+          contractNamed.messageRevealStyle || contractNamed.message_reveal_style,
+      }
+    : {};
 
   return Object.assign(
     {},
@@ -377,6 +407,7 @@ export function getAnimationProfile(contract, presetId) {
     legacy || {},
     namedBase,
     contractNamedProfile,
+    identityFromContract,
     {
       named_effect_id: namedId,
       _preset_id: presetId,
@@ -422,8 +453,97 @@ export function animationProfilePayload(profile, contract) {
     particle_mode_exit: profile.particle_mode_exit,
     glyph_resolve_style: profile.glyph_resolve_style,
     glyph_overshoot: profile.glyph_overshoot,
+    field_style: profile.field_style,
+    particle_style: profile.particle_style,
+    message_reveal_style: profile.message_reveal_style,
     note: "Preview-only animation profile — Axiom Hails named effect lifecycle",
   };
+}
+
+/** Effect-specific glyph resolve — glyph first, message second. */
+function computeGlyphResolve(glyphT, messageT, profile) {
+  const style = profile.glyph_resolve_style || "fade";
+  const reveal = profile.message_reveal_style || "fade";
+  let glyphAlpha = 0;
+  let glyphScale = 0.76;
+  let messageAlpha = 0;
+  let glyphClipReveal = 0;
+
+  switch (style) {
+    case "overshoot_pop": {
+      if (glyphT <= 0) {
+        break;
+      }
+      glyphAlpha = easeOutCubic(Math.min(1, glyphT * 2.2));
+      if (glyphT < 0.42) {
+        const t = glyphT / 0.42;
+        glyphScale = 0.76 + easeOutCubic(t) * 0.4;
+      } else if (glyphT < 0.68) {
+        const t = (glyphT - 0.42) / 0.26;
+        glyphScale = 1.16 - easeOutCubic(t) * 0.2;
+      } else {
+        const t = (glyphT - 0.68) / 0.32;
+        glyphScale = 0.96 + easeOutCubic(t) * 0.04;
+      }
+      break;
+    }
+    case "center_snap": {
+      if (glyphT <= 0) {
+        break;
+      }
+      const impactT = easeOutCubic(Math.min(1, glyphT * 1.35));
+      glyphAlpha = impactT < 0.22 ? (impactT / 0.22) * 0.45 : 0.45 + easeOutCubic((glyphT - 0.22) / 0.78) * 0.55;
+      if (glyphT < 0.35) {
+        glyphScale = 0.82 + easeOutCubic(glyphT / 0.35) * 0.28;
+      } else if (glyphT < 0.58) {
+        const t = (glyphT - 0.35) / 0.23;
+        glyphScale = 1.1 - easeOutCubic(t) * 0.12;
+      } else {
+        const t = (glyphT - 0.58) / 0.42;
+        glyphScale = 0.98 + easeOutCubic(t) * 0.02;
+      }
+      break;
+    }
+    case "scan_resolve": {
+      if (glyphT <= 0) {
+        break;
+      }
+      glyphClipReveal = easeOutCubic(glyphT);
+      glyphAlpha =
+        glyphT < 0.12
+          ? (glyphT / 0.12) * 0.38
+          : 0.38 + easeOutCubic((glyphT - 0.12) / 0.88) * 0.62;
+      glyphScale = 0.86 + easeOutCubic(glyphT) * 0.14;
+      if (glyphT > 0.9) {
+        glyphScale = 1 + (1 - (glyphT - 0.9) / 0.1) * 0.05;
+      }
+      break;
+    }
+    case "fade":
+    default:
+      glyphAlpha = easeOutCubic(glyphT);
+      glyphScale = 0.96 + easeOutCubic(glyphT) * 0.04;
+      glyphClipReveal = easeOutCubic(glyphT);
+      break;
+  }
+
+  switch (reveal) {
+    case "quick_follow":
+      messageAlpha = glyphT > 0.48 ? easeOutCubic(messageT) : 0;
+      break;
+    case "post_impact_fade":
+      messageAlpha = glyphT > 0.62 ? easeOutCubic(messageT) * 0.92 : 0;
+      break;
+    case "secondary_scan_fade":
+      messageAlpha = glyphT > 0.78 ? easeOutCubic(messageT) * 0.88 : 0;
+      break;
+    case "fade":
+    default:
+      messageAlpha = easeOutCubic(messageT);
+      break;
+  }
+
+  return { glyphAlpha, glyphScale, messageAlpha, glyphClipReveal };
 }
 
 function computeEntranceFrame(
@@ -470,42 +590,31 @@ function computeEntranceFrame(
 
   let beamScale = 1;
   let beamIntensity = 1;
-  let glyphAlpha = objectVisible ? 0 : 0;
+  let glyphAlpha = 0;
   let glyphScale = 0.94;
   let messageAlpha = 0;
+  let glyphClipReveal = 0;
 
   switch (profile.entrance_style) {
     case "pop_ping": {
-      const snap = 0.05 + overshoot * 0.35;
-      beamScale = 0.9 + easeOutCubic(beamT) * 0.1;
+      beamScale = 0.88 + easeOutCubic(beamT) * 0.08;
       beamIntensity =
-        easeOutCubic(beamT) * 0.52 + easeOutCubic(particleStageT) * 0.62;
-      if (objectVisible) {
-        glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
-        glyphScale =
-          glyphT > 0
-            ? 0.94 + easeOutSubtleSnap(glyphT, snap * 1.4) * 0.06
-            : 0.94;
-        messageAlpha = easeOutCubic(messageT);
-      }
+        easeOutCubic(beamT) * 0.38 + easeOutCubic(particleStageT) * 0.48;
+      break;
+    }
+    case "radial_burst": {
+      beamScale = 0.52 + easeOutCubic(particleStageT) * 0.28;
+      beamIntensity =
+        easeOutCubic(beamT) * 0.28 + easeOutCubic(particleStageT) * 0.68;
       break;
     }
     case "achievement_snap": {
-      const snap = 0.04 + overshoot * 0.55;
       beamScale =
         0.84 +
         easeOutCubic(beamT) * 0.1 +
         easeOutCubic(particleStageT) * 0.06;
       beamIntensity =
         easeOutCubic(beamT) * 0.56 + easeOutCubic(particleStageT) * 0.58;
-      if (objectVisible) {
-        glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
-        glyphScale =
-          glyphT > 0
-            ? 0.9 + easeOutSubtleSnap(glyphT, snap * 1.2) * 0.1
-            : 0.9;
-        messageAlpha = easeOutCubic(messageT);
-      }
       break;
     }
     case "scan_resolve": {
@@ -522,14 +631,6 @@ function computeEntranceFrame(
         easeOutCubic(beamT) * 0.28 +
         easeOutCubic(particleStageT) * 0.58 +
         scanFlicker;
-      if (objectVisible) {
-        glyphAlpha =
-          glyphT < 0.1
-            ? (glyphT / 0.1) * 0.3
-            : 0.3 + easeOutCubic((glyphT - 0.1) / 0.9) * 0.7;
-        glyphScale = 0.88 + easeOutCubic(glyphT) * 0.12;
-        messageAlpha = easeOutCubic(messageT);
-      }
       break;
     }
     case "beam_materialize":
@@ -541,22 +642,20 @@ function computeEntranceFrame(
         0.08 +
         easeOutCubic(beamT) * 0.3 +
         easeOutCubic(particleStageT) * 0.62;
-      if (objectVisible) {
-        glyphAlpha = easeOutCubic(glyphT);
-        glyphScale = 0.9 + easeOutCubic(glyphT) * 0.1;
-        messageAlpha = easeOutCubic(messageT);
-      }
       break;
     case "fade":
     default:
       beamScale = 0.72 + easeOutCubic(beamT) * 0.18;
       beamIntensity = easeOutCubic(beamT);
-      if (objectVisible) {
-        glyphAlpha = easeOutCubic(glyphT);
-        glyphScale = 0.96 + easeOutCubic(glyphT) * 0.04;
-        messageAlpha = easeOutCubic(messageT);
-      }
       break;
+  }
+
+  if (objectVisible) {
+    const glyph = computeGlyphResolve(glyphT, messageT, profile);
+    glyphAlpha = glyph.glyphAlpha;
+    glyphScale = glyph.glyphScale;
+    messageAlpha = glyph.messageAlpha;
+    glyphClipReveal = glyph.glyphClipReveal;
   }
 
   beamIntensity *= tuning.beamPeak;
@@ -571,6 +670,7 @@ function computeEntranceFrame(
     glyphAlpha,
     glyphScale,
     messageAlpha,
+    glyphClipReveal,
     particleStageT,
     fieldMul: tuning.fieldMul,
   };
@@ -800,6 +900,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
   let beamActive = false;
   let fieldMul = 1;
   let objectMaterialized = false;
+  let glyphClipReveal = 1;
 
   if (phase === LIFECYCLE_PHASES.BEAM_IN_SEED) {
     enterElapsedMs = now - lifecycleRef.start;
@@ -819,6 +920,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     glyphAlpha = 0;
     messageAlpha = 0;
     glyphScale = 0.94;
+    glyphClipReveal = 0;
     particleStageT = entrance.particleStageT;
     beamActive = beamIntensity > 0.02;
   } else if (phase === LIFECYCLE_PHASES.MATERIALIZING) {
@@ -839,6 +941,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     glyphAlpha = entrance.glyphAlpha;
     glyphScale = entrance.glyphScale;
     messageAlpha = entrance.messageAlpha;
+    glyphClipReveal = entrance.glyphClipReveal || 0;
     particleStageT = entrance.particleStageT;
 
     const enterBeam = resolveEnterBeamInPhase(
@@ -853,6 +956,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
       glyphAlpha = 1;
       messageAlpha = 1;
       glyphScale = 1;
+      glyphClipReveal = 1;
     }
     objectMaterialized = glyphAlpha >= 0.98 && messageAlpha >= 0.98;
     const cleared = applyBeamClear(beamScale, beamIntensity, beamClearT);
@@ -970,6 +1074,10 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     glyphAlpha: Math.max(0, glyphAlpha * objectAlphaMul),
     glyphScale,
     messageAlpha: Math.max(0, messageAlpha * objectAlphaMul),
+    glyphClipReveal: glyphClipReveal != null ? glyphClipReveal : 1,
+    glyphResolveStyle: profile.glyph_resolve_style || "fade",
+    fieldStyle: profile.field_style || "vertical_phase",
+    messageRevealStyle: profile.message_reveal_style || "fade",
     overallIntensity: Math.max(0, overall),
     holdPulse,
   };

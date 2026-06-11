@@ -1,6 +1,6 @@
 {
-  "version": "v001-glyph-presence-contained-impact",
-  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, glyph presence floors, and contained named effects. LCARD preview workbench consumes this file as a test surface only.",
+  "version": "v001-named-effect-identity-glyph-resolve",
+  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, glyph presence, named effect identity (glyph resolve / field / particle / message reveal styles). LCARD preview workbench consumes this file as a test surface only.",
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
@@ -212,10 +212,23 @@
       "defaultEffectId": "transporter",
       "allowlist": ["none", "pop", "burst", "transporter"],
       "futureAllowlist": ["scan"],
+      "identityModel": {
+        "note": "Named effects define how the glyph resolves, not just the surrounding field.",
+        "fields": {
+          "glyphResolveStyle": "How the glyph itself materializes (fade, overshoot_pop, center_snap, scan_resolve)",
+          "fieldStyle": "Field geometry (none, micro_flash, radial_bloom, vertical_phase)",
+          "particleStyle": "Particle behavior alias (none, tiny_sparks, radial_burst, scanfall)",
+          "messageRevealStyle": "Message timing relative to glyph (fade, quick_follow, post_impact_fade, secondary_scan_fade)"
+        }
+      },
       "effects": {
         "none": {
           "label": "None",
           "effectImpactFloor": 0,
+          "glyphResolveStyle": "fade",
+          "fieldStyle": "none",
+          "particleStyle": "none",
+          "messageRevealStyle": "fade",
           "intent": "Immediate or soft appear/clear — no residual animation",
           "timingMs": {
             "entrance": { "min": 0, "max": 200, "default": 120 },
@@ -228,6 +241,10 @@
         "pop": {
           "label": "Pop",
           "effectImpactFloor": 0.72,
+          "glyphResolveStyle": "overshoot_pop",
+          "fieldStyle": "micro_flash",
+          "particleStyle": "tiny_sparks",
+          "messageRevealStyle": "quick_follow",
           "intent": "Quick punchy entrance/exit — obvious glyph-local pop moment",
           "timingMs": {
             "entrance": { "min": 150, "max": 350, "default": 250 },
@@ -240,6 +257,10 @@
         "burst": {
           "label": "Burst",
           "effectImpactFloor": 0.78,
+          "glyphResolveStyle": "center_snap",
+          "fieldStyle": "radial_bloom",
+          "particleStyle": "radial_burst",
+          "messageRevealStyle": "post_impact_fade",
           "intent": "Size-aware burst entrance/exit — visible contained flare/spark at glyph",
           "timingMs": {
             "entrance": { "min": 500, "max": 900, "default": 700 },
@@ -252,6 +273,10 @@
         "transporter": {
           "label": "Transporter",
           "effectImpactFloor": 0.85,
+          "glyphResolveStyle": "scan_resolve",
+          "fieldStyle": "vertical_phase",
+          "particleStyle": "scanfall",
+          "messageRevealStyle": "secondary_scan_fade",
           "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
           "timingMs": {
             "entrance": { "min": 1200, "max": 1800, "default": 1500 },

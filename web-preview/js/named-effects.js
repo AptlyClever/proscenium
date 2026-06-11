@@ -183,6 +183,42 @@ export function getNamedEffect(contract, effectId) {
             : id === "burst"
               ? 0.78
               : 0.85,
+    glyphResolveStyle:
+      (contractBlock && contractBlock.glyphResolveStyle) ||
+      (id === "none"
+        ? "fade"
+        : id === "pop"
+          ? "overshoot_pop"
+          : id === "burst"
+            ? "center_snap"
+            : "scan_resolve"),
+    fieldStyle:
+      (contractBlock && contractBlock.fieldStyle) ||
+      (id === "none"
+        ? "none"
+        : id === "pop"
+          ? "micro_flash"
+          : id === "burst"
+            ? "radial_bloom"
+            : "vertical_phase"),
+    particleStyle:
+      (contractBlock && contractBlock.particleStyle) ||
+      (id === "none"
+        ? "none"
+        : id === "pop"
+          ? "tiny_sparks"
+          : id === "burst"
+            ? "radial_burst"
+            : "scanfall"),
+    messageRevealStyle:
+      (contractBlock && contractBlock.messageRevealStyle) ||
+      (id === "none"
+        ? "fade"
+        : id === "pop"
+          ? "quick_follow"
+          : id === "burst"
+            ? "post_impact_fade"
+            : "secondary_scan_fade"),
     sequence: contractBlock && contractBlock.sequence ? contractBlock.sequence : null,
   };
 }

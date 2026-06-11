@@ -127,7 +127,7 @@ export function particleCountForBudget(size, phase, effect, mode, params) {
   }
 
   if (effectId === "pop") {
-    maxCount = stable ? 0 : Math.min(8, maxCount);
+    maxCount = stable ? 0 : Math.min(6, maxCount);
   } else if (effectId === "burst") {
     maxCount = stable ? Math.min(4, tier.stableMax) : maxCount;
   } else if (effectId === "transporter" && stable) {
@@ -137,7 +137,10 @@ export function particleCountForBudget(size, phase, effect, mode, params) {
   const density = ((params && params.particleDensity) || 45) / 100;
   let count = Math.round(2 + density * (heavy ? 11 : stable ? 3 : 7));
   if (mode === "spark_burst") {
-    count = Math.round(count * 0.65);
+    count = Math.min(6, Math.round(count * 0.55));
+  }
+  if (mode === "radial_burst") {
+    count = Math.round(count * 0.85);
   }
   if (mode === "none") {
     return 0;
@@ -345,6 +348,16 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   }
 
   const budgetCtx = resolveBudgetContext(effectParams, opts);
+  const fieldStyle =
+    effectParams._fieldStyle ||
+    (opts && opts.fieldStyle) ||
+    (budgetCtx.effect === "burst"
+      ? "radial_bloom"
+      : budgetCtx.effect === "pop"
+        ? "micro_flash"
+        : budgetCtx.effect === "none"
+          ? "none"
+          : "vertical_phase");
   const stable = isStableLifecyclePhase(lifecyclePhase);
 
   const layout = resolveDrawLayout(width, height, opts, effectParams);
@@ -435,22 +448,59 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
     (!materializing || (frame.beamClearT == null || frame.beamClearT < 1));
 
   if (!stable && drawTransportBeam) {
-    drawEventField(
-      ctx,
-      width,
-      height,
-      centerX,
-      podCenterY,
-      roles,
-      field,
-      effectivePresence,
-      glowMul,
-      layout,
-      impactFloor,
-    );
+    if (fieldStyle === "radial_bloom") {
+      drawRadialBloom(
+        ctx,
+        centerX,
+        podCenterY,
+        roles,
+        field,
+        effectivePresence,
+        glowMul,
+        layout,
+        impactFloor,
+        frame && frame.particleStageT != null
+          ? frame.particleStageT
+          : frame && frame.phaseProgress != null
+            ? frame.phaseProgress
+            : 0,
+      );
+    } else if (fieldStyle === "micro_flash") {
+      drawMicroFlash(
+        ctx,
+        centerX,
+        podCenterY,
+        roles,
+        effectivePresence,
+        glowMul,
+        layout,
+        frame && frame.phaseProgress != null ? frame.phaseProgress : 0,
+      );
+    } else if (fieldStyle === "vertical_phase") {
+      drawEventField(
+        ctx,
+        width,
+        height,
+        centerX,
+        podCenterY,
+        roles,
+        field,
+        effectivePresence,
+        glowMul,
+        layout,
+        impactFloor,
+      );
+    }
   }
 
-  if (drawTransportBeam && scaledParams.beamEnabled && scaledParams.beamShape !== "none") {
+  const phaseProgressVal = frame && frame.phaseProgress != null ? frame.phaseProgress : 0;
+
+  if (
+    drawTransportBeam &&
+    fieldStyle === "vertical_phase" &&
+    scaledParams.beamEnabled &&
+    scaledParams.beamShape !== "none"
+  ) {
     drawBeamShape(
       ctx,
       width,
@@ -518,6 +568,64 @@ function beginEffectClip(ctx, w, h, layout) {
 
 function endEffectClip(ctx) {
   endPaintBoxClip(ctx);
+}
+
+/** Glyph-local radial bloom — Burst identity (no vertical column). */
+function drawRadialBloom(ctx, cx, cy, roles, field, presence, glowMul, layout, impactFloor, stageT) {
+  const sz = layout && layout.safeZone ? layout.safeZone : { width: 120, height: 120 };
+  const impactBoost = impactFloor > 0 ? 0.72 + impactFloor * 0.32 : 1;
+  const boxR = Math.min(sz.width, sz.height) * 0.38;
+  const t = stageT != null ? stageT : 0;
+  const bloomT = easeOutCubic(Math.min(1, t * 1.15));
+  const fadeT = t > 0.72 ? 1 - easeInCubic((t - 0.72) / 0.28) : 1;
+  const outerR = boxR * (0.35 + bloomT * 0.42) * impactBoost;
+  const innerR = outerR * 0.08;
+  const glowColor = roles.glow || roles.accent;
+
+  const coreGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+  const coreAlpha =
+    Math.min(0.32, 0.1 + bloomT * 0.2) * presence * glowMul * impactBoost * fadeT;
+  coreGrad.addColorStop(0, hexWithAlpha(glowColor, coreAlpha * 1.2));
+  coreGrad.addColorStop(0.35, hexWithAlpha(roles.accent, coreAlpha * 0.75));
+  coreGrad.addColorStop(0.65, hexWithAlpha(roles.primary, coreAlpha * 0.35));
+  coreGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = coreGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+  ctx.fill();
+
+  const ringR = outerR * (0.55 + bloomT * 0.35);
+  const ringAlpha = bloomT * (1 - bloomT * 0.4) * 0.22 * presence * glowMul * fadeT;
+  ctx.strokeStyle = hexWithAlpha(roles.accent, ringAlpha);
+  ctx.lineWidth = Math.max(1, outerR * 0.04);
+  ctx.beginPath();
+  ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/** Tiny flash ring — Pop identity (glyph-local, no lingering field). */
+function drawMicroFlash(ctx, cx, cy, roles, presence, glowMul, layout, phaseProgress) {
+  const sz = layout && layout.safeZone ? layout.safeZone : { width: 120, height: 120 };
+  const boxR = Math.min(sz.width, sz.height) * 0.22;
+  const peak = phaseProgress < 0.35
+    ? easeOutCubic(phaseProgress / 0.35)
+    : 1 - easeInCubic((phaseProgress - 0.35) / 0.65);
+  const outerR = boxR * (0.4 + peak * 0.35);
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerR);
+  const alpha = peak * 0.24 * presence * glowMul;
+  grad.addColorStop(0, hexWithAlpha(roles.accent, alpha * 1.1));
+  grad.addColorStop(0.5, hexWithAlpha(roles.glow || roles.accent, alpha * 0.45));
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = hexWithAlpha(roles.accent, peak * 0.35 * presence * glowMul);
+  ctx.lineWidth = Math.max(1, outerR * 0.06);
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR * 0.72, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
 /** Glyph-local anticipation glow — capped to Safe Effect Zone. */
@@ -734,6 +842,19 @@ function drawParticles(
         radius = (0.55 + seed * 1.1) * sizeMul * burstT;
         break;
       }
+      case "radial_burst": {
+        const stageT =
+          particleStageT != null ? particleStageT : phaseProgress;
+        const expand = easeOutCubic(Math.min(1, stageT * 1.1));
+        const fade = stageT > 0.65 ? 1 - easeInCubic((stageT - 0.65) / 0.35) : 1;
+        const angle = (i / count) * Math.PI * 2 + seed * 0.55;
+        const dist = expand * boxRFromLayout(layout, w, h) * (0.12 + seed * 0.55);
+        x = cx + Math.cos(angle) * dist;
+        y = cy + Math.sin(angle) * dist * 0.85;
+        alpha = expand * fade * (0.08 + seed * 0.14) * presence * glowNorm;
+        radius = (0.6 + seed * 1.4) * sizeMul * expand * fade;
+        break;
+      }
       case "scanfall": {
         const travel = ((i / count) + phase * speed * 0.95) % 1;
         const baseY = bottom - (bottom - top) * travel;
@@ -809,7 +930,7 @@ function drawParticles(
       lifecyclePhase === "materializing_object") &&
     scanStageT > 0 &&
     scanStageT < 1 &&
-    (mode === "scanfall" || mode === "materialize")
+    mode === "scanfall"
   ) {
     const scanY = top + (bottom - top) * easeOutCubic(scanStageT);
     ctx.fillStyle = hexWithAlpha(
@@ -818,6 +939,11 @@ function drawParticles(
     );
     ctx.fillRect(cx - bw * 0.035, scanY - 0.5, bw * 0.07, 1.5);
   }
+}
+
+function boxRFromLayout(layout, w, h) {
+  const sz = layout && layout.safeZone ? layout.safeZone : { width: w, height: h };
+  return Math.min(sz.width, sz.height) * 0.38;
 }
 
 function hexWithAlpha(hex, alpha) {

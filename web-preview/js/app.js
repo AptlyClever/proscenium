@@ -28,6 +28,7 @@ import {
   resolveScaledEffectParams,
   scaledTypography,
 } from "./effect-config.js";
+import { getNamedEffect } from "./named-effects.js";
 import { validateMessage } from "./message.js";
 import { resolveCompositionBounds } from "./placement.js";
 import {
@@ -1109,9 +1110,14 @@ function renderStaticOverlay(renderOpts) {
 
   syncPresenceReadout(composition.layoutRegions, glyphSize);
 
+  const namedEffect = getNamedEffect(state.contract, state.namedEffectId);
   const effectParamsWithLayout = Object.assign({}, state.scaledEffectParams, {
     _layoutRegions: composition.layoutRegions,
     _effectImpactFloor: resolveEffectImpactFloor(state.contract, state.namedEffectId),
+    _fieldStyle: namedEffect.fieldStyle,
+    _particleStyle: namedEffect.particleStyle,
+    _glyphResolveStyle: namedEffect.glyphResolveStyle,
+    _messageRevealStyle: namedEffect.messageRevealStyle,
   });
 
   state.stopAnimation = createOverlayAnimator(
@@ -1150,6 +1156,7 @@ function renderStaticOverlay(renderOpts) {
       if (stable) {
         els.overlayGlyph.style.transformOrigin = "center center";
         els.overlayGlyph.style.transform = "scale(1)";
+        els.overlayGlyph.style.clipPath = "";
         els.overlayGroup.style.setProperty(
           "--glyph-residual-strength",
           String(state.scaledEffectParams.shimmerIntensity),
@@ -1157,6 +1164,17 @@ function renderStaticOverlay(renderOpts) {
       } else if (entering) {
         els.overlayGlyph.style.transformOrigin = "center center";
         els.overlayGlyph.style.transform = "scale(" + glyphScale + ")";
+        if (
+          frame.glyphResolveStyle === "scan_resolve" &&
+          frame.glyphClipReveal != null &&
+          frame.glyphClipReveal < 1
+        ) {
+          const revealPct = Math.round(frame.glyphClipReveal * 100);
+          els.overlayGlyph.style.clipPath =
+            "inset(" + (100 - revealPct) + "% 0 0 0)";
+        } else {
+          els.overlayGlyph.style.clipPath = "";
+        }
       } else if (exiting && !beamOutSeed) {
         els.overlayGlyph.style.transform = "scale(" + glyphScale + ")";
       } else {
@@ -1180,6 +1198,8 @@ function renderStaticOverlay(renderOpts) {
       effectId: state.namedEffectId,
       layoutRegions: composition.layoutRegions,
       effectImpactFloor: resolveEffectImpactFloor(state.contract, state.namedEffectId),
+      fieldStyle: namedEffect.fieldStyle,
+      glyphResolveStyle: namedEffect.glyphResolveStyle,
     },
   );
 }
@@ -1230,6 +1250,7 @@ function clearOverlayImmediate() {
   els.overlayGroup.style.opacity = "1";
   els.overlayGlyph.style.transform = "scale(1)";
   els.overlayGlyph.style.opacity = "1";
+  els.overlayGlyph.style.clipPath = "";
   els.overlayMessage.style.opacity = "1";
   state.useLifecycle = false;
   state.holdDurationMs = null;

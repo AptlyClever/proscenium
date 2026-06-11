@@ -957,6 +957,12 @@ export function previewVisualPayload(state, contract) {
       intent: selection.named.intent,
       timing: selection.named.timing,
       legacy_preset_id: selection.legacyPresetId,
+      effect_identity: {
+        glyph_resolve_style: selection.named.glyphResolveStyle,
+        field_style: selection.named.fieldStyle,
+        particle_style: selection.named.particleStyle,
+        message_reveal_style: selection.named.messageRevealStyle,
+      },
     },
     preset_presence: {
       label: presence.label,

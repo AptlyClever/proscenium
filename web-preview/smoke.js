@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-glyph-presence-contained-impact",
-  "contract version should be v001-glyph-presence-contained-impact",
+  contract.version === "v001-named-effect-identity-glyph-resolve",
+  "contract version should be v001-named-effect-identity-glyph-resolve",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -162,21 +162,18 @@ assert(
 );
 
 /** Lane 7 — object materialization lifecycle contract + source vocabulary */
-const MATERIALIZATION_PROFILE = "transporter_soft";
-const softProfile =
-  pv.animationProfiles && pv.animationProfiles[MATERIALIZATION_PROFILE];
-assert(softProfile, "transporter_soft animation profile required for materialization");
+const transporterNamed = namedEffectEntry(pv, "transporter");
 assert(
-  softProfile.entrance_style === "beam_materialize",
-  "transporter_soft entrance_style should be beam_materialize",
+  transporterNamed.glyphResolveStyle === "scan_resolve",
+  "transporter named effect glyphResolveStyle should be scan_resolve",
 );
 assert(
-  softProfile.particle_mode_enter === "materialize",
-  "transporter_soft particle_mode_enter should be materialize",
+  transporterNamed.fieldStyle === "vertical_phase",
+  "transporter named effect fieldStyle should be vertical_phase",
 );
 assert(
-  softProfile.exit_style === "beam_dematerialize",
-  "transporter_soft exit_style should be beam_dematerialize",
+  transporterNamed.particleStyle === "scanfall",
+  "transporter named effect particleStyle should be scanfall",
 );
 
 const lifecyclePhases = pv.lifecyclePhases;
@@ -224,8 +221,36 @@ const animationProfileSrc = fs.readFileSync(
 const rendererSrc = fs.readFileSync(path.join(__dirname, "js", "renderer.js"), "utf8");
 
 assert(
-  animationProfileSrc.includes('case "beam_materialize"'),
-  "animation-profile.js should implement beam_materialize entrance",
+  animationProfileSrc.includes("computeGlyphResolve"),
+  "animation-profile.js should implement computeGlyphResolve",
+);
+assert(
+  animationProfileSrc.includes('case "radial_burst"'),
+  "animation-profile.js should implement radial_burst entrance",
+);
+assert(
+  animationProfileSrc.includes("overshoot_pop"),
+  "animation-profile.js should implement overshoot_pop glyph resolve",
+);
+assert(
+  animationProfileSrc.includes("scan_resolve"),
+  "animation-profile.js should implement scan_resolve glyph resolve",
+);
+assert(
+  rendererSrc.includes("drawRadialBloom"),
+  "renderer.js should implement drawRadialBloom for burst identity",
+);
+assert(
+  rendererSrc.includes("drawMicroFlash"),
+  "renderer.js should implement drawMicroFlash for pop identity",
+);
+assert(
+  rendererSrc.includes('case "radial_burst"'),
+  "renderer.js should implement radial_burst particle mode",
+);
+assert(
+  rendererSrc.includes("vertical_phase"),
+  "renderer.js should branch on vertical_phase field style",
 );
 assert(
   animationProfileSrc.includes('case "beam_dematerialize"'),
@@ -388,6 +413,56 @@ assert(
 NAMED_EFFECT_IDS.forEach(function (effectId) {
   const entry = namedEffectEntry(pv, effectId);
   assert(entry, "namedEffects entry required: " + effectId);
+  assert(
+    typeof entry.glyphResolveStyle === "string",
+    effectId + " glyphResolveStyle required",
+  );
+  assert(typeof entry.fieldStyle === "string", effectId + " fieldStyle required");
+  assert(typeof entry.particleStyle === "string", effectId + " particleStyle required");
+  assert(
+    typeof entry.messageRevealStyle === "string",
+    effectId + " messageRevealStyle required",
+  );
+});
+
+const IDENTITY_CANON = {
+  none: {
+    glyphResolveStyle: "fade",
+    fieldStyle: "none",
+    particleStyle: "none",
+    messageRevealStyle: "fade",
+  },
+  pop: {
+    glyphResolveStyle: "overshoot_pop",
+    fieldStyle: "micro_flash",
+    particleStyle: "tiny_sparks",
+    messageRevealStyle: "quick_follow",
+  },
+  burst: {
+    glyphResolveStyle: "center_snap",
+    fieldStyle: "radial_bloom",
+    particleStyle: "radial_burst",
+    messageRevealStyle: "post_impact_fade",
+  },
+  transporter: {
+    glyphResolveStyle: "scan_resolve",
+    fieldStyle: "vertical_phase",
+    particleStyle: "scanfall",
+    messageRevealStyle: "secondary_scan_fade",
+  },
+};
+NAMED_EFFECT_IDS.forEach(function (effectId) {
+  const entry = namedEffectEntry(pv, effectId);
+  const canon = IDENTITY_CANON[effectId];
+  assert(canon, "identity canon for " + effectId);
+  assert(
+    entry.glyphResolveStyle === canon.glyphResolveStyle,
+    effectId + " glyphResolveStyle should be " + canon.glyphResolveStyle,
+  );
+  assert(
+    entry.fieldStyle === canon.fieldStyle,
+    effectId + " fieldStyle should be " + canon.fieldStyle,
+  );
 });
 
 assert(pv.paintBox && pv.paintBox.tiers, "previewVisual.paintBox.tiers required");

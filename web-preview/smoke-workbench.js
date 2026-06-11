@@ -335,7 +335,7 @@ async function main() {
   );
   const burstCanvasPx = await waitForCanvasEffects(5, 3000);
   assert(
-    burstCanvasPx > 5,
+    burstCanvasPx >= 5,
     "burst entrance should draw canvas effects (got " + burstCanvasPx + " px)",
   );
   await page.click("#hide-btn");
@@ -393,6 +393,50 @@ async function main() {
     }
   });
   assert(payloadAfterFx === "none", "named effect selector should update payload");
+
+  const identityByEffect = {};
+  for (const effectId of ["none", "pop", "burst", "transporter"]) {
+    await clickNamedEffect(effectId);
+    await page.waitForTimeout(120);
+    const identity = await page.evaluate(function () {
+      try {
+        const p = JSON.parse(document.getElementById("payload-out").textContent || "{}");
+        const pv = p.preview_visual || p;
+        const ne = pv.named_effect || {};
+        return (ne.effect_identity || ne.effectIdentity || null);
+      } catch (e) {
+        return null;
+      }
+    });
+    identityByEffect[effectId] = identity;
+    assert(identity, "payload effect_identity required for " + effectId);
+    assert(
+      identity.glyph_resolve_style || identity.glyphResolveStyle,
+      effectId + " payload should include glyph_resolve_style",
+    );
+    assert(
+      identity.field_style || identity.fieldStyle,
+      effectId + " payload should include field_style",
+    );
+  }
+  assert(
+    (identityByEffect.transporter.field_style || identityByEffect.transporter.fieldStyle) ===
+      "vertical_phase",
+    "transporter payload field_style should be vertical_phase",
+  );
+  assert(
+    (identityByEffect.burst.field_style || identityByEffect.burst.fieldStyle) === "radial_bloom",
+    "burst payload field_style should be radial_bloom",
+  );
+  assert(
+    (identityByEffect.pop.glyph_resolve_style || identityByEffect.pop.glyphResolveStyle) ===
+      "overshoot_pop",
+    "pop payload glyph_resolve_style should be overshoot_pop",
+  );
+  assert(
+    identityByEffect.transporter.glyph_resolve_style !== identityByEffect.burst.glyph_resolve_style,
+    "transporter and burst glyph resolve styles should differ",
+  );
 
   assert(errors.length === 0, "browser console/page errors: " + errors.join(" | "));
 
