@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-named-effect-identity-glyph-resolve",
-  "contract version should be v001-named-effect-identity-glyph-resolve",
+  contract.version === "v001-effect-glyph-choreography",
+  "contract version should be v001-effect-glyph-choreography",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -221,8 +221,16 @@ const animationProfileSrc = fs.readFileSync(
 const rendererSrc = fs.readFileSync(path.join(__dirname, "js", "renderer.js"), "utf8");
 
 assert(
+  animationProfileSrc.includes("computeChoreographyProgress"),
+  "animation-profile.js should export computeChoreographyProgress",
+);
+assert(
+  animationProfileSrc.includes("resolveChoreographyAnchors"),
+  "animation-profile.js should export resolveChoreographyAnchors",
+);
+assert(
   animationProfileSrc.includes("computeGlyphResolve"),
-  "animation-profile.js should implement computeGlyphResolve",
+  "animation-profile.js should implement choreography-driven computeGlyphResolve",
 );
 assert(
   animationProfileSrc.includes('case "radial_burst"'),
@@ -423,6 +431,10 @@ NAMED_EFFECT_IDS.forEach(function (effectId) {
     typeof entry.messageRevealStyle === "string",
     effectId + " messageRevealStyle required",
   );
+  assert(
+    entry.choreographyAnchors && typeof entry.choreographyAnchors.glyphLockIn === "number",
+    effectId + " choreographyAnchors.glyphLockIn required",
+  );
 });
 
 const IDENTITY_CANON = {
@@ -464,6 +476,38 @@ NAMED_EFFECT_IDS.forEach(function (effectId) {
     effectId + " fieldStyle should be " + canon.fieldStyle,
   );
 });
+
+const CHOREOGRAPHY_CANON = {
+  none: { glyphLockIn: 0.75, glyphImpactPeak: 0.6, messageRevealStart: 0.2 },
+  pop: { glyphLockIn: 0.55, glyphImpactPeak: 0.35, messageRevealStart: 0.55 },
+  burst: { glyphLockIn: 0.68, glyphImpactPeak: 0.52, messageRevealStart: 0.7 },
+  transporter: { glyphLockIn: 0.9, glyphImpactPeak: 0.74, messageRevealStart: 0.82 },
+};
+NAMED_EFFECT_IDS.forEach(function (effectId) {
+  if (effectId === "none") {
+    return;
+  }
+  const entry = namedEffectEntry(pv, effectId);
+  const canon = CHOREOGRAPHY_CANON[effectId];
+  const anchors = entry.choreographyAnchors;
+  assert(anchors.messageRevealStart >= anchors.glyphImpactPeak, effectId + " message should start after glyph impact peak");
+  assert(anchors.glyphLockIn === canon.glyphLockIn, effectId + " glyphLockIn anchor");
+});
+assert(
+  namedEffectEntry(pv, "transporter").choreographyAnchors.glyphLockIn >
+    namedEffectEntry(pv, "burst").choreographyAnchors.glyphLockIn,
+  "transporter glyphLockIn should be later than burst",
+);
+assert(
+  namedEffectEntry(pv, "burst").choreographyAnchors.glyphLockIn >
+    namedEffectEntry(pv, "pop").choreographyAnchors.glyphLockIn,
+  "burst glyphLockIn should be later than pop",
+);
+assert(
+  namedEffectEntry(pv, "transporter").choreographyAnchors.glyphResolveStart >
+    namedEffectEntry(pv, "burst").choreographyAnchors.glyphResolveStart,
+  "transporter glyphResolveStart should be later than burst",
+);
 
 assert(pv.paintBox && pv.paintBox.tiers, "previewVisual.paintBox.tiers required");
 assert(

@@ -438,6 +438,32 @@ async function main() {
     "transporter and burst glyph resolve styles should differ",
   );
 
+  const choreoByEffect = {};
+  for (const effectId of ["pop", "burst", "transporter"]) {
+    await clickNamedEffect(effectId);
+    await page.waitForTimeout(120);
+    choreoByEffect[effectId] = await page.evaluate(function () {
+      try {
+        const p = JSON.parse(document.getElementById("payload-out").textContent || "{}");
+        const pv = p.preview_visual || p;
+        const id = pv.named_effect && pv.named_effect.effect_identity;
+        return id && id.choreography_anchors ? id.choreography_anchors : null;
+      } catch (e) {
+        return null;
+      }
+    });
+    assert(choreoByEffect[effectId], "payload choreography_anchors required for " + effectId);
+    assert(
+      choreoByEffect[effectId].messageRevealStart >= choreoByEffect[effectId].glyphImpactPeak,
+      effectId + " messageRevealStart should be >= glyphImpactPeak",
+    );
+  }
+  assert(
+    choreoByEffect.transporter.glyphLockIn > choreoByEffect.burst.glyphLockIn &&
+      choreoByEffect.burst.glyphLockIn > choreoByEffect.pop.glyphLockIn,
+    "glyphLockIn should increase pop < burst < transporter",
+  );
+
   assert(errors.length === 0, "browser console/page errors: " + errors.join(" | "));
 
   await browser.close();

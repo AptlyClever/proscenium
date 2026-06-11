@@ -1,6 +1,6 @@
 {
-  "version": "v001-named-effect-identity-glyph-resolve",
-  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, glyph presence, named effect identity (glyph resolve / field / particle / message reveal styles). LCARD preview workbench consumes this file as a test surface only.",
+  "version": "v001-effect-glyph-choreography",
+  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, glyph presence, named effect identity, and effect/glyph choreography timing anchors. LCARD preview workbench consumes this file as a test surface only.",
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
@@ -221,6 +221,17 @@
           "messageRevealStyle": "Message timing relative to glyph (fade, quick_follow, post_impact_fade, secondary_scan_fade)"
         }
       },
+      "choreographyModel": {
+        "note": "Effect/glyph/message timing anchors as fractions of entrance_ms (0–1). Glyph resolve is a consequence of the effect timeline.",
+        "fields": {
+          "effectStart": "Field anticipation begins",
+          "glyphResolveStart": "Glyph resolve begins (partial/fragmented first frame)",
+          "glyphImpactPeak": "Perceptual peak — pop overshoot, burst snap, transporter scan midpoint",
+          "glyphLockIn": "Glyph sharpens to stable readable form",
+          "messageRevealStart": "Message reveal begins (after glyph focal moment)",
+          "stableReady": "Entrance choreography complete; stable hold begins"
+        }
+      },
       "effects": {
         "none": {
           "label": "None",
@@ -229,7 +240,14 @@
           "fieldStyle": "none",
           "particleStyle": "none",
           "messageRevealStyle": "fade",
-          "intent": "Immediate or soft appear/clear — no residual animation",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.05,
+            "glyphImpactPeak": 0.6,
+            "glyphLockIn": 0.75,
+            "messageRevealStart": 0.2,
+            "stableReady": 0.85
+          },
           "timingMs": {
             "entrance": { "min": 0, "max": 200, "default": 120 },
             "exit": { "min": 0, "max": 200, "default": 120 },
@@ -245,6 +263,14 @@
           "fieldStyle": "micro_flash",
           "particleStyle": "tiny_sparks",
           "messageRevealStyle": "quick_follow",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.05,
+            "glyphImpactPeak": 0.35,
+            "glyphLockIn": 0.55,
+            "messageRevealStart": 0.55,
+            "stableReady": 0.7
+          },
           "intent": "Quick punchy entrance/exit — obvious glyph-local pop moment",
           "timingMs": {
             "entrance": { "min": 150, "max": 350, "default": 250 },
@@ -261,6 +287,14 @@
           "fieldStyle": "radial_bloom",
           "particleStyle": "radial_burst",
           "messageRevealStyle": "post_impact_fade",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.28,
+            "glyphImpactPeak": 0.52,
+            "glyphLockIn": 0.68,
+            "messageRevealStart": 0.7,
+            "stableReady": 0.88
+          },
           "intent": "Size-aware burst entrance/exit — visible contained flare/spark at glyph",
           "timingMs": {
             "entrance": { "min": 500, "max": 900, "default": 700 },
@@ -277,6 +311,14 @@
           "fieldStyle": "vertical_phase",
           "particleStyle": "scanfall",
           "messageRevealStyle": "secondary_scan_fade",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.42,
+            "glyphImpactPeak": 0.74,
+            "glyphLockIn": 0.9,
+            "messageRevealStart": 0.82,
+            "stableReady": 0.95
+          },
           "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
           "timingMs": {
             "entrance": { "min": 1200, "max": 1800, "default": 1500 },

@@ -409,7 +409,7 @@ function refreshScaledEffectParams() {
   syncPresenceReadout();
 }
 
-function syncPresenceReadout(layoutRegions, glyphVisualPx) {
+function syncPresenceReadout(layoutRegions, glyphVisualPx, animProfile) {
   if (!els.presenceReadout) {
     return;
   }
@@ -425,6 +425,7 @@ function syncPresenceReadout(layoutRegions, glyphVisualPx) {
     state.contract,
     layoutRegions || null,
     glyphVisualPx,
+    animProfile || null,
   );
   els.presenceReadout.textContent = effectHint + "\n" + diagnostics;
 }
@@ -1108,7 +1109,7 @@ function renderStaticOverlay(renderOpts) {
         glyphResidual: state.scaledEffectParams.shimmerIntensity,
       };
 
-  syncPresenceReadout(composition.layoutRegions, glyphSize);
+  syncPresenceReadout(composition.layoutRegions, glyphSize, animProfile);
 
   const namedEffect = getNamedEffect(state.contract, state.namedEffectId);
   const effectParamsWithLayout = Object.assign({}, state.scaledEffectParams, {

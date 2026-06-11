@@ -39,9 +39,45 @@ const DEFAULT_ENTRANCE_STAGES = {
 };
 
 /**
- * Lane 5 — per-named-effect entrance staging (700ms reference scale).
- * Transporter delays glyph/message until transport field is readable.
+ * Lane 5 — per-named-effect choreography anchors (fraction of entrance_ms).
+ * Glyph resolve is driven by effect timeline — not independent fade/pop.
  */
+export const CHOREOGRAPHY_ANCHORS = {
+  none: {
+    effectStart: 0,
+    glyphResolveStart: 0.05,
+    glyphImpactPeak: 0.6,
+    glyphLockIn: 0.75,
+    messageRevealStart: 0.2,
+    stableReady: 0.85,
+  },
+  pop: {
+    effectStart: 0,
+    glyphResolveStart: 0.05,
+    glyphImpactPeak: 0.35,
+    glyphLockIn: 0.55,
+    messageRevealStart: 0.55,
+    stableReady: 0.7,
+  },
+  burst: {
+    effectStart: 0,
+    glyphResolveStart: 0.28,
+    glyphImpactPeak: 0.52,
+    glyphLockIn: 0.68,
+    messageRevealStart: 0.7,
+    stableReady: 0.88,
+  },
+  transporter: {
+    effectStart: 0,
+    glyphResolveStart: 0.42,
+    glyphImpactPeak: 0.74,
+    glyphLockIn: 0.9,
+    messageRevealStart: 0.82,
+    stableReady: 0.95,
+  },
+};
+
+/** @deprecated — derived from choreography anchors at runtime */
 const NAMED_EFFECT_ENTRANCE_STAGES = {
   none: {
     beamSeedEnd: 60,
@@ -185,9 +221,90 @@ export function resolveNamedEffectId(presetOrEffectId) {
   return PRESET_TO_NAMED_EFFECT[presetOrEffectId] || "transporter";
 }
 
-function entranceStagesForProfile(profile) {
+function contractNamedEffectBlock(contract, namedId) {
+  const ne = contract && contract.previewVisual && contract.previewVisual.namedEffects;
+  if (!ne) {
+    return null;
+  }
+  if (ne.effects && ne.effects[namedId]) {
+    return ne.effects[namedId];
+  }
+  return ne[namedId] || null;
+}
+
+/** Resolve effect/glyph/message timing anchors for named effect entrance. */
+export function resolveChoreographyAnchors(profile, contract) {
+  const namedId = profile.named_effect_id || resolveNamedEffectId(profile._preset_id);
+  const base = CHOREOGRAPHY_ANCHORS[namedId] || CHOREOGRAPHY_ANCHORS.transporter;
+  const block = contractNamedEffectBlock(contract, namedId);
+  const fromContract =
+    block && block.choreographyAnchors ? block.choreographyAnchors : null;
+  return Object.assign({}, base, fromContract || {});
+}
+
+function segmentProgress(t, start, end) {
+  if (t <= start) {
+    return 0;
+  }
+  if (t >= end) {
+    return 1;
+  }
+  return (t - start) / Math.max(0.001, end - start);
+}
+
+/** Normalized choreography progress within entrance timeline (0–1). */
+export function computeChoreographyProgress(entranceT, anchors) {
+  const t = clamp01(entranceT);
+  const a = anchors;
+  return {
+    entranceT: t,
+    effectT: segmentProgress(t, a.effectStart, a.glyphImpactPeak),
+    glyphT: segmentProgress(t, a.glyphResolveStart, a.glyphLockIn),
+    peakT: segmentProgress(t, a.glyphResolveStart, a.glyphImpactPeak),
+    lockT: segmentProgress(t, a.glyphImpactPeak, a.glyphLockIn),
+    messageT: segmentProgress(t, a.messageRevealStart, a.stableReady),
+    pastGlyphStart: t >= a.glyphResolveStart,
+    pastImpactPeak: t >= a.glyphImpactPeak,
+    pastLockIn: t >= a.glyphLockIn,
+    pastMessageStart: t >= a.messageRevealStart,
+  };
+}
+
+function entranceStagesFromAnchors(anchors) {
+  const ref = ENTRANCE_STAGE_REF_MS;
+  return {
+    beamSeedEnd: Math.round(anchors.glyphResolveStart * ref),
+    particleStart: Math.round(anchors.effectStart * ref),
+    particleEnd: Math.round(anchors.glyphLockIn * ref),
+    glyphStart: Math.round(anchors.glyphResolveStart * ref),
+    glyphEnd: Math.round(anchors.glyphLockIn * ref),
+    messageStart: Math.round(anchors.messageRevealStart * ref),
+    messageEnd: Math.round(anchors.stableReady * ref),
+    beamClearStart: Math.round(anchors.glyphLockIn * ref),
+  };
+}
+
+export function formatChoreographyReadout(profile, contract) {
+  const a = resolveChoreographyAnchors(profile, contract);
+  return (
+    "choreo peak " +
+    Math.round(a.glyphImpactPeak * 100) +
+    "% · lock " +
+    Math.round(a.glyphLockIn * 100) +
+    "% · msg " +
+    Math.round(a.messageRevealStart * 100) +
+    "%"
+  );
+}
+
+function entranceStagesForProfile(profile, contract) {
   const namedId =
     profile.named_effect_id || resolveNamedEffectId(profile._preset_id);
+  if (CHOREOGRAPHY_ANCHORS[namedId]) {
+    return entranceStagesFromAnchors(
+      resolveChoreographyAnchors(profile, contract || {}),
+    );
+  }
   return (
     NAMED_EFFECT_ENTRANCE_STAGES[namedId] ||
     DEFAULT_ENTRANCE_STAGES
@@ -252,12 +369,10 @@ function beamInTuning(entranceStyle) {
  * Enter-phase semantic sub-phase for beam-in materialization.
  * @returns {{ lifecyclePhase: string, beamClearT: number, inBeamClear: boolean }}
  */
-function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle, stages) {
+function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle, anchors) {
   const tuning = beamInTuning(entranceStyle);
-  const s = stages || DEFAULT_ENTRANCE_STAGES;
-  const glyphStartMs =
-    entranceStageMs(enterMs, s.glyphStart) * tuning.materializeMul;
-  const beamClearStartMs = entranceStageMs(enterMs, s.beamClearStart);
+  const glyphStartMs = enterMs * anchors.glyphResolveStart * tuning.materializeMul;
+  const beamClearStartMs = enterMs * anchors.glyphLockIn;
   const beamClearEndMs = enterMs;
 
   if (enterElapsedMs < glyphStartMs) {
@@ -329,12 +444,17 @@ export function resolvePhaseTimings(profile, contract) {
 
   const entranceMs = profile.entrance_ms;
   const exitMs = profile.exit_ms;
+  const anchors = resolveChoreographyAnchors(profile, contract || {});
+  const choreoBeamIn =
+    CHOREOGRAPHY_ANCHORS[namedId] != null
+      ? Math.round(entranceMs * anchors.glyphResolveStart)
+      : null;
   const beamInSeedMs =
-    profile.beam_in_seed_ms != null
-      ? profile.beam_in_seed_ms
-      : Math.round(
-          entranceMs * (ref.beam_in_seed_ms / ref.entrance_ms),
-        );
+    choreoBeamIn != null
+      ? choreoBeamIn
+      : profile.beam_in_seed_ms != null
+        ? profile.beam_in_seed_ms
+        : Math.round(entranceMs * (ref.beam_in_seed_ms / ref.entrance_ms));
   const beamOutSeedMs =
     profile.beam_out_seed_ms != null
       ? profile.beam_out_seed_ms
@@ -365,17 +485,6 @@ const DEFAULT_PROFILE = {
   glyph_resolve_style: "fade",
   glyph_overshoot: 0,
 };
-
-function contractNamedEffectBlock(contract, namedId) {
-  const ne = contract && contract.previewVisual && contract.previewVisual.namedEffects;
-  if (!ne) {
-    return null;
-  }
-  if (ne.effects && ne.effects[namedId]) {
-    return ne.effects[namedId];
-  }
-  return ne[namedId] || null;
-}
 
 export function getAnimationProfile(contract, presetId) {
   const namedId = resolveNamedEffectId(presetId);
@@ -456,91 +565,82 @@ export function animationProfilePayload(profile, contract) {
     field_style: profile.field_style,
     particle_style: profile.particle_style,
     message_reveal_style: profile.message_reveal_style,
+    choreography_anchors: resolveChoreographyAnchors(profile, contract),
     note: "Preview-only animation profile — Axiom Hails named effect lifecycle",
   };
 }
 
-/** Effect-specific glyph resolve — glyph first, message second. */
-function computeGlyphResolve(glyphT, messageT, profile) {
+/** Effect-specific glyph resolve — driven by choreography anchors, not generic fade. */
+function computeGlyphResolve(choreo, profile, anchors) {
   const style = profile.glyph_resolve_style || "fade";
-  const reveal = profile.message_reveal_style || "fade";
   let glyphAlpha = 0;
-  let glyphScale = 0.76;
+  let glyphScale = 0.72;
   let messageAlpha = 0;
   let glyphClipReveal = 0;
 
+  if (!choreo.pastGlyphStart && style !== "fade") {
+    return { glyphAlpha: 0, glyphScale: 0.72, messageAlpha: 0, glyphClipReveal: 0 };
+  }
+
   switch (style) {
     case "overshoot_pop": {
-      if (glyphT <= 0) {
-        break;
-      }
-      glyphAlpha = easeOutCubic(Math.min(1, glyphT * 2.2));
-      if (glyphT < 0.42) {
-        const t = glyphT / 0.42;
-        glyphScale = 0.76 + easeOutCubic(t) * 0.4;
-      } else if (glyphT < 0.68) {
-        const t = (glyphT - 0.42) / 0.26;
-        glyphScale = 1.16 - easeOutCubic(t) * 0.2;
+      if (choreo.entranceT < anchors.glyphImpactPeak) {
+        const prePeak = choreo.peakT;
+        glyphScale = 0.72 + easeOutCubic(prePeak) * 0.44;
+        glyphAlpha = easeOutCubic(Math.min(1, prePeak * 1.35));
+      } else if (choreo.entranceT < anchors.glyphLockIn) {
+        const settle = choreo.lockT;
+        glyphScale = 1.16 - easeOutCubic(settle) * 0.16;
+        glyphAlpha = 1;
       } else {
-        const t = (glyphT - 0.68) / 0.32;
-        glyphScale = 0.96 + easeOutCubic(t) * 0.04;
+        glyphScale = 1;
+        glyphAlpha = 1;
       }
       break;
     }
     case "center_snap": {
-      if (glyphT <= 0) {
-        break;
-      }
-      const impactT = easeOutCubic(Math.min(1, glyphT * 1.35));
-      glyphAlpha = impactT < 0.22 ? (impactT / 0.22) * 0.45 : 0.45 + easeOutCubic((glyphT - 0.22) / 0.78) * 0.55;
-      if (glyphT < 0.35) {
-        glyphScale = 0.82 + easeOutCubic(glyphT / 0.35) * 0.28;
-      } else if (glyphT < 0.58) {
-        const t = (glyphT - 0.35) / 0.23;
-        glyphScale = 1.1 - easeOutCubic(t) * 0.12;
+      if (choreo.entranceT < anchors.glyphImpactPeak) {
+        glyphAlpha = 0.08 + choreo.peakT * 0.28;
+        glyphScale = 0.78 + choreo.peakT * 0.34;
+      } else if (choreo.entranceT < anchors.glyphLockIn) {
+        const snap = choreo.lockT;
+        glyphAlpha = 0.36 + easeOutCubic(snap) * 0.64;
+        glyphScale = 1.12 - easeOutCubic(snap) * 0.12;
       } else {
-        const t = (glyphT - 0.58) / 0.42;
-        glyphScale = 0.98 + easeOutCubic(t) * 0.02;
+        glyphAlpha = 1;
+        glyphScale = 1;
       }
       break;
     }
     case "scan_resolve": {
-      if (glyphT <= 0) {
-        break;
-      }
-      glyphClipReveal = easeOutCubic(glyphT);
-      glyphAlpha =
-        glyphT < 0.12
-          ? (glyphT / 0.12) * 0.38
-          : 0.38 + easeOutCubic((glyphT - 0.12) / 0.88) * 0.62;
-      glyphScale = 0.86 + easeOutCubic(glyphT) * 0.14;
-      if (glyphT > 0.9) {
-        glyphScale = 1 + (1 - (glyphT - 0.9) / 0.1) * 0.05;
+      glyphClipReveal = easeOutCubic(choreo.glyphT);
+      if (choreo.entranceT < anchors.glyphImpactPeak) {
+        glyphAlpha = 0.08 + choreo.peakT * 0.38;
+        glyphScale = 0.84 + choreo.peakT * 0.08;
+      } else if (choreo.entranceT < anchors.glyphLockIn) {
+        glyphAlpha = 0.46 + easeOutCubic(choreo.lockT) * 0.54;
+        glyphScale = 0.92 + easeOutCubic(choreo.glyphT) * 0.08;
+      } else {
+        glyphAlpha = 1;
+        glyphScale = 1;
       }
       break;
     }
     case "fade":
     default:
-      glyphAlpha = easeOutCubic(glyphT);
-      glyphScale = 0.96 + easeOutCubic(glyphT) * 0.04;
-      glyphClipReveal = easeOutCubic(glyphT);
+      glyphAlpha = easeOutCubic(choreo.glyphT);
+      glyphScale = 0.96 + easeOutCubic(choreo.glyphT) * 0.04;
+      glyphClipReveal = easeOutCubic(choreo.glyphT);
       break;
   }
 
-  switch (reveal) {
-    case "quick_follow":
-      messageAlpha = glyphT > 0.48 ? easeOutCubic(messageT) : 0;
-      break;
-    case "post_impact_fade":
-      messageAlpha = glyphT > 0.62 ? easeOutCubic(messageT) * 0.92 : 0;
-      break;
-    case "secondary_scan_fade":
-      messageAlpha = glyphT > 0.78 ? easeOutCubic(messageT) * 0.88 : 0;
-      break;
-    case "fade":
-    default:
-      messageAlpha = easeOutCubic(messageT);
-      break;
+  if (choreo.pastMessageStart) {
+    messageAlpha = easeOutCubic(choreo.messageT);
+    if (style === "center_snap") {
+      messageAlpha *= 0.92;
+    } else if (style === "scan_resolve") {
+      messageAlpha *= 0.88;
+    }
   }
 
   return { glyphAlpha, glyphScale, messageAlpha, glyphClipReveal };
@@ -553,40 +653,14 @@ function computeEntranceFrame(
   enterMul,
   overshoot,
   objectVisible,
+  contract,
 ) {
+  const anchors = resolveChoreographyAnchors(profile, contract || {});
+  const entranceT = clamp01(enterElapsedMs / enterMs);
+  const choreo = computeChoreographyProgress(entranceT, anchors);
   const tuning = beamInTuning(profile.entrance_style);
-  const stages = entranceStagesForProfile(profile);
-  const t = clamp01(enterElapsedMs / enterMs);
+  const t = entranceT;
   const overall = easeOutCubic(t) * profile.entrance_intensity * enterMul;
-
-  const beamT = stageProgress(
-    enterElapsedMs,
-    enterMs,
-    0,
-    stages.beamSeedEnd * tuning.seedMul,
-    stages,
-  );
-  const particleStageT = stageProgress(
-    enterElapsedMs,
-    enterMs,
-    stages.particleStart,
-    stages.particleEnd,
-    stages,
-  );
-  const glyphT = stageProgress(
-    enterElapsedMs,
-    enterMs,
-    stages.glyphStart,
-    stages.glyphEnd,
-    stages,
-  );
-  const messageT = stageProgress(
-    enterElapsedMs,
-    enterMs,
-    stages.messageStart,
-    stages.messageEnd,
-    stages,
-  );
 
   let beamScale = 1;
   let beamIntensity = 1;
@@ -594,64 +668,63 @@ function computeEntranceFrame(
   let glyphScale = 0.94;
   let messageAlpha = 0;
   let glyphClipReveal = 0;
+  let particleStageT = choreo.effectT;
 
   switch (profile.entrance_style) {
     case "pop_ping": {
-      beamScale = 0.88 + easeOutCubic(beamT) * 0.08;
+      beamScale = 0.86 + easeOutCubic(choreo.effectT) * 0.1;
       beamIntensity =
-        easeOutCubic(beamT) * 0.38 + easeOutCubic(particleStageT) * 0.48;
+        choreo.entranceT < anchors.glyphImpactPeak
+          ? easeOutCubic(choreo.peakT) * 0.55
+          : (1 - choreo.lockT) * 0.35;
+      particleStageT = choreo.entranceT < anchors.glyphImpactPeak ? choreo.peakT : 0;
       break;
     }
     case "radial_burst": {
-      beamScale = 0.52 + easeOutCubic(particleStageT) * 0.28;
-      beamIntensity =
-        easeOutCubic(beamT) * 0.28 + easeOutCubic(particleStageT) * 0.68;
+      beamScale = 0.5 + easeOutCubic(choreo.effectT) * 0.32;
+      if (choreo.entranceT <= anchors.glyphImpactPeak) {
+        beamIntensity = easeOutCubic(choreo.effectT) * 0.32 + easeOutCubic(choreo.peakT) * 0.68;
+        particleStageT = choreo.effectT;
+      } else {
+        beamIntensity = (1 - choreo.lockT) * 0.72;
+        particleStageT = 1 - choreo.lockT * 0.65;
+      }
       break;
     }
     case "achievement_snap": {
-      beamScale =
-        0.84 +
-        easeOutCubic(beamT) * 0.1 +
-        easeOutCubic(particleStageT) * 0.06;
-      beamIntensity =
-        easeOutCubic(beamT) * 0.56 + easeOutCubic(particleStageT) * 0.58;
+      beamScale = 0.84 + easeOutCubic(choreo.effectT) * 0.16;
+      beamIntensity = easeOutCubic(choreo.effectT) * 0.56 + easeOutCubic(choreo.peakT) * 0.58;
       break;
     }
     case "scan_resolve": {
       const scanFlicker =
-        particleStageT > 0 && particleStageT < 1
-          ? Math.sin(particleStageT * Math.PI * 5) * 0.04
+        choreo.effectT > 0 && choreo.effectT < 1
+          ? Math.sin(choreo.effectT * Math.PI * 5) * 0.04
           : 0;
-      beamScale =
-        0.18 +
-        easeOutCubic(beamT) * 0.52 +
-        easeOutCubic(particleStageT) * 0.3;
-      beamIntensity =
-        0.06 +
-        easeOutCubic(beamT) * 0.28 +
-        easeOutCubic(particleStageT) * 0.58 +
-        scanFlicker;
+      if (choreo.entranceT < anchors.glyphResolveStart) {
+        beamScale = 0.14 + easeOutCubic(choreo.effectT) * 0.48;
+        beamIntensity = easeOutCubic(choreo.effectT) * 0.72 + scanFlicker;
+        particleStageT = choreo.effectT;
+      } else {
+        beamScale = 0.62 + easeOutCubic(choreo.glyphT) * 0.28;
+        beamIntensity = 0.72 + easeOutCubic(choreo.glyphT) * 0.28 + scanFlicker;
+        particleStageT = choreo.glyphT;
+      }
       break;
     }
     case "beam_materialize":
-      beamScale =
-        0.16 +
-        easeOutCubic(beamT) * 0.52 +
-        easeOutCubic(particleStageT) * 0.32;
-      beamIntensity =
-        0.08 +
-        easeOutCubic(beamT) * 0.3 +
-        easeOutCubic(particleStageT) * 0.62;
+      beamScale = 0.16 + easeOutCubic(choreo.effectT) * 0.52 + easeOutCubic(choreo.glyphT) * 0.32;
+      beamIntensity = 0.08 + easeOutCubic(choreo.effectT) * 0.3 + easeOutCubic(choreo.glyphT) * 0.62;
       break;
     case "fade":
     default:
-      beamScale = 0.72 + easeOutCubic(beamT) * 0.18;
-      beamIntensity = easeOutCubic(beamT);
+      beamScale = 0.72 + easeOutCubic(choreo.effectT) * 0.18;
+      beamIntensity = easeOutCubic(choreo.glyphT);
       break;
   }
 
   if (objectVisible) {
-    const glyph = computeGlyphResolve(glyphT, messageT, profile);
+    const glyph = computeGlyphResolve(choreo, profile, anchors);
     glyphAlpha = glyph.glyphAlpha;
     glyphScale = glyph.glyphScale;
     messageAlpha = glyph.messageAlpha;
@@ -673,6 +746,8 @@ function computeEntranceFrame(
     glyphClipReveal,
     particleStageT,
     fieldMul: tuning.fieldMul,
+    choreography: choreo,
+    choreographyAnchors: anchors,
   };
 }
 
@@ -912,6 +987,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
       enterMul,
       overshoot,
       false,
+      contract,
     );
     overall = entrance.overall;
     beamScale = entrance.beamScale;
@@ -933,6 +1009,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
       enterMul,
       overshoot,
       true,
+      contract,
     );
     overall = entrance.overall;
     beamScale = entrance.beamScale;
@@ -948,7 +1025,8 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
       enterElapsedMs,
       timings.entranceMs,
       profile.entrance_style,
-      entranceStagesForProfile(profile),
+      entrance.choreographyAnchors ||
+        resolveChoreographyAnchors(profile, contract || {}),
     );
     beamClearT = enterBeam.beamClearT;
     if (enterBeam.inBeamClear) {
@@ -1078,6 +1156,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     glyphResolveStyle: profile.glyph_resolve_style || "fade",
     fieldStyle: profile.field_style || "vertical_phase",
     messageRevealStyle: profile.message_reveal_style || "fade",
+    choreographyAnchors: resolveChoreographyAnchors(profile, contract || {}),
     overallIntensity: Math.max(0, overall),
     holdPulse,
   };

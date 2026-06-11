@@ -1,6 +1,6 @@
 /** Preview-only effect preset, scale grammar, palette roles, and animation metadata. */
 
-import { animationProfilePayload, getAnimationProfile } from "./animation-profile.js";
+import { animationProfilePayload, formatChoreographyReadout, getAnimationProfile } from "./animation-profile.js";
 import {
   getNamedEffect,
   legacyPresetToNamed,
@@ -650,7 +650,7 @@ export function resolveScaledEffectParams(
   };
 }
 
-export function formatWorkbenchDiagnostics(state, contract, layoutRegions, glyphVisualPx) {
+export function formatWorkbenchDiagnostics(state, contract, layoutRegions, glyphVisualPx, animProfile) {
   const effectId = state.namedEffectId || "transporter";
   const effectLabel =
     NAMED_EFFECT_LABELS[effectId] ? NAMED_EFFECT_LABELS[effectId] : effectId;
@@ -665,6 +665,9 @@ export function formatWorkbenchDiagnostics(state, contract, layoutRegions, glyph
     hold,
     "impact " + Math.round(impact * 100) + "%",
   ];
+  if (animProfile) {
+    parts.push(formatChoreographyReadout(animProfile, contract));
+  }
   if (pb) {
     parts.push("box " + Math.round(pb.width) + "×" + Math.round(pb.height));
   }
@@ -962,6 +965,15 @@ export function previewVisualPayload(state, contract) {
         field_style: selection.named.fieldStyle,
         particle_style: selection.named.particleStyle,
         message_reveal_style: selection.named.messageRevealStyle,
+        choreography_anchors:
+          (contract &&
+            contract.previewVisual &&
+            contract.previewVisual.namedEffects &&
+            contract.previewVisual.namedEffects.effects &&
+            contract.previewVisual.namedEffects.effects[selection.namedEffectId] &&
+            contract.previewVisual.namedEffects.effects[selection.namedEffectId]
+              .choreographyAnchors) ||
+          null,
       },
     },
     preset_presence: {
