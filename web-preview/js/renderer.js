@@ -607,25 +607,59 @@ function drawRadialBloom(ctx, cx, cy, roles, field, presence, glowMul, layout, i
 function drawMicroFlash(ctx, cx, cy, roles, presence, glowMul, layout, phaseProgress) {
   const sz = layout && layout.safeZone ? layout.safeZone : { width: 120, height: 120 };
   const boxR = Math.min(sz.width, sz.height) * 0.22;
-  const peak = phaseProgress < 0.35
-    ? easeOutCubic(phaseProgress / 0.35)
-    : 1 - easeInCubic((phaseProgress - 0.35) / 0.65);
-  const outerR = boxR * (0.4 + peak * 0.35);
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, outerR);
-  const alpha = peak * 0.24 * presence * glowMul;
-  grad.addColorStop(0, hexWithAlpha(roles.accent, alpha * 1.1));
-  grad.addColorStop(0.5, hexWithAlpha(roles.glow || roles.accent, alpha * 0.45));
+  const flashPeak =
+    phaseProgress < 0.22
+      ? easeOutCubic(phaseProgress / 0.22)
+      : 1 - easeInCubic((phaseProgress - 0.22) / 0.78);
+  const ringPeak =
+    phaseProgress < 0.12
+      ? easeOutCubic(phaseProgress / 0.12)
+      : phaseProgress < 0.55
+        ? 1 - easeInCubic((phaseProgress - 0.12) / 0.43) * 0.35
+        : 1 - easeInCubic((phaseProgress - 0.55) / 0.45);
+
+  const coreR = boxR * (0.18 + flashPeak * 0.22);
+  const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreR);
+  const coreAlpha = flashPeak * 0.38 * presence * glowMul;
+  coreGrad.addColorStop(0, hexWithAlpha(roles.accent, coreAlpha * 1.2));
+  coreGrad.addColorStop(0.45, hexWithAlpha(roles.glow || roles.accent, coreAlpha * 0.55));
+  coreGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = coreGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+  ctx.fill();
+
+  const outerR = boxR * (0.42 + ringPeak * 0.48);
+  const grad = ctx.createRadialGradient(cx, cy, coreR * 0.6, cx, cy, outerR);
+  const alpha = ringPeak * 0.28 * presence * glowMul;
+  grad.addColorStop(0, hexWithAlpha(roles.accent, alpha * 0.85));
+  grad.addColorStop(0.55, hexWithAlpha(roles.glow || roles.accent, alpha * 0.4));
   grad.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = hexWithAlpha(roles.accent, peak * 0.35 * presence * glowMul);
-  ctx.lineWidth = Math.max(1, outerR * 0.06);
+  ctx.strokeStyle = hexWithAlpha(roles.accent, ringPeak * 0.42 * presence * glowMul);
+  ctx.lineWidth = Math.max(1.2, outerR * 0.055);
   ctx.beginPath();
-  ctx.arc(cx, cy, outerR * 0.72, 0, Math.PI * 2);
+  ctx.arc(cx, cy, outerR * 0.68, 0, Math.PI * 2);
   ctx.stroke();
+
+  const arcCount = 5;
+  const arcSpan = (Math.PI * 2) / arcCount;
+  ctx.lineWidth = Math.max(1, outerR * 0.04);
+  for (let i = 0; i < arcCount; i += 1) {
+    const a0 = i * arcSpan + phaseProgress * 0.4;
+    const a1 = a0 + arcSpan * 0.42;
+    ctx.strokeStyle = hexWithAlpha(
+      roles.accent,
+      ringPeak * 0.32 * presence * glowMul * (0.85 + (i % 2) * 0.15),
+    );
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR * (0.78 + (i % 2) * 0.06), a0, a1);
+    ctx.stroke();
+  }
 }
 
 /** Glyph-local anticipation glow — capped to Safe Effect Zone. */

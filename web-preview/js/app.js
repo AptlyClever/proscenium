@@ -86,6 +86,9 @@ const state = {
   previewTimingPreset: "5s",
   previewHold: false,
   previewCustomDurationMs: 5000,
+  reviewSlowMotion: false,
+  reviewFreezeAtStable: false,
+  reviewAutoTimedExit: true,
 };
 
 const els = {};
@@ -163,6 +166,9 @@ function cacheElements() {
     overlayMessage: document.getElementById("overlay-message"),
     scaleLabel: document.getElementById("scale-label"),
     presenceReadout: document.getElementById("presence-readout"),
+    replayEntranceBtn: document.getElementById("replay-entrance-btn"),
+    replayExitBtn: document.getElementById("replay-exit-btn"),
+    reviewSlowMotionBtn: document.getElementById("review-slow-motion-btn"),
   });
 }
 
@@ -778,8 +784,28 @@ function bindEvents() {
   els.backgroundFile.addEventListener("change", onBackgroundFile);
   els.previewBtn.addEventListener("click", showPreview);
   els.hideBtn.addEventListener("click", function () {
+    state.reviewFreezeAtStable = false;
     hideOverlay(false);
   });
+  if (els.replayEntranceBtn) {
+    els.replayEntranceBtn.addEventListener("click", replayEntrance);
+  }
+  if (els.replayExitBtn) {
+    els.replayExitBtn.addEventListener("click", replayExit);
+  }
+  if (els.reviewSlowMotionBtn) {
+    els.reviewSlowMotionBtn.addEventListener("click", function () {
+      state.reviewSlowMotion = !state.reviewSlowMotion;
+      els.reviewSlowMotionBtn.classList.toggle("active", state.reviewSlowMotion);
+      els.reviewSlowMotionBtn.setAttribute(
+        "aria-pressed",
+        state.reviewSlowMotion ? "true" : "false",
+      );
+      if (!els.overlayGroup.hidden) {
+        renderStaticOverlay({ skipVisualReset: true });
+      }
+    });
+  }
   els.copyPayloadBtn.addEventListener("click", copyPayload);
   window.addEventListener("resize", resizeStage);
   if (typeof ResizeObserver !== "undefined") {
@@ -1092,6 +1118,10 @@ function renderStaticOverlay(renderOpts) {
 
   const animProfile = getAnimationProfile(state.contract, state.effectPreset);
   const holdDurationMs = state.useLifecycle ? state.holdDurationMs : null;
+  const reviewGrammar = Object.assign({}, grammar, {
+    reviewTimeScale: state.reviewSlowMotion ? 0.5 : 1,
+    freezeAtStable: state.reviewFreezeAtStable,
+  });
   const staticFrame = state.useLifecycle
     ? null
     : {
@@ -1128,7 +1158,7 @@ function renderStaticOverlay(renderOpts) {
     state.contract,
     state.lifecycleRef,
     animProfile,
-    grammar,
+    reviewGrammar,
     holdDurationMs,
     function (frame) {
       const stable = isStableLifecyclePhase(frame.phase);
@@ -1178,6 +1208,18 @@ function renderStaticOverlay(renderOpts) {
         }
       } else if (exiting && !beamOutSeed) {
         els.overlayGlyph.style.transform = "scale(" + glyphScale + ")";
+        if (
+          frame.glyphClipReveal != null &&
+          frame.glyphClipReveal < 1 &&
+          (frame.glyphResolveStyle === "scan_resolve" ||
+            state.namedEffectId === "transporter")
+        ) {
+          const revealPct = Math.round(frame.glyphClipReveal * 100);
+          els.overlayGlyph.style.clipPath =
+            "inset(" + (100 - revealPct) + "% 0 0 0)";
+        } else {
+          els.overlayGlyph.style.clipPath = "";
+        }
       } else {
         els.overlayGlyph.style.transform = "scale(1)";
       }
@@ -1192,7 +1234,8 @@ function renderStaticOverlay(renderOpts) {
       clearOverlayImmediate();
     },
     {
-      autoTimedExit: state.useLifecycle,
+      autoTimedExit:
+        state.useLifecycle && state.reviewAutoTimedExit && !state.reviewFreezeAtStable,
       groupBackgroundEnabled: state.groupBgEnabled,
       staticFrame: staticFrame,
       hailSizeTier: state.hailScaleTier,
@@ -1208,9 +1251,38 @@ function renderStaticOverlay(renderOpts) {
 function showPreview() {
   const timing = resolvePreviewTiming(state, state.contract);
   state.useLifecycle = true;
-  state.holdDurationMs = timing.hold ? null : timing.display_duration_ms;
+  state.holdDurationMs = timing.hold ? null : timing.stable_hold_ms;
+  if (!state.reviewFreezeAtStable) {
+    state.reviewAutoTimedExit = !timing.hold;
+  }
   state.pendingLifecycleReset = true;
   renderStaticOverlay();
+}
+
+function replayEntrance() {
+  state.reviewFreezeAtStable = true;
+  state.reviewAutoTimedExit = false;
+  showPreview();
+}
+
+function replayExit() {
+  state.reviewFreezeAtStable = false;
+  state.reviewAutoTimedExit = false;
+  state.holdDurationMs = null;
+  if (els.overlayGroup.hidden) {
+    state.lifecycleRef.reviewSkipToStable = true;
+    showPreview();
+    requestAnimationFrame(function () {
+      requestLifecycleExit(state.lifecycleRef);
+    });
+    return;
+  }
+  state.lifecycleRef.phase = LIFECYCLE_PHASES.STABLE;
+  state.lifecycleRef.stableStart = performance.now();
+  requestLifecycleExit(state.lifecycleRef);
+  if (!state.stopAnimation) {
+    renderStaticOverlay({ skipVisualReset: true });
+  }
 }
 
 function hideOverlay(instant) {

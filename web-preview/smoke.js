@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-effect-glyph-choreography",
-  "contract version should be v001-effect-glyph-choreography",
+  contract.version === "v001-presentation-polish-acceptance-candidate",
+  "contract version should be v001-presentation-polish-acceptance-candidate",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -71,6 +71,15 @@ assert(pv.scaleGrammar && pv.scaleGrammar.tiers.small, "scaleGrammar tiers requi
 assert(
   pv.previewTiming && pv.previewTiming.presets["5s"] === 5000,
   "previewTiming presets required",
+);
+assert(
+  pv.previewTiming.lifecycleModel &&
+    pv.previewTiming.lifecycleModel.stable_hold_ms,
+  "previewTiming.lifecycleModel.stable_hold_ms required",
+);
+assert(
+  pv.previewTiming.note && /additive|separate/i.test(pv.previewTiming.note),
+  "previewTiming note should document additive stable hold",
 );
 assert(
   pv.animationProfiles && pv.animationProfiles.transporter_soft,
@@ -333,6 +342,13 @@ function namedEffectEntry(pv, effectId) {
 
 function resolveTransporterEntranceMs(contract, pv) {
   const named = namedEffectEntry(pv, "transporter");
+  if (
+    named &&
+    named.lifecycleTiming &&
+    typeof named.lifecycleTiming.entrance_animation_ms === "number"
+  ) {
+    return named.lifecycleTiming.entrance_animation_ms;
+  }
   if (named && typeof named.entrance_ms === "number") {
     return named.entrance_ms;
   }
@@ -434,6 +450,12 @@ NAMED_EFFECT_IDS.forEach(function (effectId) {
   assert(
     entry.choreographyAnchors && typeof entry.choreographyAnchors.glyphLockIn === "number",
     effectId + " choreographyAnchors.glyphLockIn required",
+  );
+  assert(
+    entry.lifecycleTiming &&
+      typeof entry.lifecycleTiming.entrance_animation_ms === "number" &&
+      typeof entry.lifecycleTiming.exit_animation_ms === "number",
+    effectId + " lifecycleTiming entrance/exit ms required",
   );
 });
 
@@ -621,8 +643,39 @@ NAMED_EFFECT_IDS.forEach(function (effectId) {
 
 const transporterEntranceMs = resolveTransporterEntranceMs(contract, pv);
 assert(
-  typeof transporterEntranceMs === "number" && transporterEntranceMs >= 1200,
-  "transporter entrance_ms must be >= 1200 (got " + transporterEntranceMs + ")",
+  typeof transporterEntranceMs === "number" && transporterEntranceMs >= 1600,
+  "transporter entrance_ms must be >= 1600 (got " + transporterEntranceMs + ")",
+);
+const transporterExitMs =
+  namedEffectEntry(pv, "transporter").lifecycleTiming.exit_animation_ms;
+assert(
+  typeof transporterExitMs === "number" && transporterExitMs >= 1200,
+  "transporter exit_animation_ms must be >= 1200 (got " + transporterExitMs + ")",
+);
+
+const namedProfilesBlock = animationProfileSrc.split("export const NAMED_EFFECT_PROFILES")[1] || "";
+
+function profileEntranceMs(effectId) {
+  const match = namedProfilesBlock.match(
+    new RegExp("\\n  " + effectId + ": \\{[\\s\\S]*?entrance_ms: (\\d+)"),
+  );
+  return match ? Number(match[1]) : 0;
+}
+function profileExitMs(effectId) {
+  const match = namedProfilesBlock.match(
+    new RegExp("\\n  " + effectId + ": \\{[\\s\\S]*?exit_ms: (\\d+)"),
+  );
+  return match ? Number(match[1]) : 0;
+}
+assert(
+  profileEntranceMs("transporter") > profileEntranceMs("burst") &&
+    profileEntranceMs("burst") > profileEntranceMs("pop"),
+  "entrance_ms should increase pop < burst < transporter",
+);
+assert(
+  profileExitMs("transporter") > profileExitMs("burst") &&
+    profileExitMs("burst") > profileExitMs("pop"),
+  "exit_ms should increase pop < burst < transporter",
 );
 
 const particleBudgetMax = resolveParticleBudgetMax(contract, pv);
@@ -668,6 +721,18 @@ assert(
 assert(
   effectConfigSrc.includes("resolveEffectImpactFloor"),
   "effect-config.js should export resolveEffectImpactFloor",
+);
+assert(
+  effectConfigSrc.includes("resolveLifecycleTiming"),
+  "effect-config.js should export resolveLifecycleTiming",
+);
+assert(
+  effectConfigSrc.includes("stable_hold_ms"),
+  "effect-config.js should expose stable_hold_ms separate from animation",
+);
+assert(
+  effectConfigSrc.includes("total_timed_lifecycle_ms"),
+  "effect-config preview timing should expose total_timed_lifecycle_ms",
 );
 assert(
   appSrc.includes("resolveGlyphVisualSize"),
@@ -742,6 +807,23 @@ assert(
 assert(
   rendererSrc.includes("beginEffectClip") || rendererSrc.includes("safeZone"),
   "renderer.js should clip/fade effects to Safe Effect Zone",
+);
+assert(
+  /Replay entrance|replay-entrance-btn/i.test(indexHtml),
+  "index.html should expose Replay entrance review helper",
+);
+assert(
+  /Replay exit|replay-exit-btn/i.test(indexHtml),
+  "index.html should expose Replay exit review helper",
+);
+assert(
+  /Slow 50%|review-slow-motion-btn/i.test(indexHtml),
+  "index.html should expose Slow 50% review helper",
+);
+assert(
+  animationProfileSrc.includes("freezeAtStable") ||
+    animationProfileSrc.includes("reviewTimeScale"),
+  "animation-profile.js should support workbench review time scale / freeze",
 );
 assert(
   rendererSrc.includes("const bh = beam.bh"),

@@ -367,11 +367,43 @@ async function main() {
     },
     { timeout: 5000 },
   );
-  await page.waitForTimeout(8500);
+  const lifecycleWaitMs = await page.evaluate(function () {
+    try {
+      const p = JSON.parse(document.getElementById("payload-out").textContent || "{}");
+      const pt = (p.preview_visual && p.preview_visual.preview_timing) || {};
+      const entrance = pt.entrance_animation_ms || 1900;
+      const stable = pt.stable_hold_ms || 5000;
+      const exit = pt.exit_animation_ms || 1400;
+      return entrance + stable + exit + 800;
+    } catch (e) {
+      return 9000;
+    }
+  });
+  const timingPayload = await page.evaluate(function () {
+    try {
+      const p = JSON.parse(document.getElementById("payload-out").textContent || "{}");
+      return (p.preview_visual && p.preview_visual.preview_timing) || {};
+    } catch (e) {
+      return {};
+    }
+  });
+  assert(
+    timingPayload.stable_hold_ms === 5000,
+    "5s preset should map to stable_hold_ms=5000 (got " + timingPayload.stable_hold_ms + ")",
+  );
+  assert(
+    timingPayload.entrance_animation_ms > timingPayload.exit_animation_ms / 2,
+    "entrance_animation_ms should be present in preview_timing payload",
+  );
+  assert(
+    timingPayload.total_timed_lifecycle_ms >= 8000,
+    "total_timed_lifecycle_ms should include entrance + stable + exit",
+  );
+  await page.waitForTimeout(lifecycleWaitMs);
   const timedCleared = await page.evaluate(function () {
     return document.getElementById("overlay-group").hidden;
   });
-  assert(timedCleared, "timed 5s preview should auto-clear without Hide");
+  assert(timedCleared, "timed 5s preview should auto-clear after entrance + stable hold + exit");
 
   await clickNamedEffect("none");
   await page.click("#preview-btn");

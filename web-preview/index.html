@@ -224,6 +224,13 @@
               <span>Show Paint Box</span>
             </label>
             <p class="field-hint">Workbench debug — outlines the bounded Hail drawing area.</p>
+            <p class="field-label">Review helpers</p>
+            <div class="review-tools" role="group" aria-label="Animation review helpers">
+              <button type="button" id="replay-entrance-btn" class="btn-ghost">Replay entrance</button>
+              <button type="button" id="replay-exit-btn" class="btn-ghost">Replay exit</button>
+              <button type="button" id="review-slow-motion-btn" class="btn-ghost segmented-btn" aria-pressed="false">Slow 50%</button>
+            </div>
+            <p class="field-hint">Workbench-only — replay entrance/exit or slow entrance/exit animation.</p>
             <p id="presence-readout" class="presence-readout" aria-live="polite" title="Named effect presence"></p>
             <details id="payload-details" class="payload-details">
               <summary>Payload JSON</summary>

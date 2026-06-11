@@ -903,18 +903,43 @@ export function resolvePreviewTiming(state, contract) {
   return {
     preset: preset,
     hold: hold,
+    stable_hold_ms: hold ? null : durationMs,
     display_duration_ms: hold ? null : durationMs,
     duration_ms_for_payload: durationMs,
   };
 }
 
-export function previewTimingPayload(state, contract) {
+/** Separated lifecycle timing — stable hold is additive to entrance/exit animation. */
+export function resolveLifecycleTiming(state, contract, presetId) {
   const timing = resolvePreviewTiming(state, contract);
+  const profile = getAnimationProfile(contract, presetId || state.effectPreset);
+  const entrance = profile.entrance_ms;
+  const exit = profile.exit_ms;
+  const stableHold = timing.stable_hold_ms;
   return {
     preset: timing.preset,
     hold: timing.hold,
+    entrance_animation_ms: entrance,
+    stable_hold_ms: stableHold,
+    exit_animation_ms: exit,
+    total_timed_lifecycle_ms:
+      timing.hold || stableHold == null ? null : entrance + stableHold + exit,
+    note: "Preset duration maps to stable_hold_ms only; entrance and exit are additive",
+  };
+}
+
+export function previewTimingPayload(state, contract) {
+  const timing = resolvePreviewTiming(state, contract);
+  const lifecycle = resolveLifecycleTiming(state, contract, state.effectPreset);
+  return {
+    preset: timing.preset,
+    hold: timing.hold,
+    stable_hold_ms: timing.stable_hold_ms,
     display_duration_ms: timing.display_duration_ms,
-    note: "Workbench-only preview timing",
+    entrance_animation_ms: lifecycle.entrance_animation_ms,
+    exit_animation_ms: lifecycle.exit_animation_ms,
+    total_timed_lifecycle_ms: lifecycle.total_timed_lifecycle_ms,
+    note: "Workbench-only preview timing — stable hold separate from entrance/exit animation",
   };
 }
 

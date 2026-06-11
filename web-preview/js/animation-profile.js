@@ -126,14 +126,14 @@ export const NAMED_EFFECT_PROFILES = {
   none: {
     named_effect_id: "none",
     entrance_style: "fade",
-    entrance_ms: 200,
+    entrance_ms: 250,
     entrance_intensity: 0.82,
-    beam_in_seed_ms: 36,
+    beam_in_seed_ms: 40,
     hold_motion: "drift",
     exit_style: "fade",
-    exit_ms: 160,
+    exit_ms: 200,
     exit_intensity: 0.82,
-    beam_out_seed_ms: 32,
+    beam_out_seed_ms: 36,
     particle_mode_enter: "drift",
     particle_mode_hold: "drift",
     particle_mode_exit: "collapse",
@@ -146,14 +146,14 @@ export const NAMED_EFFECT_PROFILES = {
   pop: {
     named_effect_id: "pop",
     entrance_style: "pop_ping",
-    entrance_ms: 280,
-    entrance_intensity: 1.02,
-    beam_in_seed_ms: 72,
+    entrance_ms: 400,
+    entrance_intensity: 1.06,
+    beam_in_seed_ms: 80,
     hold_motion: "drift",
     exit_style: "snap_out",
-    exit_ms: 220,
-    exit_intensity: 1,
-    beam_out_seed_ms: 68,
+    exit_ms: 300,
+    exit_intensity: 1.02,
+    beam_out_seed_ms: 72,
     particle_mode_enter: "spark_burst",
     particle_mode_hold: "drift",
     particle_mode_exit: "collapse",
@@ -166,14 +166,14 @@ export const NAMED_EFFECT_PROFILES = {
   burst: {
     named_effect_id: "burst",
     entrance_style: "radial_burst",
-    entrance_ms: 700,
+    entrance_ms: 780,
     entrance_intensity: 1.08,
-    beam_in_seed_ms: 180,
+    beam_in_seed_ms: 200,
     hold_motion: "pulse",
     exit_style: "particle_dissolve",
-    exit_ms: 520,
+    exit_ms: 560,
     exit_intensity: 1.04,
-    beam_out_seed_ms: 150,
+    beam_out_seed_ms: 160,
     particle_mode_enter: "radial_burst",
     particle_mode_hold: "drift",
     particle_mode_exit: "collapse",
@@ -186,14 +186,14 @@ export const NAMED_EFFECT_PROFILES = {
   transporter: {
     named_effect_id: "transporter",
     entrance_style: "scan_resolve",
-    entrance_ms: 1500,
-    entrance_intensity: 1,
-    beam_in_seed_ms: 720,
+    entrance_ms: 1900,
+    entrance_intensity: 1.08,
+    beam_in_seed_ms: 800,
     hold_motion: "drift",
     exit_style: "beam_dematerialize",
-    exit_ms: 1150,
-    exit_intensity: 1,
-    beam_out_seed_ms: 380,
+    exit_ms: 1400,
+    exit_intensity: 1.04,
+    beam_out_seed_ms: 420,
     particle_mode_enter: "scanfall",
     particle_mode_hold: "drift",
     particle_mode_exit: "scanfall",
@@ -509,6 +509,13 @@ export function getAnimationProfile(contract, presetId) {
           contractNamed.messageRevealStyle || contractNamed.message_reveal_style,
       }
     : {};
+  const lifecycleFromContract =
+    contractNamed && contractNamed.lifecycleTiming
+      ? {
+          entrance_ms: contractNamed.lifecycleTiming.entrance_animation_ms,
+          exit_ms: contractNamed.lifecycleTiming.exit_animation_ms,
+        }
+      : {};
 
   return Object.assign(
     {},
@@ -517,6 +524,7 @@ export function getAnimationProfile(contract, presetId) {
     namedBase,
     contractNamedProfile,
     identityFromContract,
+    lifecycleFromContract,
     {
       named_effect_id: namedId,
       _preset_id: presetId,
@@ -548,12 +556,14 @@ export function animationProfilePayload(profile, contract) {
     named_effect_id: profile.named_effect_id || resolveNamedEffectId(profile._preset_id),
     entrance_style: profile.entrance_style,
     entrance_ms: profile.entrance_ms,
+    entrance_animation_ms: profile.entrance_ms,
     entrance_intensity: profile.entrance_intensity,
     beam_in_seed_ms: timings.beamInSeedMs,
     materializing_ms: timings.materializingMs,
     hold_motion: profile.hold_motion,
     exit_style: profile.exit_style,
     exit_ms: profile.exit_ms,
+    exit_animation_ms: profile.exit_ms,
     exit_intensity: profile.exit_intensity,
     beam_out_seed_ms: timings.beamOutSeedMs,
     dematerializing_ms: timings.dematerializingMs,
@@ -586,11 +596,15 @@ function computeGlyphResolve(choreo, profile, anchors) {
     case "overshoot_pop": {
       if (choreo.entranceT < anchors.glyphImpactPeak) {
         const prePeak = choreo.peakT;
-        glyphScale = 0.72 + easeOutCubic(prePeak) * 0.44;
-        glyphAlpha = easeOutCubic(Math.min(1, prePeak * 1.35));
+        glyphScale = 0.72 + easeOutCubic(prePeak) * 0.46;
+        glyphAlpha = easeOutCubic(Math.min(1, prePeak * 1.4));
       } else if (choreo.entranceT < anchors.glyphLockIn) {
         const settle = choreo.lockT;
-        glyphScale = 1.16 - easeOutCubic(settle) * 0.16;
+        glyphScale = 1.18 - easeOutCubic(settle) * 0.22;
+        glyphAlpha = 1;
+      } else if (choreo.entranceT < anchors.stableReady) {
+        const micro = segmentProgress(choreo.entranceT, anchors.glyphLockIn, anchors.stableReady);
+        glyphScale = 0.96 + easeOutCubic(micro) * 0.04;
         glyphAlpha = 1;
       } else {
         glyphScale = 1;
@@ -600,12 +614,16 @@ function computeGlyphResolve(choreo, profile, anchors) {
     }
     case "center_snap": {
       if (choreo.entranceT < anchors.glyphImpactPeak) {
-        glyphAlpha = 0.08 + choreo.peakT * 0.28;
-        glyphScale = 0.78 + choreo.peakT * 0.34;
+        glyphAlpha = 0.06 + choreo.peakT * 0.32;
+        glyphScale = 0.78 + choreo.peakT * 0.38;
       } else if (choreo.entranceT < anchors.glyphLockIn) {
         const snap = choreo.lockT;
-        glyphAlpha = 0.36 + easeOutCubic(snap) * 0.64;
-        glyphScale = 1.12 - easeOutCubic(snap) * 0.12;
+        glyphAlpha = 0.32 + easeOutCubic(snap) * 0.68;
+        glyphScale = 1.06 - easeOutCubic(snap) * 0.06;
+      } else if (choreo.entranceT < anchors.stableReady) {
+        const settle = segmentProgress(choreo.entranceT, anchors.glyphLockIn, anchors.stableReady);
+        glyphScale = 1 - easeOutCubic(settle) * 0.04;
+        glyphAlpha = 1;
       } else {
         glyphAlpha = 1;
         glyphScale = 1;
@@ -614,11 +632,14 @@ function computeGlyphResolve(choreo, profile, anchors) {
     }
     case "scan_resolve": {
       glyphClipReveal = easeOutCubic(choreo.glyphT);
-      if (choreo.entranceT < anchors.glyphImpactPeak) {
-        glyphAlpha = 0.08 + choreo.peakT * 0.38;
-        glyphScale = 0.84 + choreo.peakT * 0.08;
+      if (choreo.entranceT < anchors.glyphResolveStart + 0.08) {
+        glyphAlpha = 0.04 + choreo.peakT * 0.12;
+        glyphScale = 0.82 + choreo.peakT * 0.04;
+      } else if (choreo.entranceT < anchors.glyphImpactPeak) {
+        glyphAlpha = 0.1 + choreo.peakT * 0.28;
+        glyphScale = 0.86 + choreo.peakT * 0.06;
       } else if (choreo.entranceT < anchors.glyphLockIn) {
-        glyphAlpha = 0.46 + easeOutCubic(choreo.lockT) * 0.54;
+        glyphAlpha = 0.38 + easeOutCubic(choreo.lockT) * 0.62;
         glyphScale = 0.92 + easeOutCubic(choreo.glyphT) * 0.08;
       } else {
         glyphAlpha = 1;
@@ -702,13 +723,17 @@ function computeEntranceFrame(
           ? Math.sin(choreo.effectT * Math.PI * 5) * 0.04
           : 0;
       if (choreo.entranceT < anchors.glyphResolveStart) {
-        beamScale = 0.14 + easeOutCubic(choreo.effectT) * 0.48;
-        beamIntensity = easeOutCubic(choreo.effectT) * 0.72 + scanFlicker;
+        beamScale = 0.1 + easeOutCubic(choreo.effectT) * 0.52;
+        beamIntensity = easeOutCubic(choreo.effectT) * 0.82 + scanFlicker;
         particleStageT = choreo.effectT;
-      } else {
-        beamScale = 0.62 + easeOutCubic(choreo.glyphT) * 0.28;
-        beamIntensity = 0.72 + easeOutCubic(choreo.glyphT) * 0.28 + scanFlicker;
+      } else if (choreo.entranceT < anchors.glyphImpactPeak) {
+        beamScale = 0.58 + easeOutCubic(choreo.glyphT) * 0.22;
+        beamIntensity = 0.68 + easeOutCubic(choreo.glyphT) * 0.32 + scanFlicker;
         particleStageT = choreo.glyphT;
+      } else {
+        beamScale = 0.8 + easeOutCubic(choreo.lockT) * 0.12;
+        beamIntensity = 0.88 + (1 - easeOutCubic(choreo.lockT)) * 0.12 + scanFlicker;
+        particleStageT = choreo.lockT;
       }
       break;
     }
@@ -758,25 +783,50 @@ function computeDematerializingFrame(t, profile, exitMul) {
   let glyphAlpha = 1;
   let glyphScale = 1;
   let messageAlpha = 1;
+  let glyphClipReveal = 1;
 
   switch (profile.exit_style) {
-    case "snap_out":
-      beamScale = 1 - easeInCubic(t) * 0.35;
-      beamIntensity = 1 - easeInCubic(t);
-      glyphAlpha = 1 - easeInCubic(Math.min(1, t * 1.5));
-      glyphScale = 1 - easeInCubic(t) * 0.12;
-      messageAlpha = t < 0.2 ? 1 - t / 0.2 : 0;
+    case "snap_out": {
+      messageAlpha = t < 0.14 ? 1 - easeInCubic(t / 0.14) : 0;
+      if (t < 0.18) {
+        glyphAlpha = 1;
+        glyphScale = 1;
+      } else if (t < 0.52) {
+        const pop = (t - 0.18) / 0.34;
+        glyphScale = 1 + easeOutCubic(Math.min(1, pop * 0.55)) * 0.1;
+        glyphAlpha = 1 - easeInCubic(pop) * 0.35;
+      } else {
+        const collapse = (t - 0.52) / 0.48;
+        glyphScale = 1.1 - easeInCubic(collapse) * 0.38;
+        glyphAlpha = 0.65 - easeInCubic(collapse) * 0.65;
+      }
+      beamScale = 1 - easeInCubic(t) * 0.42;
+      beamIntensity = (1 - easeInCubic(t)) * 0.55;
       break;
-    case "beam_dematerialize":
-      beamScale = 1 - easeInCubic(Math.min(1, t * 1.35)) * 0.78;
-      beamIntensity = t < 0.6 ? 1 - easeInCubic(t / 0.6) : 0;
-      messageAlpha =
-        t < 0.4
-          ? 1 - easeInCubic(t / 0.4) * 0.55
-          : 1 - easeInCubic((t - 0.4) / 0.6);
-      glyphAlpha = t < 0.48 ? 1 : 1 - easeInCubic((t - 0.48) / 0.52);
-      glyphScale = 1 - easeInCubic(t) * 0.07;
+    }
+    case "beam_dematerialize": {
+      messageAlpha = t < 0.12 ? 1 - easeInCubic(t / 0.12) : 0;
+      if (t < 0.14) {
+        glyphAlpha = 1;
+        glyphScale = 1;
+        glyphClipReveal = 1;
+      } else if (t < 0.52) {
+        const frag = (t - 0.14) / 0.38;
+        glyphClipReveal = 1 - easeInCubic(frag);
+        glyphAlpha = 1 - easeInCubic(frag) * 0.55;
+        glyphScale = 1 - easeInCubic(frag) * 0.08;
+        beamIntensity = 0.35 + easeOutCubic(frag) * 0.55;
+        beamScale = 0.92 + easeOutCubic(frag) * 0.18;
+      } else {
+        const pull = (t - 0.52) / 0.48;
+        glyphClipReveal = 0;
+        glyphAlpha = 0.45 - easeInCubic(pull) * 0.45;
+        glyphScale = 0.92 - easeInCubic(pull) * 0.22;
+        beamIntensity = 0.9 - easeInCubic(pull) * 0.9;
+        beamScale = 1.1 - easeInCubic(pull) * 0.82;
+      }
       break;
+    }
     case "collapse_to_scan": {
       const scanT = easeInCubic(t);
       beamScale = 1 - scanT * 0.88;
@@ -815,6 +865,7 @@ function computeDematerializingFrame(t, profile, exitMul) {
     glyphAlpha,
     glyphScale,
     messageAlpha,
+    glyphClipReveal,
   };
 }
 
@@ -829,7 +880,8 @@ function computeBeamOutSeedFrame(t, profile, exitMul) {
       beamScale = 1 + rise * 0.14;
       break;
     case "beam_dematerialize":
-      beamScale = 1 + rise * 0.24;
+      beamScale = 1 + rise * 0.28;
+      beamIntensity = rise * peak * 0.72;
       break;
     case "collapse_to_scan":
       beamScale = 1 + rise * 0.18;
@@ -875,19 +927,32 @@ export function advanceLifecycle(
     };
   }
 
+  if (lifecycleRef.reviewSkipToStable) {
+    lifecycleRef.phase = LIFECYCLE_PHASES.STABLE;
+    lifecycleRef.stableStart = now;
+    lifecycleRef.reviewSkipToStable = false;
+  }
+
   const timings = resolvePhaseTimings(profile, contract);
-  const elapsed = now - lifecycleRef.start;
+  const animScale =
+    grammar && grammar.reviewTimeScale != null && grammar.reviewTimeScale > 0
+      ? grammar.reviewTimeScale
+      : 1;
+  const freezeAtStable = Boolean(grammar && grammar.freezeAtStable);
+  const entranceElapsed = (now - lifecycleRef.start) * animScale;
+  const exitElapsed =
+    lifecycleRef.exitStart != null ? (now - lifecycleRef.exitStart) * animScale : 0;
 
   if (
     lifecycleRef.phase === LIFECYCLE_PHASES.BEAM_IN_SEED &&
-    elapsed >= timings.beamInSeedMs
+    entranceElapsed >= timings.beamInSeedMs
   ) {
     lifecycleRef.phase = LIFECYCLE_PHASES.MATERIALIZING;
   }
 
   if (
     lifecycleRef.phase === LIFECYCLE_PHASES.MATERIALIZING &&
-    elapsed >= timings.entranceMs
+    entranceElapsed >= timings.entranceMs
   ) {
     lifecycleRef.phase = LIFECYCLE_PHASES.STABLE;
     lifecycleRef.stableStart = now;
@@ -895,6 +960,7 @@ export function advanceLifecycle(
 
   if (
     autoTimedExit &&
+    !freezeAtStable &&
     lifecycleRef.phase === LIFECYCLE_PHASES.STABLE &&
     holdDurationMs != null &&
     lifecycleRef.stableStart != null &&
@@ -908,7 +974,6 @@ export function advanceLifecycle(
     lifecycleRef.phase === LIFECYCLE_PHASES.BEAM_OUT_SEED &&
     lifecycleRef.exitStart != null
   ) {
-    const exitElapsed = now - lifecycleRef.exitStart;
     if (exitElapsed >= timings.beamOutSeedMs) {
       lifecycleRef.phase = LIFECYCLE_PHASES.DEMATERIALIZING;
     }
@@ -918,7 +983,6 @@ export function advanceLifecycle(
     lifecycleRef.phase === LIFECYCLE_PHASES.DEMATERIALIZING &&
     lifecycleRef.exitStart != null
   ) {
-    const exitElapsed = now - lifecycleRef.exitStart;
     if (exitElapsed >= timings.exitMs) {
       lifecycleRef.phase = LIFECYCLE_PHASES.CLEARED;
       return {
@@ -958,6 +1022,10 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
   const exitMul = (grammar && grammar.exitIntensityMul) || 1;
   const overshoot = profile.glyph_overshoot || 0;
   const timings = resolvePhaseTimings(profile, contract);
+  const animScale =
+    grammar && grammar.reviewTimeScale != null && grammar.reviewTimeScale > 0
+      ? grammar.reviewTimeScale
+      : 1;
 
   const phase = lifecycleRef.phase;
   let beamScale = 1;
@@ -978,7 +1046,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
   let glyphClipReveal = 1;
 
   if (phase === LIFECYCLE_PHASES.BEAM_IN_SEED) {
-    enterElapsedMs = now - lifecycleRef.start;
+    enterElapsedMs = (now - lifecycleRef.start) * animScale;
     particleMode = profile.particle_mode_enter;
     const entrance = computeEntranceFrame(
       enterElapsedMs,
@@ -1000,7 +1068,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     particleStageT = entrance.particleStageT;
     beamActive = beamIntensity > 0.02;
   } else if (phase === LIFECYCLE_PHASES.MATERIALIZING) {
-    enterElapsedMs = now - lifecycleRef.start;
+    enterElapsedMs = (now - lifecycleRef.start) * animScale;
     particleMode = profile.particle_mode_enter;
     const entrance = computeEntranceFrame(
       enterElapsedMs,
@@ -1060,7 +1128,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     }
     overall = holdPulse;
   } else if (phase === LIFECYCLE_PHASES.BEAM_OUT_SEED) {
-    const exitElapsed = now - lifecycleRef.exitStart;
+    const exitElapsed = (now - lifecycleRef.exitStart) * animScale;
     const t = clamp01(exitElapsed / timings.beamOutSeedMs);
     particleMode = profile.particle_mode_enter;
     objectLocked = true;
@@ -1072,7 +1140,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     glyphScale = seed.glyphScale;
     messageAlpha = seed.messageAlpha;
   } else if (phase === LIFECYCLE_PHASES.DEMATERIALIZING) {
-    const exitElapsed = now - lifecycleRef.exitStart;
+    const exitElapsed = (now - lifecycleRef.exitStart) * animScale;
     const phaseElapsed = exitElapsed - timings.beamOutSeedMs;
     const t = clamp01(phaseElapsed / timings.dematerializingMs);
     particleMode = profile.particle_mode_exit;
@@ -1083,21 +1151,24 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
     glyphAlpha = demat.glyphAlpha;
     glyphScale = demat.glyphScale;
     messageAlpha = demat.messageAlpha;
+    glyphClipReveal = demat.glyphClipReveal != null ? demat.glyphClipReveal : 1;
+    beamActive = beamIntensity > 0.02;
   }
 
   let phaseProgress = 0;
   if (phase === LIFECYCLE_PHASES.BEAM_IN_SEED) {
-    phaseProgress = clamp01((now - lifecycleRef.start) / timings.beamInSeedMs);
+    phaseProgress = clamp01(((now - lifecycleRef.start) * animScale) / timings.beamInSeedMs);
   } else if (phase === LIFECYCLE_PHASES.MATERIALIZING) {
-    const matElapsed = now - lifecycleRef.start - timings.beamInSeedMs;
+    const matElapsed = (now - lifecycleRef.start) * animScale - timings.beamInSeedMs;
     phaseProgress = clamp01(matElapsed / timings.materializingMs);
   } else if (phase === LIFECYCLE_PHASES.STABLE && lifecycleRef.stableStart != null) {
     phaseProgress = clamp01((now - lifecycleRef.stableStart) / 1200);
   } else if (phase === LIFECYCLE_PHASES.BEAM_OUT_SEED && lifecycleRef.exitStart != null) {
-    phaseProgress = clamp01((now - lifecycleRef.exitStart) / timings.beamOutSeedMs);
+    phaseProgress = clamp01(((now - lifecycleRef.exitStart) * animScale) / timings.beamOutSeedMs);
     particleStageT = 1 - phaseProgress;
   } else if (phase === LIFECYCLE_PHASES.DEMATERIALIZING && lifecycleRef.exitStart != null) {
-    const dematElapsed = now - lifecycleRef.exitStart - timings.beamOutSeedMs;
+    const dematElapsed =
+      (now - lifecycleRef.exitStart) * animScale - timings.beamOutSeedMs;
     phaseProgress = clamp01(dematElapsed / timings.dematerializingMs);
   }
 

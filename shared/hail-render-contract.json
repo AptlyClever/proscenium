@@ -1,6 +1,6 @@
 {
-  "version": "v001-effect-glyph-choreography",
-  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, glyph presence, named effect identity, and effect/glyph choreography timing anchors. LCARD preview workbench consumes this file as a test surface only.",
+  "version": "v001-presentation-polish-acceptance-candidate",
+  "description": "Axiom-owned Hails render contract — presentation polish acceptance candidate with separated entrance/stable-hold/exit lifecycle timing. LCARD preview workbench consumes this file as a test surface only.",
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
@@ -248,9 +248,13 @@
             "messageRevealStart": 0.2,
             "stableReady": 0.85
           },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 250,
+            "exit_animation_ms": 200
+          },
           "timingMs": {
-            "entrance": { "min": 0, "max": 200, "default": 120 },
-            "exit": { "min": 0, "max": 200, "default": 120 },
+            "entrance": { "min": 0, "max": 300, "default": 250 },
+            "exit": { "min": 0, "max": 250, "default": 200 },
             "stable": "static"
           },
           "particles": { "entranceMax": 0, "exitMax": 0, "stableMax": 0 },
@@ -271,10 +275,14 @@
             "messageRevealStart": 0.55,
             "stableReady": 0.7
           },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 400,
+            "exit_animation_ms": 300
+          },
           "intent": "Quick punchy entrance/exit — obvious glyph-local pop moment",
           "timingMs": {
-            "entrance": { "min": 150, "max": 350, "default": 250 },
-            "exit": { "min": 150, "max": 300, "default": 220 },
+            "entrance": { "min": 300, "max": 450, "default": 400 },
+            "exit": { "min": 260, "max": 360, "default": 300 },
             "stable": "static"
           },
           "particles": { "entranceMax": 8, "exitMax": 8, "stableMax": 0 },
@@ -295,10 +303,14 @@
             "messageRevealStart": 0.7,
             "stableReady": 0.88
           },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 780,
+            "exit_animation_ms": 560
+          },
           "intent": "Size-aware burst entrance/exit — visible contained flare/spark at glyph",
           "timingMs": {
-            "entrance": { "min": 500, "max": 900, "default": 700 },
-            "exit": { "min": 350, "max": 700, "default": 520 },
+            "entrance": { "min": 650, "max": 850, "default": 780 },
+            "exit": { "min": 450, "max": 650, "default": 560 },
             "stable": "optional_glyph_local"
           },
           "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": "size_capped" },
@@ -319,10 +331,14 @@
             "messageRevealStart": 0.82,
             "stableReady": 0.95
           },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 1900,
+            "exit_animation_ms": 1400
+          },
           "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
           "timingMs": {
-            "entrance": { "min": 1200, "max": 1800, "default": 1500 },
-            "exit": { "min": 900, "max": 1400, "default": 1150 },
+            "entrance": { "min": 1600, "max": 2200, "default": 1900 },
+            "exit": { "min": 1200, "max": 1600, "default": 1400 },
             "stable": "beam_fully_gone"
           },
           "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": 0 },
@@ -795,7 +811,12 @@
       }
     },
     "previewTiming": {
-      "note": "Workbench-only — controls preview display duration and hold mode; not production payloadFields.",
+      "note": "Workbench-only — preset duration maps to stable_hold_ms only. Entrance and exit animation ms are additive (not crammed into preset).",
+      "lifecycleModel": {
+        "entrance_animation_ms": "Named effect entrance animation duration",
+        "stable_hold_ms": "Stable readable phase — duration presets map here",
+        "exit_animation_ms": "Named effect exit animation duration"
+      },
       "defaultPreset": "5s",
       "defaultHold": false,
       "presets": {
