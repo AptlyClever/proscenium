@@ -80,11 +80,17 @@ class MainActivity : ComponentActivity() {
         if (!Settings.canDrawOverlays(this)) {
             return
         }
-        HailAllowlist.validate(
+        HailRegistry.validate(
+            hailId = "hail.sniffer.001",
             effectId = "transporter_beam",
             glyphId = "hail-sniffer",
+            paletteId = "axiom_dark_cyan",
             message = "What's sniffing?",
             durationMs = 5_500L,
+            placementId = "upper_center",
+            placementMode = Placement.MODE_PRESET,
+            xPercent = null,
+            yPercent = null,
         ).getOrNull()?.let { hail ->
             if (!serviceRunning) {
                 HailOverlayService.start(this)
@@ -102,7 +108,7 @@ object HailOverlayServiceHolder {
 object PreviewOverlayTrigger {
     private var controller: OverlayController? = null
 
-    fun show(context: android.content.Context, hail: HailAllowlist.ValidatedHail) {
+    fun show(context: android.content.Context, hail: HailRegistry.ValidatedHail) {
         if (controller == null) {
             controller = OverlayController(context.applicationContext)
         }
@@ -129,7 +135,7 @@ private fun PocScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Control Alt Hail Overlay PoC",
+            text = "Control Alt Hails",
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFFEAFBF4),
@@ -137,7 +143,7 @@ private fun PocScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Package: com.controlalt.hailoverlay\nHTTP: POST /hail/show on port ${HailAllowlist.HTTP_PORT}",
+            text = "Package: com.controlalt.hailoverlay\nHTTP: POST /hail/show on port ${HailRegistry.HTTP_PORT}",
             fontSize = 20.sp,
             color = Color(0xFFB8EAD8),
             textAlign = TextAlign.Center,

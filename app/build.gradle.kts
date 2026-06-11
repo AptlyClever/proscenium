@@ -11,8 +11,8 @@ android {
         applicationId = "com.controlalt.hailoverlay"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.1.1-poc"
+        versionCode = 4
+        versionName = "1.0.1-v001"
     }
 
     buildTypes {
@@ -69,4 +69,6 @@ dependencies {
     implementation("androidx.savedstate:savedstate:1.2.1")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    testImplementation("junit:junit:4.13.2")
 }

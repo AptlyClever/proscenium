@@ -48,6 +48,8 @@ class OverlayController(
     data class OverlayState(
         val glyphId: String,
         val message: String,
+        val paletteId: String,
+        val placement: Placement.Resolved,
         val durationMs: Long,
     )
 
@@ -56,12 +58,14 @@ class OverlayController(
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
     }
 
-    fun show(hail: HailAllowlist.ValidatedHail) {
+    fun show(hail: HailRegistry.ValidatedHail) {
         mainHandler.post {
             dismissInternal(removeOnly = false)
             overlayState.value = OverlayState(
                 glyphId = hail.glyphId,
                 message = hail.message,
+                paletteId = hail.paletteId,
+                placement = hail.placement,
                 durationMs = hail.durationMs,
             )
 
@@ -75,6 +79,8 @@ class OverlayController(
                         TransporterOverlay(
                             glyphId = state.glyphId,
                             message = state.message,
+                            paletteId = state.paletteId,
+                            placement = state.placement,
                         )
                     }
                 }

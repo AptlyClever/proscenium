@@ -47,7 +47,7 @@ class HailOverlayService : Service() {
         }.also { server ->
             runCatching { server.start() }
                 .onSuccess {
-                    Log.i(TAG, "Hail HTTP server listening on port ${HailAllowlist.HTTP_PORT}")
+                    Log.i(TAG, "Hail HTTP server listening on port ${HailRegistry.HTTP_PORT}")
                 }
                 .onFailure { error ->
                     Log.e(TAG, "Failed to start hail HTTP server", error)

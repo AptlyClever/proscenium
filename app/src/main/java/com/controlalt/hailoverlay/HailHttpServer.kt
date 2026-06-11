@@ -2,11 +2,10 @@ package com.controlalt.hailoverlay
 
 import android.util.Log
 import fi.iki.elonen.NanoHTTPD
-import java.nio.charset.StandardCharsets
 
 class HailHttpServer(
-    private val onShowHail: (HailAllowlist.ValidatedHail) -> Unit,
-) : NanoHTTPD(HailAllowlist.HTTP_PORT) {
+    private val onShowHail: (HailRegistry.ValidatedHail) -> Unit,
+) : NanoHTTPD(HailRegistry.HTTP_PORT) {
 
     override fun serve(session: IHTTPSession): Response {
         val uri = session.uri ?: "/"
@@ -15,7 +14,7 @@ class HailHttpServer(
         if (uri == "/health" && method == Method.GET) {
             return jsonResponse(
                 status = Response.Status.OK,
-                body = """{"status":"ok","port":${HailAllowlist.HTTP_PORT}}""",
+                body = """{"status":"ok","port":${HailRegistry.HTTP_PORT},"app":"control-alt-hails","version":"1.0.0-v001"}""",
             )
         }
 
@@ -52,7 +51,7 @@ class HailHttpServer(
             onShowHail(validated)
             jsonResponse(
                 status = Response.Status.OK,
-                body = """{"status":"shown","effect_id":"${validated.effectId}","duration_ms":${validated.durationMs}}""",
+                body = """{"status":"shown","hail_id":"${validated.hailId}","effect_id":"${validated.effectId}","placement_id":"${validated.placement.placementId}","duration_ms":${validated.durationMs}}""",
             )
         } catch (error: Exception) {
             Log.e(TAG, "Failed to handle hail request", error)

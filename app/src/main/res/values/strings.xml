@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hail Overlay PoC</string>
+    <string name="app_name">Control Alt Hails</string>
     <string name="service_channel_name">Hail overlay listener</string>
     <string name="service_channel_description">Keeps the local HTTP hail endpoint available.</string>
     <string name="service_notification_title">Hail overlay listener active</string>
