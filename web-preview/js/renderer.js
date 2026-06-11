@@ -5,6 +5,22 @@ import {
 import { resolveLifecycleFieldEnvelope } from "./effect-config.js";
 
 const PARTICLE_SEED = 42;
+const PARTICLE_BUDGET_HARD_CAP = 60;
+
+/** Size-aware particle budgets — canon caps from Axiom Hails contract. */
+const PARTICLE_BUDGET_BY_SIZE = {
+  small: { stableMax: 4, heavyMin: 12, heavyMax: 20 },
+  medium: { stableMax: 8, heavyMin: 20, heavyMax: 36 },
+  large: { stableMax: 12, heavyMin: 28, heavyMax: 48 },
+};
+
+/** Paint-box-local field envelope — no viewport expansion from transport_event_scale. */
+const PAINT_BOX_FIELD_CAPS = {
+  effect: 1.12,
+  beam: 1.18,
+  travel: 1.08,
+  glow: 1.1,
+};
 
 function mulberry32(seed) {
   return function () {
@@ -21,6 +37,118 @@ function easeOutCubic(t) {
 
 function easeInCubic(t) {
   return t * t * t;
+}
+
+/** Clamp lifecycle field scales so draw path never expands beyond Paint Box. */
+function clampPaintBoxField(field) {
+  return {
+    effect: Math.min(field.effect, PAINT_BOX_FIELD_CAPS.effect),
+    beam: Math.min(field.beam, PAINT_BOX_FIELD_CAPS.beam),
+    travel: Math.min(field.travel, PAINT_BOX_FIELD_CAPS.travel),
+    glow: Math.min(field.glow, PAINT_BOX_FIELD_CAPS.glow),
+  };
+}
+
+function normalizeBudgetSize(size) {
+  const s = String(size || "medium").toLowerCase();
+  if (s === "s" || s === "small") {
+    return "small";
+  }
+  if (s === "l" || s === "large") {
+    return "large";
+  }
+  return "medium";
+}
+
+function normalizeEffectId(effect) {
+  const id = String(effect || "transporter").toLowerCase();
+  if (id === "none" || id.includes("none")) {
+    return "none";
+  }
+  if (id.includes("pop")) {
+    return "pop";
+  }
+  if (id.includes("burst")) {
+    return "burst";
+  }
+  if (id.includes("transporter")) {
+    return "transporter";
+  }
+  return "transporter";
+}
+
+function isZeroWorkLifecyclePhase(phase) {
+  return phase === "hidden" || phase === "cleared";
+}
+
+/** Resolve hail size + effect id for budget — opts/params from L2/L3 when present. */
+function resolveBudgetContext(effectParams, opts) {
+  const size =
+    (opts && opts.hailSizeTier) ||
+    (effectParams && effectParams._budgetSize) ||
+    (effectParams && effectParams._grammar && effectParams._grammar.tierId) ||
+    "medium";
+  const effect =
+    (opts && opts.effectId) ||
+    (effectParams && effectParams._effectId) ||
+    (effectParams && effectParams._effectPreset) ||
+    "transporter";
+  return { size: normalizeBudgetSize(size), effect: normalizeEffectId(effect) };
+}
+
+/**
+ * Size + effect + lifecycle phase particle budget.
+ * Hard cap 60; stable residual glyph-local; heavy entrance/exit size-aware.
+ */
+export function particleCountForBudget(size, phase, effect, mode, params) {
+  if (isZeroWorkLifecyclePhase(phase)) {
+    return 0;
+  }
+  const tier = PARTICLE_BUDGET_BY_SIZE[normalizeBudgetSize(size)] || PARTICLE_BUDGET_BY_SIZE.medium;
+  const effectId = normalizeEffectId(effect);
+  const stable = isStableLifecyclePhase(phase);
+
+  if (effectId === "none") {
+    return 0;
+  }
+
+  const heavy =
+    isTransportLifecyclePhase(phase) &&
+    !stable &&
+    phase !== "hold";
+
+  let maxCount;
+  if (stable) {
+    maxCount = tier.stableMax;
+  } else if (heavy) {
+    maxCount = tier.heavyMax;
+  } else {
+    maxCount = Math.round((tier.heavyMin + tier.heavyMax) * 0.5);
+  }
+
+  if (effectId === "pop") {
+    maxCount = stable ? 0 : Math.min(8, maxCount);
+  } else if (effectId === "burst") {
+    maxCount = stable ? Math.min(4, tier.stableMax) : maxCount;
+  } else if (effectId === "transporter" && stable) {
+    maxCount = 0;
+  }
+
+  const density = ((params && params.particleDensity) || 45) / 100;
+  let count = Math.round(2 + density * (heavy ? 11 : stable ? 3 : 7));
+  if (mode === "spark_burst") {
+    count = Math.round(count * 0.65);
+  }
+  if (mode === "none") {
+    return 0;
+  }
+
+  const minCount = stable ? 0 : heavy ? Math.min(tier.heavyMin, maxCount) : 2;
+  return Math.min(
+    PARTICLE_BUDGET_HARD_CAP,
+    maxCount,
+    Math.max(minCount, count),
+  );
 }
 
 /** Base transport field scales from effect-config (tier × preset × placement). */
@@ -52,22 +180,22 @@ function resolveDrawFieldEnvelope(params, lifecyclePhase, frame) {
   const base = resolveLifecycleFieldEnvelope(fieldScales, lifecyclePhase);
   const fieldMul = frame && frame.fieldMul != null ? frame.fieldMul : 1;
   if (lifecyclePhase === "beam_in_seed") {
-    return {
+    return clampPaintBoxField({
       effect: base.effect * fieldMul * 0.75,
       beam: base.beam * fieldMul,
       travel: base.travel * 0.85,
       glow: base.glow * fieldMul,
-    };
+    });
   }
   if (lifecyclePhase === "materializing_object") {
-    return {
+    return clampPaintBoxField({
       effect: base.effect * fieldMul,
       beam: base.beam * fieldMul,
       travel: base.travel,
       glow: base.glow * fieldMul,
-    };
+    });
   }
-  return base;
+  return clampPaintBoxField(base);
 }
 
 /** Draw-time beam envelope — params already carry grammar/preset/placement beam muls. */
@@ -150,6 +278,13 @@ function drawGlyphLocalResidual(ctx, cx, cy, animPhase, roles, params, intensity
 
 export function drawHailEffect(ctx, width, height, phase, roles, effectParams, frame, opts) {
   const lifecyclePhase = frame && frame.phase;
+
+  if (isZeroWorkLifecyclePhase(lifecyclePhase)) {
+    ctx.clearRect(0, 0, width, height);
+    return;
+  }
+
+  const budgetCtx = resolveBudgetContext(effectParams, opts);
   const stable = isStableLifecyclePhase(lifecyclePhase);
 
   if (stable) {
@@ -157,7 +292,8 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       (frame && frame.glyphResidual != null ? frame.glyphResidual : 1) *
       effectParams.shimmerIntensity;
     ctx.clearRect(0, 0, width, height);
-    if (residual >= 0.2) {
+    if (residual >= 0.2 && budgetCtx.effect !== "none") {
+      beginPaintBoxClip(ctx, width, height);
       const centerX = width / 2;
       const podCenterY = height * (0.32 + effectParams.beamHeight * 0.08);
       drawGlyphLocalResidual(
@@ -169,13 +305,14 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
         effectParams,
         residual,
       );
+      endPaintBoxClip(ctx);
     }
     return;
   }
 
   const beamIntensity = frame && frame.beamIntensity != null ? frame.beamIntensity : 1;
   const presence = Math.max(0, Math.min(1, beamIntensity * effectParams.effectIntensity));
-  if (presence <= 0.01) {
+  if (presence <= 0.01 || budgetCtx.effect === "none") {
     ctx.clearRect(0, 0, width, height);
     return;
   }
@@ -213,6 +350,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   const beamOp = scaledParams.beamOpacity * presence;
 
   ctx.clearRect(0, 0, width, height);
+  beginPaintBoxClip(ctx, width, height);
   ctx.filter = scaledParams.beamBlur > 0 ? "blur(" + scaledParams.beamBlur + "px)" : "none";
 
   if (groupBgOn) {
@@ -222,6 +360,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
 
   const drawTransportBeam =
     !stable &&
+    budgetCtx.effect !== "none" &&
     (frame.beamActive !== false || presence > 0.02) &&
     (!materializing || (frame.beamClearT == null || frame.beamClearT < 1));
 
@@ -272,29 +411,45 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       frame && frame.particleStageT != null ? frame.particleStageT : null,
       frame && frame.exitSubPhase,
       frame && frame.exitDematT != null ? frame.exitDematT : null,
+      budgetCtx.size,
+      budgetCtx.effect,
     );
   }
 
   ctx.filter = "none";
-  applyPodEdgeMask(ctx, width, height, presence, scaledParams, podCenterY);
+  endPaintBoxClip(ctx);
 }
 
-/** Soft anticipation / event field — extends beyond content module. */
+function beginPaintBoxClip(ctx, w, h) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h);
+  ctx.clip();
+}
+
+function endPaintBoxClip(ctx) {
+  ctx.restore();
+}
+
+/** Paint-box-local anticipation glow — never viewport-sized. */
 function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul) {
   if (field.effect <= 1.02) {
     return;
   }
+  const boxR = Math.min(w, h) * 0.5;
   const glowColor = roles.glow || roles.accent;
-  const outerR = Math.max(w, h) * (0.2 + field.effect * 0.14) * field.glow;
+  const outerR = boxR * (0.52 + (field.effect - 1) * 0.22) * Math.min(field.glow, PAINT_BOX_FIELD_CAPS.glow);
   const innerR = outerR * 0.12;
   const fieldGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
-  const fieldAlpha = Math.min(0.14, 0.05 + (field.effect - 1) * 0.04) * presence * glowMul;
+  const fieldAlpha = Math.min(0.12, 0.04 + (field.effect - 1) * 0.035) * presence * glowMul;
   fieldGrad.addColorStop(0, hexWithAlpha(glowColor, fieldAlpha * 1.1));
   fieldGrad.addColorStop(0.35, hexWithAlpha(roles.primary, fieldAlpha * 0.65));
   fieldGrad.addColorStop(0.72, hexWithAlpha(roles.primary, fieldAlpha * 0.22));
   fieldGrad.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = fieldGrad;
-  ctx.fillRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul) {
@@ -373,15 +528,6 @@ function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul)
   }
 }
 
-function particleCountForMode(mode, params) {
-  const density = params.particleDensity / 100;
-  let count = Math.round(2 + density * 11);
-  if (mode === "spark_burst") {
-    count = Math.round(count * 0.65);
-  }
-  return Math.min(13, Math.max(2, count));
-}
-
 function drawParticles(
   ctx,
   w,
@@ -399,8 +545,16 @@ function drawParticles(
   particleStageT,
   exitSubPhase,
   exitDematT,
+  budgetSize,
+  budgetEffect,
 ) {
-  const count = particleCountForMode(mode, params);
+  const count = particleCountForBudget(
+    budgetSize,
+    lifecyclePhase,
+    budgetEffect,
+    mode,
+    params,
+  );
   if (count <= 0) {
     return;
   }
@@ -408,11 +562,14 @@ function drawParticles(
   const speed = 0.12 + (params.particleSpeed / 100) * 0.48;
   const sizeMul = 0.45 + (params.particleSize / 100) * 1.05;
   const glowNorm = params.glowIntensity / 80;
-  const travelEnv = params._travelEnv != null
-    ? params._travelEnv
-    : rendererTravelEnvelope(
-      (params._field || resolveFieldEnvelope(params)).travel,
-    );
+  const travelEnv = Math.min(
+    PAINT_BOX_FIELD_CAPS.travel,
+    params._travelEnv != null
+      ? params._travelEnv
+      : rendererTravelEnvelope(
+        (params._field || resolveFieldEnvelope(params)).travel,
+      ),
+  );
   const densityRestraint =
     params.particleDensity > 62 && travelEnv > 1.35 ? 0.82 : 1;
   const bh = h * params.beamHeight;
@@ -542,55 +699,6 @@ function drawParticles(
   }
 }
 
-function applyPodEdgeMask(ctx, width, height, presence, params, podCenterY) {
-  const field = params._field || resolveFieldEnvelope(params);
-  const envelope = Math.max(field.effect, field.beam);
-  if (envelope <= 1.05) {
-    applyTightPodEdgeMask(ctx, width, height, presence, params, podCenterY);
-    return;
-  }
-  ctx.globalCompositeOperation = "destination-in";
-  const cx = width / 2;
-  const cy = podCenterY != null ? podCenterY : height * 0.38;
-  const spreadBase = 0.36 + (params.particleSpread / 100) * 0.14;
-  const spread = spreadBase * (0.78 + envelope * 0.38);
-  const rx = width * Math.min(0.96, spread);
-  const ry = height * (0.34 + params.beamHeight * 0.14) * (0.8 + envelope * 0.28);
-  const innerStop = envelope > 1.6 ? 0.08 : 0.15;
-  const midStop = envelope > 1.6 ? 0.9 : 0.82;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(rx, ry);
-  const mask = ctx.createRadialGradient(0, 0, innerStop, 0, 0, 1);
-  mask.addColorStop(0, "rgba(0,0,0," + (0.98 * presence) + ")");
-  mask.addColorStop(midStop, "rgba(0,0,0," + (0.92 * presence) + ")");
-  mask.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = mask;
-  ctx.fillRect(-1.35, -1.35, 2.7, 2.7);
-  ctx.restore();
-  ctx.globalCompositeOperation = "source-over";
-}
-
-function applyTightPodEdgeMask(ctx, width, height, presence, params, podCenterY) {
-  ctx.globalCompositeOperation = "destination-in";
-  const cx = width / 2;
-  const cy = podCenterY != null ? podCenterY : height * 0.38;
-  const spread = 0.38 + (params.particleSpread / 100) * 0.12;
-  const rx = width * spread;
-  const ry = height * (0.36 + params.beamHeight * 0.12);
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(rx, ry);
-  const mask = ctx.createRadialGradient(0, 0, 0.15, 0, 0, 1);
-  mask.addColorStop(0, "rgba(0,0,0," + (0.98 * presence) + ")");
-  mask.addColorStop(0.82, "rgba(0,0,0," + (0.95 * presence) + ")");
-  mask.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = mask;
-  ctx.fillRect(-1.2, -1.2, 2.4, 2.4);
-  ctx.restore();
-  ctx.globalCompositeOperation = "source-over";
-}
-
 function hexWithAlpha(hex, alpha) {
   const clean = hex.replace("#", "");
   const full = clean.length === 3
@@ -659,16 +767,24 @@ export function createOverlayAnimator(
       : 0.9 + Math.sin(glyphPhase * Math.PI * 2) * 0.07 * effectParams.shimmerIntensity;
     const glyphAlpha = objectLocked ? frame.glyphAlpha : frame.glyphAlpha * shimmer;
 
-    drawHailEffect(
-      canvas.getContext("2d"),
-      canvas.width,
-      canvas.height,
-      phase,
-      roles,
-      effectParams,
-      frame,
-      { groupBackgroundEnabled },
-    );
+    const drawOpts = {
+      groupBackgroundEnabled,
+      hailSizeTier: opts && opts.hailSizeTier,
+      effectId: opts && opts.effectId,
+    };
+
+    if (lifecycleRef.phase !== "hidden") {
+      drawHailEffect(
+        canvas.getContext("2d"),
+        canvas.width,
+        canvas.height,
+        phase,
+        roles,
+        effectParams,
+        frame,
+        drawOpts,
+      );
+    }
 
     onFrame({
       glyphAlpha,

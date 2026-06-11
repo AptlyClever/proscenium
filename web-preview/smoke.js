@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-object-materialization-scale",
-  "contract version should be v001-object-materialization-scale",
+  contract.version === "v001-axiom-paint-box-named-effects",
+  "contract version should be v001-axiom-paint-box-named-effects",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -57,6 +57,7 @@ const requiredFiles = [
   "js/renderer.js",
   "js/effect-config.js",
   "js/animation-profile.js",
+  "js/named-effects.js",
   "js/message.js",
 ];
 requiredFiles.forEach(function (file) {
@@ -272,6 +273,213 @@ const beamOutBeforeObjectFade =
 assert(
   beamOutBeforeObjectFade,
   "exit should split beam_out_seed (object locked) before dematerializing_object fade",
+);
+
+/** Lane 7 — Axiom Paint Box + Named Effects Team Pass acceptance */
+const NAMED_EFFECT_IDS = ["none", "pop", "burst", "transporter"];
+const PAINT_BOX_TIER_IDS = ["small", "medium", "large"];
+
+function contractTextBlob(obj) {
+  return JSON.stringify(obj || {});
+}
+
+function namedEffectEntry(pv, effectId) {
+  if (!pv.namedEffects) {
+    return null;
+  }
+  if (pv.namedEffects[effectId]) {
+    return pv.namedEffects[effectId];
+  }
+  if (pv.namedEffects.effects && pv.namedEffects.effects[effectId]) {
+    return pv.namedEffects.effects[effectId];
+  }
+  return null;
+}
+
+function resolveTransporterEntranceMs(contract, pv) {
+  const named = namedEffectEntry(pv, "transporter");
+  if (named && typeof named.entrance_ms === "number") {
+    return named.entrance_ms;
+  }
+  if (
+    named &&
+    named.timingMs &&
+    named.timingMs.entrance &&
+    typeof named.timingMs.entrance.default === "number"
+  ) {
+    return named.timingMs.entrance.default;
+  }
+  const profileMatch = animationProfileSrc.match(
+    /transporter:\s*\{[\s\S]*?entrance_ms:\s*(\d+)/,
+  );
+  if (profileMatch) {
+    return Number(profileMatch[1]);
+  }
+  const legacyKey =
+    (named && named.legacyPreset) ||
+    (named && named.legacy_preset) ||
+    "transporter_soft";
+  const profile =
+    (pv.animationProfiles && pv.animationProfiles[legacyKey]) ||
+    (pv.animationProfiles && pv.animationProfiles.transporter);
+  return profile && profile.entrance_ms;
+}
+
+function resolveParticleBudgetMax(contract, pv) {
+  const budget = pv.effectsBudget || pv.particleBudget || contract.effectsBudget;
+  if (!budget) {
+    return null;
+  }
+  if (typeof budget.hardMaxActiveParticles === "number") {
+    return budget.hardMaxActiveParticles;
+  }
+  if (typeof budget.maxActiveParticles === "number") {
+    return budget.maxActiveParticles;
+  }
+  if (typeof budget.hardCap === "number") {
+    return budget.hardCap;
+  }
+  if (typeof budget.max === "number") {
+    return budget.max;
+  }
+  if (typeof budget.maxParticles === "number") {
+    return budget.maxParticles;
+  }
+  return null;
+}
+
+const contractBlob = contractTextBlob(contract);
+const description = contract.description || "";
+
+assert(
+  contract.ownership && contract.ownership.hails === "axiom",
+  "contract.ownership.hails must be 'axiom'",
+);
+assert(
+  Array.isArray(contract.ownership.consumers) &&
+    contract.ownership.consumers.some(function (c) {
+      return /lcard|preview/i.test(String(c));
+    }),
+  "contract.ownership.consumers must list LCARD/preview as consumer (not owner)",
+);
+assert(
+  /axiom/i.test(description) && /own/i.test(description),
+  "contract description should declare Axiom ownership of Hails",
+);
+assert(
+  !/lcard owns|owned by lcard|lcard-owned hails|lcard owns hails/i.test(description),
+  "contract description must not imply LCARD owns Hails",
+);
+assert(
+  !/lcard owns|owned by lcard|lcard-owned hails/i.test(contractBlob),
+  "contract JSON must not contain LCARD ownership language",
+);
+
+assert(pv.namedEffects, "previewVisual.namedEffects registry required");
+assert(
+  Array.isArray(pv.namedEffects.allowlist) &&
+    NAMED_EFFECT_IDS.every(function (id) {
+      return pv.namedEffects.allowlist.includes(id);
+    }),
+  "namedEffects.allowlist must include none, pop, burst, transporter",
+);
+NAMED_EFFECT_IDS.forEach(function (effectId) {
+  const entry = namedEffectEntry(pv, effectId);
+  assert(entry, "namedEffects entry required: " + effectId);
+});
+
+assert(pv.paintBox && pv.paintBox.tiers, "previewVisual.paintBox.tiers required");
+PAINT_BOX_TIER_IDS.forEach(function (tierId) {
+  const tier = pv.paintBox.tiers[tierId];
+  assert(tier, "paintBox tier required: " + tierId);
+  const width =
+    tier.widthFraction != null
+      ? tier.widthFraction
+      : tier.width_fraction != null
+        ? tier.width_fraction
+        : tier.width;
+  const height =
+    tier.heightFraction != null
+      ? tier.heightFraction
+      : tier.height_fraction != null
+        ? tier.height_fraction
+        : tier.height;
+  assert(typeof width === "number", tierId + " paintBox width fraction required");
+  assert(typeof height === "number", tierId + " paintBox height fraction required");
+  assert(
+    typeof tier.glyphScale === "number" || typeof tier.glyph_scale === "number",
+    tierId + " paintBox glyph scale required",
+  );
+  assert(
+    typeof tier.messageScale === "number" || typeof tier.message_scale === "number",
+    tierId + " paintBox message scale required",
+  );
+});
+
+const smallBox = pv.paintBox.tiers.small;
+const largeBox = pv.paintBox.tiers.large;
+const smallW =
+  smallBox.widthFraction != null ? smallBox.widthFraction : smallBox.width;
+const largeW = largeBox.widthFraction != null ? largeBox.widthFraction : largeBox.width;
+assert(
+  largeW > smallW,
+  "large paintBox width should exceed small (S/M/L footprint ladder)",
+);
+
+const transporterEntranceMs = resolveTransporterEntranceMs(contract, pv);
+assert(
+  typeof transporterEntranceMs === "number" && transporterEntranceMs >= 1200,
+  "transporter entrance_ms must be >= 1200 (got " + transporterEntranceMs + ")",
+);
+
+const particleBudgetMax = resolveParticleBudgetMax(contract, pv);
+assert(
+  typeof particleBudgetMax === "number" && particleBudgetMax <= 60,
+  "particle budget hard max must be <= 60 (got " + particleBudgetMax + ")",
+);
+
+const namedEffectsPath = path.join(__dirname, "js", "named-effects.js");
+const effectConfigSrc = fs.readFileSync(
+  path.join(__dirname, "js", "effect-config.js"),
+  "utf8",
+);
+const placementSrc = fs.readFileSync(path.join(__dirname, "js", "placement.js"), "utf8");
+
+assert(
+  fs.existsSync(namedEffectsPath) ||
+    (effectConfigSrc.includes("getNamedEffect") &&
+      effectConfigSrc.includes("NAMED_EFFECT_LABELS")),
+  "named effect registry required (js/named-effects.js or effect-config exports)",
+);
+assert(
+  effectConfigSrc.includes("resolvePaintBox"),
+  "effect-config.js should export resolvePaintBox for Paint Box tiers",
+);
+assert(
+  placementSrc.includes("resolvePaintBoxRect"),
+  "placement.js should resolve Paint Box rect for composition bounds",
+);
+
+assert(
+  rendererSrc.includes("particleCountForBudget") ||
+    /Math\.min\(\s*60/.test(rendererSrc),
+  "renderer.js should enforce particle budget cap (particleCountForBudget or hard max 60)",
+);
+
+const appSrc = fs.readFileSync(path.join(__dirname, "js", "app.js"), "utf8");
+assert(
+  appSrc.includes("namedEffectId") || appSrc.includes("namedEffect"),
+  "app.js should wire named effect selection state",
+);
+
+const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+assert(
+  /Hail Effects|named-effect|data-named-effect/i.test(indexHtml),
+  "index.html should expose named Hail Effects selector (not transporter-first UI)",
+);
+assert(
+  /Show Paint Box|show-paint-box|paint-box-outline/i.test(indexHtml),
+  "index.html should expose Show Paint Box debug toggle",
 );
 
 console.log("smoke: control-alt-hails web preview OK");

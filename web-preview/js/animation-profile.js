@@ -25,9 +25,9 @@ const LIFECYCLE_PHASE_REF = {
   beam_out_seed_ms: 180,
 };
 
-/** Staged materialization windows within full entrance_ms. */
+/** Staged materialization windows within full entrance_ms (700ms reference). */
 const ENTRANCE_STAGE_REF_MS = LIFECYCLE_PHASE_REF.entrance_ms;
-const ENTRANCE_STAGES = {
+const DEFAULT_ENTRANCE_STAGES = {
   beamSeedEnd: 150,
   particleStart: 150,
   particleEnd: 350,
@@ -37,6 +37,150 @@ const ENTRANCE_STAGES = {
   messageEnd: 650,
   beamClearStart: 580,
 };
+
+/**
+ * Lane 5 — per-named-effect entrance staging (700ms reference scale).
+ * Transporter delays glyph/message until transport field is readable.
+ */
+const NAMED_EFFECT_ENTRANCE_STAGES = {
+  none: {
+    beamSeedEnd: 60,
+    particleStart: 40,
+    particleEnd: 100,
+    glyphStart: 80,
+    glyphEnd: 200,
+    messageStart: 120,
+    messageEnd: 210,
+    beamClearStart: 180,
+  },
+  pop: {
+    beamSeedEnd: 90,
+    particleStart: 70,
+    particleEnd: 180,
+    glyphStart: 110,
+    glyphEnd: 260,
+    messageStart: 170,
+    messageEnd: 280,
+    beamClearStart: 230,
+  },
+  burst: {
+    beamSeedEnd: 160,
+    particleStart: 140,
+    particleEnd: 360,
+    glyphStart: 200,
+    glyphEnd: 580,
+    messageStart: 340,
+    messageEnd: 660,
+    beamClearStart: 580,
+  },
+  transporter: {
+    beamSeedEnd: 680,
+    particleStart: 100,
+    particleEnd: 660,
+    glyphStart: 520,
+    glyphEnd: 660,
+    messageStart: 540,
+    messageEnd: 690,
+    beamClearStart: 640,
+  },
+};
+
+/** Lane 5 — named effect timing canon (handoff v001). */
+export const NAMED_EFFECT_PROFILES = {
+  none: {
+    named_effect_id: "none",
+    entrance_style: "fade",
+    entrance_ms: 200,
+    entrance_intensity: 0.82,
+    beam_in_seed_ms: 36,
+    hold_motion: "drift",
+    exit_style: "fade",
+    exit_ms: 160,
+    exit_intensity: 0.82,
+    beam_out_seed_ms: 32,
+    particle_mode_enter: "drift",
+    particle_mode_hold: "drift",
+    particle_mode_exit: "collapse",
+    glyph_resolve_style: "fade",
+    glyph_overshoot: 0,
+  },
+  pop: {
+    named_effect_id: "pop",
+    entrance_style: "pop_ping",
+    entrance_ms: 280,
+    entrance_intensity: 1.02,
+    beam_in_seed_ms: 72,
+    hold_motion: "drift",
+    exit_style: "snap_out",
+    exit_ms: 220,
+    exit_intensity: 1,
+    beam_out_seed_ms: 68,
+    particle_mode_enter: "spark_burst",
+    particle_mode_hold: "drift",
+    particle_mode_exit: "collapse",
+    glyph_resolve_style: "snap",
+    glyph_overshoot: 0.1,
+  },
+  burst: {
+    named_effect_id: "burst",
+    entrance_style: "achievement_snap",
+    entrance_ms: 700,
+    entrance_intensity: 1.08,
+    beam_in_seed_ms: 180,
+    hold_motion: "pulse",
+    exit_style: "particle_dissolve",
+    exit_ms: 520,
+    exit_intensity: 1.04,
+    beam_out_seed_ms: 150,
+    particle_mode_enter: "materialize",
+    particle_mode_hold: "drift",
+    particle_mode_exit: "collapse",
+    glyph_resolve_style: "snap",
+    glyph_overshoot: 0.08,
+  },
+  transporter: {
+    named_effect_id: "transporter",
+    entrance_style: "beam_materialize",
+    entrance_ms: 1500,
+    entrance_intensity: 1,
+    beam_in_seed_ms: 720,
+    hold_motion: "drift",
+    exit_style: "beam_dematerialize",
+    exit_ms: 1150,
+    exit_intensity: 1,
+    beam_out_seed_ms: 380,
+    particle_mode_enter: "materialize",
+    particle_mode_hold: "drift",
+    particle_mode_exit: "collapse",
+    glyph_resolve_style: "resolve",
+    glyph_overshoot: 0.04,
+  },
+};
+
+/** Legacy workbench preset ids → named effect ids (L3 registry may supersede). */
+const PRESET_TO_NAMED_EFFECT = {
+  clean_hail: "none",
+  transporter_soft: "transporter",
+  transporter_dense: "transporter",
+  subtle_ping: "pop",
+  high_attention: "burst",
+};
+
+export function resolveNamedEffectId(presetOrEffectId) {
+  if (presetOrEffectId && NAMED_EFFECT_PROFILES[presetOrEffectId]) {
+    return presetOrEffectId;
+  }
+  return PRESET_TO_NAMED_EFFECT[presetOrEffectId] || "transporter";
+}
+
+function entranceStagesForProfile(profile) {
+  const namedId =
+    profile.named_effect_id || resolveNamedEffectId(profile._preset_id);
+  return (
+    NAMED_EFFECT_ENTRANCE_STAGES[namedId] ||
+    DEFAULT_ENTRANCE_STAGES
+  );
+}
 
 /** Preset entrance-style beam-in flavor — transport only, not stable identity. */
 const BEAM_IN_TUNING = {
@@ -76,7 +220,7 @@ export function isExitPhase(phase) {
   );
 }
 
-function stageProgress(elapsedMs, entranceMs, startRef, endRef) {
+function stageProgress(elapsedMs, entranceMs, startRef, endRef, stages) {
   const scale = entranceMs / ENTRANCE_STAGE_REF_MS;
   const start = startRef * scale;
   const end = endRef * scale;
@@ -95,11 +239,12 @@ function beamInTuning(entranceStyle) {
  * Enter-phase semantic sub-phase for beam-in materialization.
  * @returns {{ lifecyclePhase: string, beamClearT: number, inBeamClear: boolean }}
  */
-function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle) {
+function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle, stages) {
   const tuning = beamInTuning(entranceStyle);
+  const s = stages || DEFAULT_ENTRANCE_STAGES;
   const glyphStartMs =
-    entranceStageMs(enterMs, ENTRANCE_STAGES.glyphStart) * tuning.materializeMul;
-  const beamClearStartMs = entranceStageMs(enterMs, ENTRANCE_STAGES.beamClearStart);
+    entranceStageMs(enterMs, s.glyphStart) * tuning.materializeMul;
+  const beamClearStartMs = entranceStageMs(enterMs, s.beamClearStart);
   const beamClearEndMs = enterMs;
 
   if (enterElapsedMs < glyphStartMs) {
@@ -141,15 +286,32 @@ function easeOutSubtleSnap(t, amount) {
 
 /**
  * Resolve per-phase durations from profile (optional overrides) and contract ref.
+ * Named-effect timing fields take precedence over legacy preset overrides.
  * @param {object} profile
  * @param {object} [contract]
  */
 export function resolvePhaseTimings(profile, contract) {
+  const namedId =
+    profile.named_effect_id || resolveNamedEffectId(profile._preset_id);
+  const contractNamed =
+    contract &&
+    contract.previewVisual &&
+    contract.previewVisual.namedEffects &&
+    contract.previewVisual.namedEffects[namedId];
+  const namedRef =
+    (contractNamed && contractNamed.lifecycleReference) ||
+    (NAMED_EFFECT_PROFILES[namedId] && {
+      entrance_ms: NAMED_EFFECT_PROFILES[namedId].entrance_ms,
+      beam_in_seed_ms: NAMED_EFFECT_PROFILES[namedId].beam_in_seed_ms,
+      exit_ms: NAMED_EFFECT_PROFILES[namedId].exit_ms,
+      beam_out_seed_ms: NAMED_EFFECT_PROFILES[namedId].beam_out_seed_ms,
+    });
   const ref =
     (contract &&
       contract.previewVisual &&
       contract.previewVisual.lifecyclePhases &&
       contract.previewVisual.lifecyclePhases.reference) ||
+    namedRef ||
     LIFECYCLE_PHASE_REF;
 
   const entranceMs = profile.entrance_ms;
@@ -172,6 +334,7 @@ export function resolvePhaseTimings(profile, contract) {
     materializingMs: Math.max(1, entranceMs - beamInSeedMs),
     beamOutSeedMs: Math.max(1, Math.min(beamOutSeedMs, exitMs - 1)),
     dematerializingMs: Math.max(1, exitMs - beamOutSeedMs),
+    namedEffectId: namedId,
   };
 }
 
@@ -191,29 +354,75 @@ const DEFAULT_PROFILE = {
 };
 
 export function getAnimationProfile(contract, presetId) {
-  const profiles = contract.previewVisual && contract.previewVisual.animationProfiles;
-  const raw = (profiles && profiles[presetId]) || {};
-  return Object.assign({}, DEFAULT_PROFILE, raw);
+  const namedId = resolveNamedEffectId(presetId);
+  const namedBase = NAMED_EFFECT_PROFILES[namedId] || NAMED_EFFECT_PROFILES.transporter;
+  const contractNamed =
+    contract &&
+    contract.previewVisual &&
+    contract.previewVisual.namedEffects &&
+    contract.previewVisual.namedEffects[namedId];
+  const legacy =
+    contract &&
+    contract.previewVisual &&
+    contract.previewVisual.animationProfiles &&
+    contract.previewVisual.animationProfiles[presetId];
+  const contractNamedProfile =
+    contractNamed && contractNamed.animationProfile
+      ? contractNamed.animationProfile
+      : {};
+
+  return Object.assign(
+    {},
+    DEFAULT_PROFILE,
+    legacy || {},
+    namedBase,
+    contractNamedProfile,
+    {
+      named_effect_id: namedId,
+      _preset_id: presetId,
+    },
+  );
+}
+
+/** Lane 5 — timing table for validation / workbench readout. */
+export function namedEffectTimingTable(presetOrEffectId, contract) {
+  const profile = getAnimationProfile(contract, presetOrEffectId);
+  const timings = resolvePhaseTimings(profile, contract);
+  return {
+    named_effect_id: profile.named_effect_id,
+    preset_id: profile._preset_id,
+    entrance_ms: timings.entranceMs,
+    beam_in_seed_ms: timings.beamInSeedMs,
+    materializing_ms: timings.materializingMs,
+    exit_ms: timings.exitMs,
+    beam_out_seed_ms: timings.beamOutSeedMs,
+    dematerializing_ms: timings.dematerializingMs,
+    entrance_style: profile.entrance_style,
+    exit_style: profile.exit_style,
+  };
 }
 
 export function animationProfilePayload(profile, contract) {
   const timings = resolvePhaseTimings(profile, contract);
   return {
+    named_effect_id: profile.named_effect_id || resolveNamedEffectId(profile._preset_id),
     entrance_style: profile.entrance_style,
     entrance_ms: profile.entrance_ms,
     entrance_intensity: profile.entrance_intensity,
     beam_in_seed_ms: timings.beamInSeedMs,
+    materializing_ms: timings.materializingMs,
     hold_motion: profile.hold_motion,
     exit_style: profile.exit_style,
     exit_ms: profile.exit_ms,
     exit_intensity: profile.exit_intensity,
     beam_out_seed_ms: timings.beamOutSeedMs,
+    dematerializing_ms: timings.dematerializingMs,
     particle_mode_enter: profile.particle_mode_enter,
     particle_mode_hold: profile.particle_mode_hold,
     particle_mode_exit: profile.particle_mode_exit,
     glyph_resolve_style: profile.glyph_resolve_style,
     glyph_overshoot: profile.glyph_overshoot,
-    note: "Preview-only animation profile — future Axiom-owned candidate",
+    note: "Preview-only animation profile — Axiom Hails named effect lifecycle",
   };
 }
 
@@ -226,6 +435,7 @@ function computeEntranceFrame(
   objectVisible,
 ) {
   const tuning = beamInTuning(profile.entrance_style);
+  const stages = entranceStagesForProfile(profile);
   const t = clamp01(enterElapsedMs / enterMs);
   const overall = easeOutCubic(t) * profile.entrance_intensity * enterMul;
 
@@ -233,25 +443,29 @@ function computeEntranceFrame(
     enterElapsedMs,
     enterMs,
     0,
-    ENTRANCE_STAGES.beamSeedEnd * tuning.seedMul,
+    stages.beamSeedEnd * tuning.seedMul,
+    stages,
   );
   const particleStageT = stageProgress(
     enterElapsedMs,
     enterMs,
-    ENTRANCE_STAGES.particleStart,
-    ENTRANCE_STAGES.particleEnd,
+    stages.particleStart,
+    stages.particleEnd,
+    stages,
   );
   const glyphT = stageProgress(
     enterElapsedMs,
     enterMs,
-    ENTRANCE_STAGES.glyphStart,
-    ENTRANCE_STAGES.glyphEnd,
+    stages.glyphStart,
+    stages.glyphEnd,
+    stages,
   );
   const messageT = stageProgress(
     enterElapsedMs,
     enterMs,
-    ENTRANCE_STAGES.messageStart,
-    ENTRANCE_STAGES.messageEnd,
+    stages.messageStart,
+    stages.messageEnd,
+    stages,
   );
 
   let beamScale = 1;
@@ -624,6 +838,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
       enterElapsedMs,
       timings.entranceMs,
       profile.entrance_style,
+      entranceStagesForProfile(profile),
     );
     beamClearT = enterBeam.beamClearT;
     if (enterBeam.inBeamClear) {
@@ -717,6 +932,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
 
   return {
     phase,
+    namedEffectId: timings.namedEffectId,
     exitSubPhase:
       phase === LIFECYCLE_PHASES.BEAM_OUT_SEED
         ? "beam_out_seed"

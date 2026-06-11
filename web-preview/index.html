@@ -11,7 +11,8 @@
       <aside class="rail" aria-label="Preview workbench controls">
         <header class="rail-header">
           <h1>Control Alt Hails</h1>
-          <p class="rail-subtitle">Visual workbench · object materialization preview</p>
+          <p class="rail-subtitle">Axiom-owned Hails preview · LCARD consumer surface</p>
+          <p class="rail-ownership-note">Visual workbench for Paint Box, named effects, and lifecycle review.</p>
         </header>
 
         <div class="rail-body">
@@ -44,15 +45,15 @@
             </label>
             <p class="field-label">Hail size</p>
             <div class="segmented segmented-3" role="group" aria-label="Hail size tier">
-              <button type="button" class="segmented-btn" data-hail-scale-tier="small" title="Compact hail object, small transport event">
+              <button type="button" class="segmented-btn" data-hail-scale-tier="small" title="Small Paint Box — compact glyph and message scale">
                 <span class="preset-short">S</span>
                 <span class="preset-id">Small</span>
               </button>
-              <button type="button" class="segmented-btn active" data-hail-scale-tier="medium" title="Default hail object and transport">
+              <button type="button" class="segmented-btn active" data-hail-scale-tier="medium" title="Medium Paint Box — default glyph and message scale">
                 <span class="preset-short">M</span>
                 <span class="preset-id">Medium</span>
               </button>
-              <button type="button" class="segmented-btn" data-hail-scale-tier="large" title="Larger object, stronger transport in/out">
+              <button type="button" class="segmented-btn" data-hail-scale-tier="large" title="Large Paint Box — expanded glyph and message scale">
                 <span class="preset-short">L</span>
                 <span class="preset-id">Large</span>
               </button>
@@ -67,10 +68,10 @@
           </section>
 
           <section class="card" aria-labelledby="group-effect">
-            <h2 id="group-effect">Transport</h2>
-            <p class="field-hint">Preset sets beam-in/out flavor. The hail object is glyph + words.</p>
-            <p class="field-label">Preset</p>
-            <div id="effect-preset-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Transport preset"></div>
+            <h2 id="group-effect">Hail Effects</h2>
+            <p class="field-hint">Named entrance/exit effect. All effects render inside the Hail Paint Box.</p>
+            <p class="field-label">Effect</p>
+            <div id="named-effect-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Named hail effect"></div>
             <div id="effect-dev-tuning" hidden aria-hidden="true">
               <p class="field-label">Beam</p>
               <div class="segmented" role="group" aria-label="Beam enabled">
@@ -218,7 +219,12 @@
 
           <section class="card card-diagnostics" aria-labelledby="group-diagnostics">
             <h2 id="group-diagnostics">Diagnostics</h2>
-            <p id="presence-readout" class="presence-readout" aria-live="polite" title="Preset transport intent"></p>
+            <label class="field-compact block checkbox-row">
+              <input id="show-paint-box" type="checkbox" />
+              <span>Show Paint Box</span>
+            </label>
+            <p class="field-hint">Workbench debug — outlines the bounded Hail drawing area.</p>
+            <p id="presence-readout" class="presence-readout" aria-live="polite" title="Named effect presence"></p>
             <details id="payload-details" class="payload-details">
               <summary>Payload JSON</summary>
               <div class="payload-tools">
@@ -251,6 +257,7 @@
                     <canvas id="overlay-canvas" class="overlay-canvas"></canvas>
                   </div>
                   <div id="overlay-content-module" class="overlay-content-module">
+                    <div id="paint-box-outline" class="paint-box-outline" hidden aria-hidden="true"></div>
                     <div id="overlay-group-bg" class="overlay-group-bg" hidden aria-hidden="true"></div>
                     <div class="overlay-content">
                       <div id="overlay-glyph" class="overlay-glyph"></div>

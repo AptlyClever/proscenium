@@ -1,6 +1,15 @@
 /** Preview-only effect preset, scale grammar, palette roles, and animation metadata. */
 
 import { animationProfilePayload, getAnimationProfile } from "./animation-profile.js";
+import {
+  getNamedEffect,
+  legacyPresetToNamed,
+  namedEffectIntent,
+  namedEffectToLegacyPreset,
+  NAMED_EFFECT_IDS,
+  NAMED_EFFECT_LABELS,
+  normalizeNamedEffectId,
+} from "./named-effects.js";
 
 const PRESET_LABELS = {
   clean_hail: "Clean",
@@ -9,6 +18,20 @@ const PRESET_LABELS = {
   subtle_ping: "Ping",
   high_attention: "Alert",
 };
+
+export { NAMED_EFFECT_IDS, NAMED_EFFECT_LABELS, getNamedEffect };
+
+export function resolveNamedEffectPresetId(namedEffectId) {
+  return namedEffectToLegacyPreset(namedEffectId);
+}
+
+export function namedEffectFromPresetId(presetId, contract) {
+  return legacyPresetToNamed(presetId, contract);
+}
+
+export function namedEffectHint(namedEffectId, contract) {
+  return namedEffectIntent(namedEffectId, contract);
+}
 
 const BEAM_SHAPE_LABELS = {
   column: "Column",
@@ -37,6 +60,83 @@ const PRESENCE_FIELD_KEYS = [
 ];
 
 export { PRESET_LABELS, BEAM_SHAPE_LABELS, SCALE_TIER_LABELS };
+
+/** Axiom Paint Box tier fallbacks when contract.previewVisual.paintBox is absent. */
+const DEFAULT_PAINT_BOX_TIERS = {
+  small: {
+    sizeCode: "S",
+    label: "Ambient",
+    widthFraction: 0.18,
+    heightFraction: 0.2,
+    glyphScale: 0.9,
+    messageScale: 0.92,
+    messageBackingGapFraction: 0.014,
+    maxEffectFootprintFraction: 1,
+    contentScale: 0.88,
+  },
+  medium: {
+    sizeCode: "M",
+    label: "Default",
+    widthFraction: 0.24,
+    heightFraction: 0.26,
+    glyphScale: 1,
+    messageScale: 1,
+    messageBackingGapFraction: 0.016,
+    maxEffectFootprintFraction: 1,
+    contentScale: 1,
+  },
+  large: {
+    sizeCode: "L",
+    label: "Impact",
+    widthFraction: 0.32,
+    heightFraction: 0.34,
+    glyphScale: 1.15,
+    messageScale: 1.08,
+    messageBackingGapFraction: 0.018,
+    maxEffectFootprintFraction: 1,
+    contentScale: 1.2,
+  },
+};
+
+function paintBoxTier(contract, tierId) {
+  const pb = contract.previewVisual && contract.previewVisual.paintBox;
+  const tiers = (pb && pb.tiers) || DEFAULT_PAINT_BOX_TIERS;
+  return tiers[tierId] || tiers.medium || DEFAULT_PAINT_BOX_TIERS.medium;
+}
+
+/**
+ * Lane 2 — Paint Box dimensions and content scales for a hail size tier.
+ * Returns screen-fraction box size plus glyph/message/content scale factors.
+ */
+export function resolvePaintBox(contract, tierId, manualPercent) {
+  const tier = paintBoxTier(contract, tierId);
+  const sg = contract.previewVisual && contract.previewVisual.scaleGrammar;
+  const sgTier = (sg && sg.tiers && sg.tiers[tierId]) || (sg && sg.tiers && sg.tiers.medium) || {};
+  const manual = clampNum(manualPercent, 50, 150, 100) / 100;
+  const contentScale =
+    tier.contentScale != null
+      ? tier.contentScale
+      : sgTier.content_scale != null
+        ? sgTier.content_scale
+        : sgTier.layoutScale != null
+          ? sgTier.layoutScale
+          : 1;
+  return {
+    tierId: tierId || "medium",
+    sizeCode: tier.sizeCode || (tierId === "small" ? "S" : tierId === "large" ? "L" : "M"),
+    label: tier.label || tierId || "M",
+    widthFraction: tier.widthFraction * manual,
+    heightFraction: tier.heightFraction * manual,
+    glyphScale: tier.glyphScale != null ? tier.glyphScale : 1,
+    messageScale: tier.messageScale != null ? tier.messageScale : 1,
+    contentScale: contentScale,
+    messageBackingGapFraction:
+      tier.messageBackingGapFraction != null ? tier.messageBackingGapFraction : 0.016,
+    maxEffectFootprintFraction:
+      tier.maxEffectFootprintFraction != null ? tier.maxEffectFootprintFraction : 1,
+    manualPercent: Math.round(manual * 100),
+  };
+}
 
 const DEFAULT_GRAMMAR = {
   layoutScale: 1,
@@ -428,13 +528,20 @@ export function resolveScaledEffectParams(
   };
 }
 
-export function formatPresetPresenceReadout(presence) {
+export function formatPresetPresenceReadout(presence, namedEffectId, contract) {
   const p = presence || DEFAULT_PRESET_PRESENCE;
-  const label = p.label || "Standard";
-  if (p.intent) {
-    return label + " · " + p.intent;
+  const effectLabel =
+    namedEffectId && NAMED_EFFECT_LABELS[namedEffectId]
+      ? NAMED_EFFECT_LABELS[namedEffectId]
+      : p.label || "Standard";
+  const hint = namedEffectId ? namedEffectHint(namedEffectId, contract) : "";
+  if (hint) {
+    return effectLabel + " · " + hint;
   }
-  return label;
+  if (p.intent && !namedEffectId) {
+    return effectLabel + " · " + p.intent;
+  }
+  return effectLabel;
 }
 
 const DEFAULT_PLACEMENT_PRESENCE = {
@@ -549,18 +656,15 @@ export function mergeEffectParams(preset, overrides) {
   return normalizeEffectParams(Object.assign({}, preset, overrides));
 }
 
-export function scaleLayoutFractions(contract, grammar) {
-  const g = grammar || DEFAULT_GRAMMAR;
-  const base = contract.placement.layoutFractions;
-  const contentScale =
-    g.content_scale != null
-      ? g.content_scale
-      : g.layoutScale != null
-        ? g.layoutScale
-        : 1;
+export function scaleLayoutFractions(contract, grammar, tierId, manualPercent) {
+  const paintBox = resolvePaintBox(
+    contract,
+    tierId || (grammar && grammar.tierId) || "medium",
+    manualPercent != null ? manualPercent : grammar && grammar.manualPercent,
+  );
   return {
-    groupWidth: base.groupWidth * contentScale,
-    groupHeight: base.groupHeight * contentScale,
+    groupWidth: paintBox.widthFraction,
+    groupHeight: paintBox.heightFraction,
   };
 }
 
@@ -653,6 +757,22 @@ export function previewTimingPayload(state, contract) {
   };
 }
 
+export function resolveEffectSelection(state, contract) {
+  const namedEffectId = normalizeNamedEffectId(
+    state.namedEffectId ||
+      legacyPresetToNamed(state.effectPreset, contract) ||
+      (contract.previewVisual.namedEffects &&
+        contract.previewVisual.namedEffects.defaultEffectId) ||
+      "transporter",
+  );
+  const legacyPresetId = namedEffectToLegacyPreset(namedEffectId);
+  return {
+    namedEffectId: namedEffectId,
+    legacyPresetId: legacyPresetId,
+    named: getNamedEffect(contract, namedEffectId),
+  };
+}
+
 export function previewVisualPayload(state, contract) {
   const palette = contract.palettes[state.paletteId];
   const roles = resolvePaletteRoles(palette, contract);
@@ -661,14 +781,25 @@ export function previewVisualPayload(state, contract) {
     state.hailScaleTier,
     state.hailScaleManualPercent,
   );
-  const presence = resolvePresetPresence(contract, state.effectPreset);
+  const selection = resolveEffectSelection(state, contract);
+  const presence = resolvePresetPresence(contract, selection.legacyPresetId);
   const bgColor = state.groupBgUsePaletteColor
     ? roles.primary
     : state.groupBgCustomColor;
-  return {
+
+  const payload = {
+    effect_id: selection.namedEffectId,
+    effect_label: selection.named.label,
     hail_scale_tier: state.hailScaleTier,
     hail_scale_manual_percent: state.hailScaleManualPercent,
-    effect_preset: state.effectPreset,
+    hail_scale: grammar.manualPercent,
+    named_effect: {
+      id: selection.namedEffectId,
+      label: selection.named.label,
+      intent: selection.named.intent,
+      timing: selection.named.timing,
+      legacy_preset_id: selection.legacyPresetId,
+    },
     preset_presence: {
       label: presence.label,
       intent: presence.intent,
@@ -680,20 +811,6 @@ export function previewVisualPayload(state, contract) {
       anchor_weight: presence.anchor_weight,
       message_backing_emphasis: presence.message_backing_emphasis,
     },
-    hail_scale: grammar.manualPercent,
-    beam_enabled: state.effectParams.beamEnabled,
-    beam_shape: state.effectParams.beamShape,
-    beam_width: state.scaledEffectParams.beamWidth,
-    beam_height: state.scaledEffectParams.beamHeight,
-    beam_opacity: state.scaledEffectParams.beamOpacity,
-    beam_blur: state.scaledEffectParams.beamBlur,
-    shimmer_intensity: state.scaledEffectParams.shimmerIntensity,
-    particle_density: state.scaledEffectParams.particleDensity,
-    particle_spread: state.scaledEffectParams.particleSpread,
-    particle_speed: state.scaledEffectParams.particleSpeed,
-    particle_size: state.scaledEffectParams.particleSize,
-    effect_intensity: state.scaledEffectParams.effectIntensity,
-    glow_intensity: state.scaledEffectParams.glowIntensity,
     scale_grammar: {
       tier: grammar.tierId,
       layout_scale: grammar.layoutScale,
@@ -721,7 +838,7 @@ export function previewVisualPayload(state, contract) {
     background_opacity: state.groupBgOpacityPercent / 100,
     preview_timing: previewTimingPayload(state, contract),
     animation_profile: animationProfilePayload(
-      getAnimationProfile(contract, state.effectPreset),
+      getAnimationProfile(contract, selection.legacyPresetId),
       contract,
     ),
     placement_presence: state.placementPresence
@@ -734,7 +851,30 @@ export function previewVisualPayload(state, contract) {
           safe_offset_fraction: state.placementPresence.safeOffsetFraction,
         }
       : null,
+    note: "Axiom-owned Hails preview visual — runtime selects effect_id only",
   };
+
+  if (state.effectTouched) {
+    payload.workbench_tuning = {
+      legacy_preset_id: selection.legacyPresetId,
+      beam_enabled: state.effectParams.beamEnabled,
+      beam_shape: state.effectParams.beamShape,
+      beam_width: state.scaledEffectParams.beamWidth,
+      beam_height: state.scaledEffectParams.beamHeight,
+      beam_opacity: state.scaledEffectParams.beamOpacity,
+      beam_blur: state.scaledEffectParams.beamBlur,
+      shimmer_intensity: state.scaledEffectParams.shimmerIntensity,
+      particle_density: state.scaledEffectParams.particleDensity,
+      particle_spread: state.scaledEffectParams.particleSpread,
+      particle_speed: state.scaledEffectParams.particleSpeed,
+      particle_size: state.scaledEffectParams.particleSize,
+      effect_intensity: state.scaledEffectParams.effectIntensity,
+      glow_intensity: state.scaledEffectParams.glowIntensity,
+      note: "Workbench-only — not part of runtime Hail contract",
+    };
+  }
+
+  return payload;
 }
 
 function clampNum(value, min, max, fallback) {

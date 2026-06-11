@@ -1,6 +1,26 @@
 {
-  "version": "v001-object-materialization-scale",
-  "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color/animation/presence grammar is preview-only until Axiom owns the visual contract.",
+  "version": "v001-axiom-paint-box-named-effects",
+  "description": "Axiom-owned Hails render contract — payload fields, Paint Box semantics, named effects, and budget rules. LCARD preview workbench consumes this file as a test surface only; LCARD does not own Hails. Future Control Alt apps may consume the same contract.",
+  "ownership": {
+    "hails": "axiom",
+    "contractOwner": "axiom",
+    "consumers": ["lcard-preview"],
+    "futureConsumers": ["lcard", "control-alt-apps"],
+    "note": "Axiom owns Hails and this shared contract. LCARD hosts/consumes the preview harness only — not the Hail visual model, Paint Box, named effects, or budget canon."
+  },
+  "runtimeModel": {
+    "note": "Runtime/end-user Hail selection uses size tier + named effect id — not raw beam width, particle density, glow radius, or similar workbench-only knobs.",
+    "selectionExample": {
+      "size": "M",
+      "effect_id": "burst"
+    },
+    "sizeCodes": ["S", "M", "L"],
+    "sizeTierMap": {
+      "S": "small",
+      "M": "medium",
+      "L": "large"
+    }
+  },
   "payloadFields": [
     "hail_id",
     "effect_id",
@@ -119,9 +139,156 @@
     "glyphGlowAlpha": 0.22
   },
   "previewVisual": {
-    "note": "Preview harness only — future Axiom-owned candidates: scaleGrammar, palette role catalog, effectPresets, animationProfiles, defaults.",
+    "note": "Axiom-owned preview visual contract — consumed by LCARD preview workbench and future Control Alt apps. Workbench-only blocks (effectPresets, presetPresence, legacy effectPresetIds) exist for tuning; runtime model uses namedEffects + paintBox + effectsBudget.",
+    "defaultNamedEffect": "transporter",
     "defaultEffectPreset": "transporter_soft",
     "defaultHailScaleTier": "medium",
+    "paintBox": {
+      "note": "Paint Box is the maximum visual drawing area for a single Hail (glyph, message, backing, entrance/stable/exit effects). Effects must clip to or constrain within this box — no screen-level Hail effects by default.",
+      "debugOutlineWorkbenchOption": true,
+      "sizeAliases": {
+        "S": "small",
+        "M": "medium",
+        "L": "large"
+      },
+      "tiers": {
+        "small": {
+          "sizeCode": "S",
+          "label": "Ambient",
+          "widthFraction": 0.18,
+          "heightFraction": 0.2,
+          "glyphScale": 0.9,
+          "messageScale": 0.92,
+          "messageBackingGapFraction": 0.014,
+          "maxEffectFootprintFraction": 1
+        },
+        "medium": {
+          "sizeCode": "M",
+          "label": "Default",
+          "widthFraction": 0.24,
+          "heightFraction": 0.26,
+          "glyphScale": 1,
+          "messageScale": 1,
+          "messageBackingGapFraction": 0.016,
+          "maxEffectFootprintFraction": 1
+        },
+        "large": {
+          "sizeCode": "L",
+          "label": "Impact",
+          "widthFraction": 0.32,
+          "heightFraction": 0.34,
+          "glyphScale": 1.15,
+          "messageScale": 1.08,
+          "messageBackingGapFraction": 0.018,
+          "maxEffectFootprintFraction": 1
+        }
+      }
+    },
+    "namedEffects": {
+      "note": "Recallable named effect presets selected by id at runtime. Workbench may expose advanced tuning; end-user contract is effect id only.",
+      "defaultEffectId": "transporter",
+      "allowlist": ["none", "pop", "burst", "transporter"],
+      "futureAllowlist": ["scan"],
+      "effects": {
+        "none": {
+          "label": "None",
+          "intent": "Immediate or soft appear/clear — no residual animation",
+          "timingMs": {
+            "entrance": { "min": 0, "max": 200, "default": 120 },
+            "exit": { "min": 0, "max": 200, "default": 120 },
+            "stable": "static"
+          },
+          "particles": { "entranceMax": 0, "exitMax": 0, "stableMax": 0 },
+          "stableResidual": "none"
+        },
+        "pop": {
+          "label": "Pop",
+          "intent": "Quick punchy entrance/exit — no stable residual",
+          "timingMs": {
+            "entrance": { "min": 150, "max": 350, "default": 250 },
+            "exit": { "min": 150, "max": 300, "default": 220 },
+            "stable": "static"
+          },
+          "particles": { "entranceMax": 8, "exitMax": 8, "stableMax": 0 },
+          "stableResidual": "none"
+        },
+        "burst": {
+          "label": "Burst",
+          "intent": "Size-aware burst entrance/exit with optional tiny glyph-local stable residual",
+          "timingMs": {
+            "entrance": { "min": 500, "max": 900, "default": 700 },
+            "exit": { "min": 350, "max": 700, "default": 520 },
+            "stable": "optional_glyph_local"
+          },
+          "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": "size_capped" },
+          "stableResidual": "optional_glyph_local"
+        },
+        "transporter": {
+          "label": "Transporter",
+          "intent": "Contained transport field inside Paint Box — field establishes before glyph/message materialize; stable has no beam",
+          "timingMs": {
+            "entrance": { "min": 1200, "max": 1800, "default": 1500 },
+            "exit": { "min": 900, "max": 1400, "default": 1150 },
+            "stable": "beam_fully_gone"
+          },
+          "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": 0 },
+          "stableResidual": "none",
+          "sequence": "empty -> contained transport field in Paint Box -> glyph/message materialize -> field clears -> stable object -> exit field -> dematerialize -> clear"
+        }
+      }
+    },
+    "effectsBudget": {
+      "note": "Budget resolved by size + effect + lifecycle phase. hidden/cleared: zero animation, particle, and canvas work.",
+      "hardMaxActiveParticles": 60,
+      "hiddenCleared": {
+        "animationWork": 0,
+        "particleWork": 0,
+        "canvasWork": 0
+      },
+      "stable": {
+        "note": "Cheap and readable — no persistent transporter beam, full-screen glow, or ongoing field column",
+        "residualGlyphLocalOnly": true
+      },
+      "bySize": {
+        "S": {
+          "sizeCode": "S",
+          "tier": "small",
+          "stableResidualParticles": { "min": 0, "max": 4 },
+          "entranceExitActiveParticles": { "min": 12, "max": 20 }
+        },
+        "M": {
+          "sizeCode": "M",
+          "tier": "medium",
+          "stableResidualParticles": { "min": 0, "max": 8 },
+          "entranceExitActiveParticles": { "min": 20, "max": 36 }
+        },
+        "L": {
+          "sizeCode": "L",
+          "tier": "large",
+          "stableResidualParticles": { "min": 0, "max": 12 },
+          "entranceExitActiveParticles": { "min": 28, "max": 48 }
+        }
+      },
+      "hardNo": [
+        "hundreds_of_particles",
+        "viewport_sized_glow_fields",
+        "full_screen_blur_filter_storms",
+        "screen_level_transporter_beam",
+        "persistent_stable_transport_column"
+      ]
+    },
+    "legacyEffectPresets": {
+      "deprecated": true,
+      "workbenchOnly": true,
+      "note": "Legacy workbench preset ids (effectPresetIds) retained for tuning UI backward compatibility. Runtime/end-user model uses namedEffects.allowlist — map via aliasesToNamedEffects.",
+      "aliasesToNamedEffects": {
+        "clean_hail": "none",
+        "transporter_soft": "transporter",
+        "transporter_dense": "burst",
+        "subtle_ping": "pop",
+        "high_attention": "burst"
+      }
+    },
     "presenceGrammar": {
       "note": "Preview-only presence per S/M/L tier. object_scale (content_scale) sizes the stable Hail; transport_event_scale sizes beam-in/out only — not applied during stable_object. Canonical values live on scaleGrammar.tiers.",
       "fields": {
@@ -228,6 +395,7 @@
       "subtle_ping",
       "high_attention"
     ],
+    "effectPresetIdsNote": "DEPRECATED workbench-only — prefer namedEffects.allowlist. Aliases in legacyEffectPresets.aliasesToNamedEffects.",
     "presetPresence": {
       "note": "Preview-only — per-preset transport presence; stacks with scaleGrammar tiers. transport_event_scale applies during beam-in/out only.",
       "defaults": {

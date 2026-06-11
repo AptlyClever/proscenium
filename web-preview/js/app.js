@@ -7,19 +7,22 @@ import {
 } from "./animation-profile.js";
 import {
   BEAM_SHAPE_LABELS,
-  PRESET_LABELS,
+  NAMED_EFFECT_IDS,
+  NAMED_EFFECT_LABELS,
   formatPresetPresenceReadout,
   getEffectPreset,
   mergeEffectParams,
+  namedEffectFromPresetId,
+  namedEffectHint,
   previewVisualPayload,
   resolveContentHierarchy,
+  resolveNamedEffectPresetId,
   resolvePaletteRoles,
   resolvePlacementPresence,
   resolvePresetPresence,
   resolvePreviewTiming,
   resolveScaleGrammar,
   resolveScaledEffectParams,
-  scaleLayoutFractions,
   scaledTypography,
 } from "./effect-config.js";
 import { validateMessage } from "./message.js";
@@ -61,11 +64,13 @@ const state = {
   lifecycleRef: { phase: "hidden", stableStart: null, exitStart: null },
   pendingLifecycleReset: false,
   effectPreset: "transporter_soft",
+  namedEffectId: "transporter",
   effectParams: null,
   scaledEffectParams: null,
   presetPresence: null,
   placementPresence: null,
   effectTouched: false,
+  showPaintBox: false,
   hailScaleTier: "medium",
   hailScaleManualPercent: 100,
   groupBgEnabled: false,
@@ -89,7 +94,9 @@ function cacheElements() {
     xPercent: document.getElementById("x-percent"),
     yPercent: document.getElementById("y-percent"),
     palettePills: document.getElementById("palette-pills"),
-    effectPresetPills: document.getElementById("effect-preset-pills"),
+    namedEffectPills: document.getElementById("named-effect-pills"),
+    showPaintBox: document.getElementById("show-paint-box"),
+    paintBoxOutline: document.getElementById("paint-box-outline"),
     beamEnabledBtns: document.querySelectorAll("[data-beam-enabled]"),
     beamShapePills: document.getElementById("beam-shape-pills"),
     hailScaleTierBtns: document.querySelectorAll("[data-hail-scale-tier]"),
@@ -159,7 +166,7 @@ async function init() {
   state.contract = await res.json();
   buildPlacementGrid();
   buildPalettePills();
-  buildEffectPresetPills();
+  buildNamedEffectPills();
   buildBeamShapePills();
   populateGlyphSelect();
   bindEvents();
@@ -196,21 +203,17 @@ function buildPalettePills() {
     .join("");
 }
 
-function buildEffectPresetPills() {
-  const ids = state.contract.previewVisual.effectPresetIds || [];
-  els.effectPresetPills.innerHTML = ids
-    .map(function (id) {
-      const presence = resolvePresetPresence(state.contract, id);
-      const title = presence.intent || PRESET_LABELS[id] || id;
-      return (
-        '<button type="button" data-effect-preset="' + id + '" title="' +
-        escapeAttr(title) +
-        '">' +
-        (PRESET_LABELS[id] || id) +
-        "</button>"
-      );
-    })
-    .join("");
+function buildNamedEffectPills() {
+  els.namedEffectPills.innerHTML = NAMED_EFFECT_IDS.map(function (id) {
+    const title = namedEffectHint(id, state.contract) || NAMED_EFFECT_LABELS[id] || id;
+    return (
+      '<button type="button" data-named-effect="' + id + '" title="' +
+      escapeAttr(title) +
+      '">' +
+      (NAMED_EFFECT_LABELS[id] || id) +
+      "</button>"
+    );
+  }).join("");
 }
 
 function buildBeamShapePills() {
@@ -242,6 +245,11 @@ function applyDefaults() {
   state.paletteId = d.palette_id;
   state.screenPreset = "1920x1080";
   state.effectPreset = pv.defaultEffectPreset || "transporter_soft";
+  state.namedEffectId =
+    (pv.defaultNamedEffectId && NAMED_EFFECT_IDS.indexOf(pv.defaultNamedEffectId) >= 0
+      ? pv.defaultNamedEffectId
+      : null) || namedEffectFromPresetId(state.effectPreset, state.contract);
+  state.effectPreset = resolveNamedEffectPresetId(state.namedEffectId);
   state.hailScaleTier = pv.defaultHailScaleTier || d.hail_scale_tier || "medium";
   state.hailScaleManualPercent =
     (pv.scaleGrammar && pv.scaleGrammar.manualPercent && pv.scaleGrammar.manualPercent.default) || 100;
@@ -281,8 +289,18 @@ function applyGroupBgDefaults() {
   els.groupBgSize.max = String(gb.sizePercentMax || 140);
 }
 
+function applyNamedEffectToState(namedEffectId) {
+  state.namedEffectId = namedEffectId;
+  state.effectPreset = resolveNamedEffectPresetId(namedEffectId);
+  state.effectParams = getEffectPreset(state.contract, state.effectPreset);
+  state.effectTouched = false;
+  refreshScaledEffectParams();
+  syncEffectUiFromState();
+}
+
 function applyPresetToState(presetId) {
   state.effectPreset = presetId;
+  state.namedEffectId = namedEffectFromPresetId(presetId, state.contract);
   state.effectParams = getEffectPreset(state.contract, presetId);
   state.effectTouched = false;
   refreshScaledEffectParams();
@@ -326,9 +344,11 @@ function syncEffectUiFromState() {
   els.particleSpreadLabel.textContent = String(p.particleSpread);
   els.particleSpeedLabel.textContent = String(p.particleSpeed);
   els.glowIntensityLabel.textContent = String(p.glowIntensity);
-  els.effectPresetPills.querySelectorAll("[data-effect-preset]").forEach(function (btn) {
-    btn.classList.toggle("active", btn.dataset.effectPreset === state.effectPreset);
-  });
+  if (els.namedEffectPills) {
+    els.namedEffectPills.querySelectorAll("[data-named-effect]").forEach(function (btn) {
+      btn.classList.toggle("active", btn.dataset.namedEffect === state.namedEffectId);
+    });
+  }
 }
 
 function currentScaleGrammar() {
@@ -367,38 +387,63 @@ function syncPresenceReadout() {
   }
   const presence =
     state.presetPresence || resolvePresetPresence(state.contract, state.effectPreset);
-  els.presenceReadout.textContent = formatPresetPresenceReadout(presence);
+  els.presenceReadout.textContent = formatPresetPresenceReadout(
+    presence,
+    state.namedEffectId,
+    state.contract,
+  );
 }
 
-/** Position effect field vs content module; returns canvas pixel size for renderer. */
+/** Position overlay group to Paint Box; content module fills the same box. */
 function layoutCompositionBounds(composition) {
-  const effect = composition.effect;
-  const content = composition.content;
+  const box = composition.paintBox || composition.effect;
 
-  els.overlayGroup.style.left = effect.left + "px";
-  els.overlayGroup.style.top = effect.top + "px";
-  els.overlayGroup.style.width = effect.width + "px";
-  els.overlayGroup.style.height = effect.height + "px";
+  els.overlayGroup.style.left = box.left + "px";
+  els.overlayGroup.style.top = box.top + "px";
+  els.overlayGroup.style.width = box.width + "px";
+  els.overlayGroup.style.height = box.height + "px";
 
-  els.overlayContentModule.style.left = effect.contentLeft + "px";
-  els.overlayContentModule.style.top = effect.contentTop + "px";
-  els.overlayContentModule.style.width = effect.contentWidth + "px";
-  els.overlayContentModule.style.height = effect.contentHeight + "px";
+  els.overlayContentModule.style.left = "0";
+  els.overlayContentModule.style.top = "0";
+  els.overlayContentModule.style.width = "100%";
+  els.overlayContentModule.style.height = "100%";
 
   els.overlayCanvas.style.left = "0";
   els.overlayCanvas.style.top = "0";
   els.overlayCanvas.style.width = "100%";
   els.overlayCanvas.style.height = "100%";
 
+  syncPaintBoxOutline(composition.content);
+
   return {
-    width: Math.max(1, Math.floor(effect.width)),
-    height: Math.max(1, Math.floor(effect.height)),
-    contentWidth: content.width,
-    contentHeight: content.height,
+    width: Math.max(1, Math.floor(box.width)),
+    height: Math.max(1, Math.floor(box.height)),
+    contentWidth: box.width,
+    contentHeight: box.height,
   };
 }
 
-function syncHailScaleUi() {
+function syncPaintBoxOutline(contentBounds) {
+  if (!els.paintBoxOutline) {
+    return;
+  }
+  const show = state.showPaintBox === true;
+  els.paintBoxOutline.hidden = !show;
+  els.paintBoxOutline.setAttribute("aria-hidden", show ? "false" : "true");
+  if (!show || !contentBounds) {
+    return;
+  }
+  els.paintBoxOutline.style.left = "0";
+  els.paintBoxOutline.style.top = "0";
+  els.paintBoxOutline.style.width = "100%";
+  els.paintBoxOutline.style.height = "100%";
+}
+
+function syncPaintBoxToggleUi() {
+  if (els.showPaintBox) {
+    els.showPaintBox.checked = state.showPaintBox === true;
+  }
+}
   els.hailScale.value = String(state.hailScaleManualPercent);
   els.hailScaleLabel.textContent = state.hailScaleManualPercent + "%";
   els.hailScaleTierBtns.forEach(function (btn) {
@@ -468,14 +513,7 @@ function syncAllUi() {
   syncHailScaleUi();
   syncGroupBgUi();
   syncPreviewTimingUi();
-}
-
-function scaledContract() {
-  return Object.assign({}, state.contract, {
-    placement: Object.assign({}, state.contract.placement, {
-      layoutFractions: scaleLayoutFractions(state.contract, currentScaleGrammar()),
-    }),
-  });
+  syncPaintBoxToggleUi();
 }
 
 function bindEvents() {
@@ -505,16 +543,25 @@ function bindEvents() {
     onControlChange();
   });
 
-  els.effectPresetPills.addEventListener("click", function (event) {
-    const btn = event.target.closest("[data-effect-preset]");
+  els.namedEffectPills.addEventListener("click", function (event) {
+    const btn = event.target.closest("[data-named-effect]");
     if (!btn) return;
-    applyPresetToState(btn.dataset.effectPreset);
+    applyNamedEffectToState(btn.dataset.namedEffect);
     if (!els.overlayGroup.hidden) {
       showPreview();
       return;
     }
     onControlChange();
   });
+
+  if (els.showPaintBox) {
+    els.showPaintBox.addEventListener("change", function () {
+      state.showPaintBox = els.showPaintBox.checked;
+      if (!els.overlayGroup.hidden) {
+        renderStaticOverlay();
+      }
+    });
+  }
 
   els.beamEnabledBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
@@ -761,7 +808,7 @@ function currentPayload() {
   const timing = resolvePreviewTiming(state, state.contract);
   const payload = {
     hail_id: state.contract.previewDefaults.hail_id,
-    effect_id: state.contract.previewDefaults.effect_id,
+    effect_id: state.namedEffectId,
     glyph_id: els.glyph.value,
     palette_id: state.paletteId,
     message: els.message.value,
@@ -852,7 +899,6 @@ function renderStaticOverlay(renderOpts) {
   }
 
   const size = screenSize();
-  const contractForLayout = scaledContract();
   const placementPresence = state.placementPresence || resolvePlacementPresence(
     state.contract,
     currentPlacementId(),
@@ -861,8 +907,12 @@ function renderStaticOverlay(renderOpts) {
     payload,
     size.width,
     size.height,
-    contractForLayout,
-    { safeOffsetFraction: placementPresence.safeOffsetFraction },
+    state.contract,
+    {
+      safeOffsetFraction: placementPresence.safeOffsetFraction,
+      tierId: state.hailScaleTier,
+      manualPercent: state.hailScaleManualPercent,
+    },
     placementPresence,
   );
   const palette = state.contract.palettes[payload.palette_id];
@@ -1040,6 +1090,8 @@ function renderStaticOverlay(renderOpts) {
       autoTimedExit: state.useLifecycle,
       groupBackgroundEnabled: state.groupBgEnabled,
       staticFrame: staticFrame,
+      hailSizeTier: state.hailScaleTier,
+      effectId: state.namedEffectId,
     },
   );
 }
