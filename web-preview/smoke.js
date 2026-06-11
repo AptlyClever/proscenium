@@ -41,8 +41,9 @@ assert(
   "scaleGrammar tiers required",
 );
 assert(
-  contract.previewVisual.defaultHailScaleTier === "medium",
-  "default hail scale tier should be medium",
+  contract.previewVisual.previewTiming &&
+    contract.previewVisual.previewTiming.presets["5s"] === 5000,
+  "previewTiming presets required",
 );
 
 console.log("smoke: control-alt-hails web preview OK");

@@ -6,6 +6,7 @@ import {
   mergeEffectParams,
   previewVisualPayload,
   resolvePaletteRoles,
+  resolvePreviewTiming,
   resolveScaleGrammar,
   scaleLayoutFractions,
   scaledTypography,
@@ -54,6 +55,9 @@ const state = {
   groupBgOpacityPercent: 24,
   groupBgUsePaletteColor: true,
   groupBgCustomColor: "#0A3528",
+  previewTimingPreset: "5s",
+  previewHold: false,
+  previewCustomDurationMs: 5000,
 };
 
 const els = {};
@@ -89,6 +93,8 @@ function cacheElements() {
     glyph: document.getElementById("glyph-id"),
     message: document.getElementById("message"),
     duration: document.getElementById("duration-ms"),
+    previewDurationBtns: document.querySelectorAll("[data-preview-duration]"),
+    previewHoldBtns: document.querySelectorAll("[data-preview-hold]"),
     screenBtns: document.querySelectorAll("[data-screen]"),
     customScreen: document.getElementById("custom-screen"),
     screenWidth: document.getElementById("screen-width"),
@@ -217,7 +223,11 @@ function applyDefaults() {
   state.effectTouched = false;
   els.glyph.value = d.glyph_id;
   els.message.value = d.message;
-  els.duration.value = String(d.duration_ms);
+  const pt = pv.previewTiming || {};
+  state.previewTimingPreset = pt.defaultPreset || "5s";
+  state.previewHold = pt.defaultHold === true;
+  state.previewCustomDurationMs = d.duration_ms || 5000;
+  els.duration.value = String(state.previewCustomDurationMs);
   els.xPercent.value = "72";
   els.yPercent.value = "18";
   els.hailScale.min = String(
@@ -361,6 +371,16 @@ function syncScreenUi() {
   els.customScreen.hidden = state.screenPreset !== "custom";
 }
 
+function syncPreviewTimingUi() {
+  els.previewDurationBtns.forEach(function (btn) {
+    btn.classList.toggle("active", btn.dataset.previewDuration === state.previewTimingPreset);
+  });
+  els.previewHoldBtns.forEach(function (btn) {
+    const on = btn.dataset.previewHold === "on";
+    btn.classList.toggle("active", on === state.previewHold);
+  });
+}
+
 function syncAllUi() {
   syncPlacementModeUi();
   syncPlacementPresetUi();
@@ -369,6 +389,7 @@ function syncAllUi() {
   syncEffectUiFromState();
   syncHailScaleUi();
   syncGroupBgUi();
+  syncPreviewTimingUi();
 }
 
 function scaledContract() {
@@ -518,6 +539,36 @@ function bindEvents() {
     onControlChange();
   });
 
+  els.previewDurationBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.previewTimingPreset = btn.dataset.previewDuration;
+      syncPreviewTimingUi();
+      onControlChange();
+    });
+  });
+
+  els.previewHoldBtns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.previewHold = btn.dataset.previewHold === "on";
+      syncPreviewTimingUi();
+      onControlChange();
+    });
+  });
+
+  els.duration.addEventListener("input", function () {
+    state.previewTimingPreset = "custom";
+    state.previewCustomDurationMs = clampInt(els.duration.value, 1000, 120000, 5000);
+    syncPreviewTimingUi();
+    onControlChange();
+  });
+  els.duration.addEventListener("change", function () {
+    state.previewTimingPreset = "custom";
+    state.previewCustomDurationMs = clampInt(els.duration.value, 1000, 120000, 5000);
+    els.duration.value = String(state.previewCustomDurationMs);
+    syncPreviewTimingUi();
+    onControlChange();
+  });
+
   els.screenBtns.forEach(function (btn) {
     btn.addEventListener("click", function () {
       state.screenPreset = btn.dataset.screen;
@@ -531,7 +582,6 @@ function bindEvents() {
     els.yPercent,
     els.glyph,
     els.message,
-    els.duration,
     els.screenWidth,
     els.screenHeight,
     els.backgroundMode,
@@ -544,7 +594,7 @@ function bindEvents() {
   els.backgroundFile.addEventListener("change", onBackgroundFile);
   els.previewBtn.addEventListener("click", showPreview);
   els.hideBtn.addEventListener("click", function () {
-    hideOverlay(false);
+    hideOverlay(true);
   });
   els.copyPayloadBtn.addEventListener("click", copyPayload);
   window.addEventListener("resize", resizeStage);
@@ -626,13 +676,14 @@ function resizeStage() {
 }
 
 function currentPayload() {
+  const timing = resolvePreviewTiming(state, state.contract);
   const payload = {
     hail_id: state.contract.previewDefaults.hail_id,
     effect_id: state.contract.previewDefaults.effect_id,
     glyph_id: els.glyph.value,
     palette_id: state.paletteId,
     message: els.message.value,
-    duration_ms: clampInt(els.duration.value, 1000, 30000, 5500),
+    duration_ms: timing.duration_ms_for_payload,
     placement_mode: state.placementMode,
   };
   if (state.placementMode === "custom") {
@@ -791,18 +842,20 @@ function renderStaticOverlay() {
 }
 
 function showPreview() {
-  const payload = currentPayload();
+  const timing = resolvePreviewTiming(state, state.contract);
   state.useLifecycle = true;
-  state.lifecycleDurationMs = payload.duration_ms;
+  state.lifecycleDurationMs = timing.hold ? 0 : timing.duration_ms_for_payload;
   renderStaticOverlay();
   if (state.hideTimer) clearTimeout(state.hideTimer);
   if (state.exitTimer) {
     clearTimeout(state.exitTimer);
     state.exitTimer = null;
   }
-  state.hideTimer = setTimeout(function () {
-    hideOverlay(false);
-  }, payload.duration_ms);
+  if (!timing.hold) {
+    state.hideTimer = setTimeout(function () {
+      hideOverlay(false);
+    }, timing.duration_ms_for_payload);
+  }
 }
 
 function hideOverlay(instant) {

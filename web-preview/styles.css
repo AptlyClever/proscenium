@@ -169,6 +169,10 @@ textarea {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.segmented-4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
 .segmented-btn,
 .btn-grid button,
 .pill-group button {

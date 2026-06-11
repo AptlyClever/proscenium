@@ -150,6 +150,40 @@ export function scaledTypography(contract, grammar) {
   };
 }
 
+export function resolvePreviewTiming(state, contract) {
+  const pt = (contract.previewVisual && contract.previewVisual.previewTiming) || {};
+  const presets = pt.presets || { "5s": 5000, "10s": 10000, "30s": 30000, "60s": 60000 };
+  const hold = Boolean(state.previewHold);
+  let preset = state.previewTimingPreset || pt.defaultPreset || "5s";
+  let durationMs;
+  if (preset === "custom") {
+    const min = (pt.customMs && pt.customMs.min) || 1000;
+    const max = (pt.customMs && pt.customMs.max) || 120000;
+    durationMs = clampInt(state.previewCustomDurationMs, min, max, 5000);
+  } else if (presets[preset] != null) {
+    durationMs = presets[preset];
+  } else {
+    preset = "5s";
+    durationMs = presets["5s"] || 5000;
+  }
+  return {
+    preset: preset,
+    hold: hold,
+    display_duration_ms: hold ? null : durationMs,
+    duration_ms_for_payload: durationMs,
+  };
+}
+
+export function previewTimingPayload(state, contract) {
+  const timing = resolvePreviewTiming(state, contract);
+  return {
+    preset: timing.preset,
+    hold: timing.hold,
+    display_duration_ms: timing.display_duration_ms,
+    note: "Workbench-only preview timing",
+  };
+}
+
 export function previewVisualPayload(state, contract) {
   const palette = contract.palettes[state.paletteId];
   const roles = resolvePaletteRoles(palette, contract);
@@ -191,6 +225,7 @@ export function previewVisualPayload(state, contract) {
     background_shape: state.groupBgShape,
     background_size_percent: state.groupBgSizePercent,
     background_opacity: state.groupBgOpacityPercent / 100,
+    preview_timing: previewTimingPayload(state, contract),
   };
 }
 

@@ -160,10 +160,29 @@
               <textarea id="message" rows="2" maxlength="120"></textarea>
             </label>
             <p id="message-error" class="error" aria-live="polite"></p>
-            <label class="field-compact block">
-              <span>Duration (ms)</span>
-              <input id="duration-ms" type="number" min="1000" max="30000" step="100" value="5500" />
-            </label>
+          </section>
+
+          <section class="card" aria-labelledby="group-preview-timing">
+            <h2 id="group-preview-timing">Preview timing</h2>
+            <p class="field-label">Display duration</p>
+            <div class="segmented segmented-4" role="group" aria-label="Preview duration preset">
+              <button type="button" class="segmented-btn active" data-preview-duration="5s">5s</button>
+              <button type="button" class="segmented-btn" data-preview-duration="10s">10s</button>
+              <button type="button" class="segmented-btn" data-preview-duration="30s">30s</button>
+              <button type="button" class="segmented-btn" data-preview-duration="60s">60s</button>
+            </div>
+            <p class="field-label">Remain on screen</p>
+            <div class="segmented" role="group" aria-label="Preview hold mode">
+              <button type="button" class="segmented-btn active" data-preview-hold="off">Timed</button>
+              <button type="button" class="segmented-btn" data-preview-hold="on">Hold ∞</button>
+            </div>
+            <details class="control-details">
+              <summary>Custom duration (ms)</summary>
+              <label class="field-compact block">
+                <span>Duration (ms)</span>
+                <input id="duration-ms" type="number" min="1000" max="120000" step="100" value="5000" />
+              </label>
+            </details>
           </section>
 
           <section class="card" aria-labelledby="group-tv-frame">

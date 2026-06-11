@@ -251,6 +251,18 @@
       "shapes": ["rounded_rect", "soft_panel", "circle_orb"],
       "sizePercentMin": 50,
       "sizePercentMax": 140
+    },
+    "previewTiming": {
+      "note": "Workbench-only — controls preview display duration and hold mode; not production payloadFields.",
+      "defaultPreset": "5s",
+      "defaultHold": false,
+      "presets": {
+        "5s": 5000,
+        "10s": 10000,
+        "30s": 30000,
+        "60s": 60000
+      },
+      "customMs": { "min": 1000, "max": 120000 }
     }
   },
   "animation": {
