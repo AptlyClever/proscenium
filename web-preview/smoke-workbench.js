@@ -468,6 +468,18 @@ async function main() {
     contractSourceInfo.readout && contractSourceInfo.readout.length > 10,
     "contract source readout should be visible in diagnostics",
   );
+  if (process.env.HAIL_AXIOM_EXPECT_AXIOM === "1") {
+    assert(
+      contractSourceInfo.source === "axiom-api",
+      "main-path proof requires contract source axiom-api (got " +
+        contractSourceInfo.source +
+        ")",
+    );
+    assert(
+      /Contract source:\s*Axiom API/i.test(contractSourceInfo.readout),
+      "diagnostics readout should show Contract source: Axiom API",
+    );
+  }
 
   const identityByEffect = {};
   for (const effectId of ["none", "pop", "burst", "transporter"]) {
