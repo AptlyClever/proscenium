@@ -75,7 +75,10 @@ const DEFAULT_PAINT_BOX_TIERS = {
     contentScale: 0.88,
     safeZoneInsetFraction: 0.12,
     glyphFocusFraction: 0.62,
-    messageWeight: 0.38,
+    glyphVisualSizeFloorPx: 60,
+    glyphVisualFraction: 0.28,
+    glyphWeight: 0.68,
+    messageWeight: 0.32,
     transporterBeamHeightMultiplier: 1.35,
   },
   medium: {
@@ -90,7 +93,10 @@ const DEFAULT_PAINT_BOX_TIERS = {
     contentScale: 1,
     safeZoneInsetFraction: 0.11,
     glyphFocusFraction: 0.64,
-    messageWeight: 0.36,
+    glyphVisualSizeFloorPx: 85,
+    glyphVisualFraction: 0.32,
+    glyphWeight: 0.72,
+    messageWeight: 0.28,
     transporterBeamHeightMultiplier: 1.5,
   },
   large: {
@@ -105,9 +111,19 @@ const DEFAULT_PAINT_BOX_TIERS = {
     contentScale: 1.2,
     safeZoneInsetFraction: 0.1,
     glyphFocusFraction: 0.66,
-    messageWeight: 0.34,
+    glyphVisualSizeFloorPx: 124,
+    glyphVisualFraction: 0.36,
+    glyphWeight: 0.76,
+    messageWeight: 0.24,
     transporterBeamHeightMultiplier: 1.65,
   },
+};
+
+const DEFAULT_EFFECT_IMPACT_FLOOR = {
+  none: 0,
+  pop: 0.72,
+  burst: 0.78,
+  transporter: 0.85,
 };
 
 function paintBoxTier(contract, tierId) {
@@ -149,13 +165,45 @@ export function resolvePaintBox(contract, tierId, manualPercent) {
     safeZoneInsetFraction:
       tier.safeZoneInsetFraction != null ? tier.safeZoneInsetFraction : 0.11,
     glyphFocusFraction: tier.glyphFocusFraction != null ? tier.glyphFocusFraction : 0.64,
-    messageWeight: tier.messageWeight != null ? tier.messageWeight : 0.36,
+    glyphVisualSizeFloorPx:
+      tier.glyphVisualSizeFloorPx != null ? tier.glyphVisualSizeFloorPx : 85,
+    glyphVisualFraction:
+      tier.glyphVisualFraction != null ? tier.glyphVisualFraction : 0.32,
+    glyphWeight: tier.glyphWeight != null ? tier.glyphWeight : 0.72,
+    messageWeight: tier.messageWeight != null ? tier.messageWeight : 0.28,
     transporterBeamHeightMultiplier:
       tier.transporterBeamHeightMultiplier != null
         ? tier.transporterBeamHeightMultiplier
         : 1.5,
     manualPercent: Math.round(manual * 100),
   };
+}
+
+/**
+ * Lane 1/2 — glyph visual size from Paint Box height (not screen fraction alone).
+ * glyphPx = max(floorPx, paintBoxHeightPx × glyphVisualFraction)
+ */
+export function resolveGlyphVisualSize(contract, tierId, manualPercent, paintBoxHeightPx) {
+  const pb = resolvePaintBox(contract, tierId, manualPercent);
+  const floor = pb.glyphVisualSizeFloorPx != null ? pb.glyphVisualSizeFloorPx : 85;
+  const frac = pb.glyphVisualFraction != null ? pb.glyphVisualFraction : 0.32;
+  const boxH = Math.max(1, paintBoxHeightPx || 0);
+  return Math.round(Math.max(floor, boxH * frac));
+}
+
+/** Lane 4 — minimum perceptual impact multiplier per named effect. */
+export function resolveEffectImpactFloor(contract, namedEffectId) {
+  const id = namedEffectId || "transporter";
+  const block =
+    contract &&
+    contract.previewVisual &&
+    contract.previewVisual.namedEffects &&
+    contract.previewVisual.namedEffects.effects &&
+    contract.previewVisual.namedEffects.effects[id];
+  if (block && block.effectImpactFloor != null) {
+    return clampNum(block.effectImpactFloor, 0, 1.2, 0);
+  }
+  return DEFAULT_EFFECT_IMPACT_FLOOR[id] != null ? DEFAULT_EFFECT_IMPACT_FLOOR[id] : 0.85;
 }
 
 /**
@@ -602,6 +650,33 @@ export function resolveScaledEffectParams(
   };
 }
 
+export function formatWorkbenchDiagnostics(state, contract, layoutRegions, glyphVisualPx) {
+  const effectId = state.namedEffectId || "transporter";
+  const effectLabel =
+    NAMED_EFFECT_LABELS[effectId] ? NAMED_EFFECT_LABELS[effectId] : effectId;
+  const impact = resolveEffectImpactFloor(contract, state.namedEffectId);
+  const hold = state.previewHold ? "hold" : "timed";
+  const pb = layoutRegions && layoutRegions.paintBox;
+  const sz = layoutRegions && layoutRegions.safeZone;
+  const gf = layoutRegions && layoutRegions.glyphFocus;
+  const parts = [
+    effectLabel,
+    "glyph " + (glyphVisualPx != null ? glyphVisualPx + "px" : "—"),
+    hold,
+    "impact " + Math.round(impact * 100) + "%",
+  ];
+  if (pb) {
+    parts.push("box " + Math.round(pb.width) + "×" + Math.round(pb.height));
+  }
+  if (sz) {
+    parts.push("safe " + Math.round(sz.width) + "×" + Math.round(sz.height));
+  }
+  if (gf) {
+    parts.push("focus " + Math.round(gf.width) + "×" + Math.round(gf.height));
+  }
+  return parts.join(" · ");
+}
+
 export function formatPresetPresenceReadout(presence, namedEffectId, contract) {
   const p = presence || DEFAULT_PRESET_PRESENCE;
   const effectLabel =
@@ -769,18 +844,19 @@ export function resolveContentHierarchy(
   const presetPresence = resolvePresetPresence(contract, presetId);
   const grammar = resolveScaleGrammar(contract, tierId, manualPercent);
   const paintBox = resolvePaintBox(contract, tierId, manualPercent);
-  const messageWeight = paintBox.messageWeight != null ? paintBox.messageWeight : 0.36;
-  const glyphFocusWeight = 1 - messageWeight * 0.55;
+  const glyphWeight = paintBox.glyphWeight != null ? paintBox.glyphWeight : 0.72;
+  const messageWeight = paintBox.messageWeight != null ? paintBox.messageWeight : 0.28;
+  const glyphFocusWeight = glyphWeight;
 
   let anchorWeight =
     (tierPresence.anchor_weight != null ? tierPresence.anchor_weight : 1) *
     (presetPresence.anchor_weight != null ? presetPresence.anchor_weight : 1) *
-    (1 + glyphFocusWeight * 0.42);
+    (1 + glyphWeight * 0.58);
 
   let messageBackingEmphasis =
     (tierPresence.message_backing_emphasis != null ? tierPresence.message_backing_emphasis : 1) *
     (presetPresence.message_backing_emphasis != null ? presetPresence.message_backing_emphasis : 1) *
-    (0.72 + messageWeight * 0.38);
+    (0.58 + messageWeight * 0.42);
 
   if (groupBgEnabled) {
     messageBackingEmphasis *= 0.55;
@@ -792,6 +868,7 @@ export function resolveContentHierarchy(
     anchorWeight: anchorWeight,
     messageBackingEmphasis: messageBackingEmphasis,
     messageWeight: messageWeight,
+    glyphWeight: glyphWeight,
     glyphFocusWeight: glyphFocusWeight,
     glowRadiusScale:
       tierPresence.glow_radius_scale != null ? tierPresence.glow_radius_scale : 1,
@@ -940,7 +1017,15 @@ export function previewVisualPayload(state, contract) {
       return {
         safe_zone_inset_fraction: regions.safeZoneInsetFraction,
         glyph_focus_fraction: regions.glyphFocusFraction,
+        glyph_weight: pb.glyphWeight,
         message_weight: regions.messageWeight,
+        glyph_visual_size_px: resolveGlyphVisualSize(
+          contract,
+          state.hailScaleTier,
+          state.hailScaleManualPercent,
+          refH,
+        ),
+        effect_impact_floor: resolveEffectImpactFloor(contract, state.namedEffectId),
         transporter_beam_height_multiplier: regions.transporterBeamHeightMultiplier,
         transporter_beam_height_vs_paint_box:
           regions.transporterBeamEnvelope.height / regions.paintBox.height,

@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-safe-zone-glyph-focus",
-  "contract version should be v001-safe-zone-glyph-focus",
+  contract.version === "v001-glyph-presence-contained-impact",
+  "contract version should be v001-glyph-presence-contained-impact",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -250,7 +250,9 @@ assert(
   "renderer.js should gate stable phase separately from transport draw",
 );
 assert(
-  rendererSrc.includes("beamIntensity") && rendererSrc.includes("presence <= 0.01"),
+  rendererSrc.includes("beamIntensity") &&
+    (rendererSrc.includes("effectivePresence <= 0.01") ||
+      rendererSrc.includes("presence <= 0.01")),
   "renderer.js should gate transport draw on beamIntensity / presence",
 );
 
@@ -406,6 +408,15 @@ PAINT_BOX_TIER_IDS.forEach(function (tierId) {
   );
   assert(typeof tier.messageWeight === "number", tierId + " paintBox messageWeight required");
   assert(
+    typeof tier.glyphVisualSizeFloorPx === "number",
+    tierId + " paintBox glyphVisualSizeFloorPx required",
+  );
+  assert(
+    typeof tier.glyphVisualFraction === "number",
+    tierId + " paintBox glyphVisualFraction required",
+  );
+  assert(typeof tier.glyphWeight === "number", tierId + " paintBox glyphWeight required");
+  assert(
     typeof tier.transporterBeamHeightMultiplier === "number",
     tierId + " paintBox transporterBeamHeightMultiplier required",
   );
@@ -434,14 +445,60 @@ PAINT_BOX_TIER_IDS.forEach(function (tierId) {
 });
 
 const smallBox = pv.paintBox.tiers.small;
+const mediumBox = pv.paintBox.tiers.medium;
 const largeBox = pv.paintBox.tiers.large;
 const smallW =
   smallBox.widthFraction != null ? smallBox.widthFraction : smallBox.width;
+const mediumW =
+  mediumBox.widthFraction != null ? mediumBox.widthFraction : mediumBox.width;
 const largeW = largeBox.widthFraction != null ? largeBox.widthFraction : largeBox.width;
+const smallH =
+  smallBox.heightFraction != null ? smallBox.heightFraction : smallBox.height;
+const mediumH =
+  mediumBox.heightFraction != null ? mediumBox.heightFraction : mediumBox.height;
+const largeH =
+  largeBox.heightFraction != null ? largeBox.heightFraction : largeBox.height;
 assert(
   largeW > smallW,
   "large paintBox width should exceed small (S/M/L footprint ladder)",
 );
+assert(
+  smallW === 0.18 && smallH === 0.2,
+  "small paintBox dimensions unchanged (0.18 × 0.2)",
+);
+assert(
+  mediumW === 0.24 && mediumH === 0.26,
+  "medium paintBox dimensions unchanged (0.24 × 0.26)",
+);
+assert(
+  largeW === 0.32 && largeH === 0.34,
+  "large paintBox dimensions unchanged (0.32 × 0.34)",
+);
+assert(
+  smallBox.glyphVisualSizeFloorPx < mediumBox.glyphVisualSizeFloorPx &&
+    mediumBox.glyphVisualSizeFloorPx < largeBox.glyphVisualSizeFloorPx,
+  "glyphVisualSizeFloorPx should increase S → M → L",
+);
+assert(
+  largeBox.glyphVisualSizeFloorPx >= 124,
+  "large tier glyphVisualSizeFloorPx should be >= 124",
+);
+assert(
+  pv.paintBox.glyphPresenceRule && /glyphVisualSizeFloorPx/.test(pv.paintBox.glyphPresenceRule),
+  "paintBox.glyphPresenceRule should document glyph floor sizing",
+);
+
+NAMED_EFFECT_IDS.forEach(function (effectId) {
+  const entry = namedEffectEntry(pv, effectId);
+  if (effectId === "none") {
+    assert(entry.effectImpactFloor === 0, "none effectImpactFloor should be 0");
+  } else {
+    assert(
+      typeof entry.effectImpactFloor === "number" && entry.effectImpactFloor >= 0.72,
+      effectId + " effectImpactFloor should be >= 0.72",
+    );
+  }
+});
 
 const transporterEntranceMs = resolveTransporterEntranceMs(contract, pv);
 assert(
@@ -461,6 +518,7 @@ const effectConfigSrc = fs.readFileSync(
   "utf8",
 );
 const placementSrc = fs.readFileSync(path.join(__dirname, "js", "placement.js"), "utf8");
+const appSrc = fs.readFileSync(path.join(__dirname, "js", "app.js"), "utf8");
 
 assert(
   fs.existsSync(namedEffectsPath) ||
@@ -484,6 +542,43 @@ assert(
   effectConfigSrc.includes("computeHailLayoutRegions"),
   "effect-config.js should export computeHailLayoutRegions",
 );
+assert(
+  effectConfigSrc.includes("resolveGlyphVisualSize"),
+  "effect-config.js should export resolveGlyphVisualSize",
+);
+assert(
+  effectConfigSrc.includes("resolveEffectImpactFloor"),
+  "effect-config.js should export resolveEffectImpactFloor",
+);
+assert(
+  appSrc.includes("resolveGlyphVisualSize"),
+  "app.js should size glyph via resolveGlyphVisualSize",
+);
+assert(
+  rendererSrc.includes("_effectImpactFloor") || rendererSrc.includes("effectImpactFloor"),
+  "renderer.js should apply effect impact floor",
+);
+
+function assertGlyphVisualSizeMath() {
+  const refW = 480;
+  let prev = 0;
+  ["small", "medium", "large"].forEach(function (tierId) {
+    const tier = pv.paintBox.tiers[tierId];
+    const refH = Math.round(refW * (tier.heightFraction / tier.widthFraction));
+    const glyphPx = Math.round(
+      Math.max(tier.glyphVisualSizeFloorPx, refH * tier.glyphVisualFraction),
+    );
+    assert(glyphPx > prev, tierId + " glyph visual size should exceed prior tier");
+    prev = glyphPx;
+  });
+  const largeTier = pv.paintBox.tiers.large;
+  const largeRefH = Math.round(refW * (largeTier.heightFraction / largeTier.widthFraction));
+  const largeGlyph = Math.round(
+    Math.max(largeTier.glyphVisualSizeFloorPx, largeRefH * largeTier.glyphVisualFraction),
+  );
+  assert(largeGlyph >= 124, "large glyph visual size at ref layout should be >= 124px");
+}
+assertGlyphVisualSizeMath();
 
 function assertLayoutRegionMath() {
   const refW = 480;
@@ -507,7 +602,6 @@ assert(
   "renderer.js should enforce particle budget cap (particleCountForBudget or hard max 60)",
 );
 
-const appSrc = fs.readFileSync(path.join(__dirname, "js", "app.js"), "utf8");
 assert(
   appSrc.includes("namedEffectId") || appSrc.includes("namedEffect"),
   "app.js should wire named effect selection state",

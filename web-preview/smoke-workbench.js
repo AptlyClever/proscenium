@@ -148,6 +148,35 @@ async function main() {
     typeof layoutRegions.safe_zone_inset_fraction === "number",
     "payload layout_regions should include safe_zone_inset_fraction",
   );
+  assert(
+    typeof layoutRegions.glyph_visual_size_px === "number" && layoutRegions.glyph_visual_size_px >= 85,
+    "payload layout_regions should include glyph_visual_size_px (medium default >= 85)",
+  );
+  assert(
+    typeof layoutRegions.effect_impact_floor === "number",
+    "payload layout_regions should include effect_impact_floor",
+  );
+
+  async function measureGlyphPx() {
+    return page.evaluate(function () {
+      const glyph = document.getElementById("overlay-glyph");
+      if (!glyph) {
+        return 0;
+      }
+      const stylePx = parseFloat(glyph.style.width || "0");
+      const cssVar = getComputedStyle(
+        document.getElementById("overlay-group") || document.documentElement,
+      ).getPropertyValue("--glyph-visual-px");
+      const varPx = parseFloat(cssVar || "0");
+      const box = glyph.getBoundingClientRect();
+      return Math.max(stylePx, varPx, box.width, box.height);
+    });
+  }
+
+  async function selectHailScaleTier(tierId) {
+    await page.click('[data-hail-scale-tier="' + tierId + '"]');
+    await page.waitForTimeout(150);
+  }
 
   async function canvasNonZeroAlpha() {
     return page.evaluate(function () {
@@ -197,6 +226,51 @@ async function main() {
     await page.click('[data-named-effect="' + id + '"]');
   }
 
+  const glyphSizes = {};
+  for (const tierId of ["small", "medium", "large"]) {
+    await selectHailScaleTier(tierId);
+    await clickNamedEffect("transporter");
+    await page.click("#preview-btn");
+    await page.waitForFunction(
+      function () {
+        const group = document.getElementById("overlay-group");
+        return group && !group.hidden;
+      },
+      { timeout: 5000 },
+    );
+    await page.waitForTimeout(400);
+    glyphSizes[tierId] = await measureGlyphPx();
+    await page.click("#hide-btn");
+    await page.waitForFunction(
+      function () {
+        return document.getElementById("overlay-group").hidden;
+      },
+      { timeout: 5000 },
+    );
+  }
+  assert(glyphSizes.small > 40, "small glyph should be visible (got " + glyphSizes.small + "px)");
+  assert(
+    glyphSizes.medium > glyphSizes.small,
+    "medium glyph should exceed small (M=" +
+      glyphSizes.medium +
+      " S=" +
+      glyphSizes.small +
+      ")",
+  );
+  assert(
+    glyphSizes.large > glyphSizes.medium,
+    "large glyph should exceed medium (L=" +
+      glyphSizes.large +
+      " M=" +
+      glyphSizes.medium +
+      ")",
+  );
+  assert(
+    glyphSizes.large >= 124,
+    "large glyph should meet floor >= 124px (got " + glyphSizes.large + ")",
+  );
+
+  await selectHailScaleTier("medium");
   await clickNamedEffect("transporter");
   await page.click("#preview-btn");
   await page.waitForFunction(

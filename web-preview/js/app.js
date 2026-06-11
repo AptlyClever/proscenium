@@ -10,7 +10,10 @@ import {
   NAMED_EFFECT_IDS,
   NAMED_EFFECT_LABELS,
   formatPresetPresenceReadout,
+  formatWorkbenchDiagnostics,
   getEffectPreset,
+  resolveEffectImpactFloor,
+  resolveGlyphVisualSize,
   mergeEffectParams,
   namedEffectFromPresetId,
   namedEffectHint,
@@ -405,17 +408,24 @@ function refreshScaledEffectParams() {
   syncPresenceReadout();
 }
 
-function syncPresenceReadout() {
+function syncPresenceReadout(layoutRegions, glyphVisualPx) {
   if (!els.presenceReadout) {
     return;
   }
   const presence =
     state.presetPresence || resolvePresetPresence(state.contract, state.effectPreset);
-  els.presenceReadout.textContent = formatPresetPresenceReadout(
+  const effectHint = formatPresetPresenceReadout(
     presence,
     state.namedEffectId,
     state.contract,
   );
+  const diagnostics = formatWorkbenchDiagnostics(
+    state,
+    state.contract,
+    layoutRegions || null,
+    glyphVisualPx,
+  );
+  els.presenceReadout.textContent = effectHint + "\n" + diagnostics;
 }
 
 /** Position overlay group to Paint Box; content module fills the same box. */
@@ -983,6 +993,12 @@ function renderStaticOverlay(renderOpts) {
     Math.sqrt(hierarchy.glowRadiusScale);
 
   const layout = layoutCompositionBounds(composition);
+  const glyphSize = resolveGlyphVisualSize(
+    state.contract,
+    state.hailScaleTier,
+    state.hailScaleManualPercent,
+    layout.contentHeight,
+  );
   applyGroupBackground(roles, {
     width: layout.contentWidth,
     height: layout.contentHeight,
@@ -994,7 +1010,11 @@ function renderStaticOverlay(renderOpts) {
   );
   els.overlayGroup.style.setProperty(
     "--glyph-focus-weight",
-    String(hierarchy.glyphFocusWeight != null ? hierarchy.glyphFocusWeight : 0.8),
+    String(hierarchy.glyphWeight != null ? hierarchy.glyphWeight : hierarchy.glyphFocusWeight || 0.72),
+  );
+  els.overlayGroup.style.setProperty(
+    "--glyph-visual-px",
+    String(glyphSize),
   );
   els.overlayGroup.style.setProperty(
     "--anchor-message-gap",
@@ -1026,7 +1046,6 @@ function renderStaticOverlay(renderOpts) {
   canvas.width = layout.width;
   canvas.height = layout.height;
 
-  const glyphSize = size.height * typography.glyphSizeFractionOfHeight;
   els.overlayGlyph.style.width = glyphSize + "px";
   els.overlayGlyph.style.height = glyphSize + "px";
   els.overlayGlyph.style.color = roles.accent;
@@ -1037,8 +1056,8 @@ function renderStaticOverlay(renderOpts) {
     ? roles.messageBackingOpacity
     : typography.messageBackingAlpha;
   const msgAlpha = Math.min(
-    0.62,
-    baseMsgAlpha * hierarchy.messageBackingEmphasis * (0.82 + hierarchy.messageWeight * 0.12),
+    0.52,
+    baseMsgAlpha * hierarchy.messageBackingEmphasis * (0.72 + hierarchy.messageWeight * 0.14),
   );
   els.overlayMessage.textContent = validation.value;
   els.overlayMessage.style.color = roles.text;
@@ -1088,8 +1107,11 @@ function renderStaticOverlay(renderOpts) {
         glyphResidual: state.scaledEffectParams.shimmerIntensity,
       };
 
+  syncPresenceReadout(composition.layoutRegions, glyphSize);
+
   const effectParamsWithLayout = Object.assign({}, state.scaledEffectParams, {
     _layoutRegions: composition.layoutRegions,
+    _effectImpactFloor: resolveEffectImpactFloor(state.contract, state.namedEffectId),
   });
 
   state.stopAnimation = createOverlayAnimator(
@@ -1157,6 +1179,7 @@ function renderStaticOverlay(renderOpts) {
       hailSizeTier: state.hailScaleTier,
       effectId: state.namedEffectId,
       layoutRegions: composition.layoutRegions,
+      effectImpactFloor: resolveEffectImpactFloor(state.contract, state.namedEffectId),
     },
   );
 }

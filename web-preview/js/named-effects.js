@@ -173,6 +173,16 @@ export function getNamedEffect(contract, effectId) {
     presetPresenceId: legacyPresetId,
     timing: timing,
     stableBeamSuppressed: id === "none" || id === "pop",
+    effectImpactFloor:
+      contractBlock && contractBlock.effectImpactFloor != null
+        ? contractBlock.effectImpactFloor
+        : id === "none"
+          ? 0
+          : id === "pop"
+            ? 0.72
+            : id === "burst"
+              ? 0.78
+              : 0.85,
     sequence: contractBlock && contractBlock.sequence ? contractBlock.sequence : null,
   };
 }

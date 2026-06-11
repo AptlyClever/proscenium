@@ -187,8 +187,8 @@ const BEAM_IN_TUNING = {
   fade: { seedMul: 0.55, beamPeak: 0.36, materializeMul: 0.88, clearMul: 1.15, fieldMul: 0.55 },
   beam_materialize: { seedMul: 1, beamPeak: 1, materializeMul: 1, clearMul: 1, fieldMul: 1 },
   scan_resolve: { seedMul: 1.12, beamPeak: 1.24, materializeMul: 1.06, clearMul: 0.92, fieldMul: 1.18 },
-  pop_ping: { seedMul: 0.42, beamPeak: 0.68, materializeMul: 0.72, clearMul: 1.3, fieldMul: 0.62 },
-  achievement_snap: { seedMul: 0.5, beamPeak: 0.82, materializeMul: 0.78, clearMul: 1.2, fieldMul: 0.7 },
+  pop_ping: { seedMul: 0.55, beamPeak: 0.82, materializeMul: 0.78, clearMul: 1.3, fieldMul: 0.86 },
+  achievement_snap: { seedMul: 0.62, beamPeak: 0.92, materializeMul: 0.84, clearMul: 1.2, fieldMul: 0.9 },
 };
 
 export const LIFECYCLE_PHASES = {
@@ -479,7 +479,7 @@ function computeEntranceFrame(
       const snap = 0.05 + overshoot * 0.35;
       beamScale = 0.9 + easeOutCubic(beamT) * 0.1;
       beamIntensity =
-        easeOutCubic(beamT) * 0.45 + easeOutCubic(particleStageT) * 0.55;
+        easeOutCubic(beamT) * 0.52 + easeOutCubic(particleStageT) * 0.62;
       if (objectVisible) {
         glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
         glyphScale =
@@ -497,7 +497,7 @@ function computeEntranceFrame(
         easeOutCubic(beamT) * 0.1 +
         easeOutCubic(particleStageT) * 0.06;
       beamIntensity =
-        easeOutCubic(beamT) * 0.5 + easeOutCubic(particleStageT) * 0.5;
+        easeOutCubic(beamT) * 0.56 + easeOutCubic(particleStageT) * 0.58;
       if (objectVisible) {
         glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
         glyphScale =

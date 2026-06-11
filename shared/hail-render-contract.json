@@ -1,6 +1,6 @@
 {
-  "version": "v001-safe-zone-glyph-focus",
-  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, named effects, and budget rules. LCARD preview workbench consumes this file as a test surface only; LCARD does not own Hails.",
+  "version": "v001-glyph-presence-contained-impact",
+  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, glyph presence floors, and contained named effects. LCARD preview workbench consumes this file as a test surface only.",
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
@@ -145,7 +145,8 @@
     "defaultHailScaleTier": "medium",
     "paintBox": {
       "note": "Paint Box = absolute maximum layout container. Safe Effect Zone = normal effect maximum (inset). Glyph Focus Region = primary effect anchor. Message Region = secondary readable support. Hierarchy: Paint Box -> Safe Effect Zone -> Glyph Focus Region -> Effect Envelope -> Message Support.",
-      "canon": "Effects render inside Safe Effect Zone and anchor to Glyph Focus Region — not the full Paint Box. Visible hard-edged cutoff at Paint Box boundary is a bug; scale/fade down inside Safe Effect Zone first.",
+      "canon": "The Paint Box defines where the Hail may exist; the glyph defines what the Hail is. Glyph visual height = max(glyphVisualSizeFloorPx, paintBoxHeight × glyphVisualFraction). Effects render inside Safe Effect Zone and anchor to Glyph Focus Region.",
+      "glyphPresenceRule": "glyphPx = max(tier.glyphVisualSizeFloorPx, paintBoxHeightPx * tier.glyphVisualFraction)",
       "debugOutlineWorkbenchOption": true,
       "sizeAliases": {
         "S": "small",
@@ -164,7 +165,10 @@
           "maxEffectFootprintFraction": 1,
           "safeZoneInsetFraction": 0.12,
           "glyphFocusFraction": 0.62,
-          "messageWeight": 0.38,
+          "glyphVisualSizeFloorPx": 60,
+          "glyphVisualFraction": 0.28,
+          "glyphWeight": 0.68,
+          "messageWeight": 0.32,
           "transporterBeamHeightMultiplier": 1.35
         },
         "medium": {
@@ -178,7 +182,10 @@
           "maxEffectFootprintFraction": 1,
           "safeZoneInsetFraction": 0.11,
           "glyphFocusFraction": 0.64,
-          "messageWeight": 0.36,
+          "glyphVisualSizeFloorPx": 85,
+          "glyphVisualFraction": 0.32,
+          "glyphWeight": 0.72,
+          "messageWeight": 0.28,
           "transporterBeamHeightMultiplier": 1.5
         },
         "large": {
@@ -192,7 +199,10 @@
           "maxEffectFootprintFraction": 1,
           "safeZoneInsetFraction": 0.1,
           "glyphFocusFraction": 0.66,
-          "messageWeight": 0.34,
+          "glyphVisualSizeFloorPx": 124,
+          "glyphVisualFraction": 0.36,
+          "glyphWeight": 0.76,
+          "messageWeight": 0.24,
           "transporterBeamHeightMultiplier": 1.65
         }
       }
@@ -205,6 +215,7 @@
       "effects": {
         "none": {
           "label": "None",
+          "effectImpactFloor": 0,
           "intent": "Immediate or soft appear/clear — no residual animation",
           "timingMs": {
             "entrance": { "min": 0, "max": 200, "default": 120 },
@@ -216,7 +227,8 @@
         },
         "pop": {
           "label": "Pop",
-          "intent": "Quick punchy entrance/exit — no stable residual",
+          "effectImpactFloor": 0.72,
+          "intent": "Quick punchy entrance/exit — obvious glyph-local pop moment",
           "timingMs": {
             "entrance": { "min": 150, "max": 350, "default": 250 },
             "exit": { "min": 150, "max": 300, "default": 220 },
@@ -227,7 +239,8 @@
         },
         "burst": {
           "label": "Burst",
-          "intent": "Size-aware burst entrance/exit with optional tiny glyph-local stable residual",
+          "effectImpactFloor": 0.78,
+          "intent": "Size-aware burst entrance/exit — visible contained flare/spark at glyph",
           "timingMs": {
             "entrance": { "min": 500, "max": 900, "default": 700 },
             "exit": { "min": 350, "max": 700, "default": 520 },
@@ -238,7 +251,8 @@
         },
         "transporter": {
           "label": "Transporter",
-          "intent": "Contained transport field inside Paint Box — field establishes before glyph/message materialize; stable has no beam",
+          "effectImpactFloor": 0.85,
+          "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
           "timingMs": {
             "entrance": { "min": 1200, "max": 1800, "default": 1500 },
             "exit": { "min": 900, "max": 1400, "default": 1150 },

@@ -373,7 +373,15 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
 
   const beamIntensity = frame && frame.beamIntensity != null ? frame.beamIntensity : 1;
   const presence = Math.max(0, Math.min(1, beamIntensity * effectParams.effectIntensity));
-  if (presence <= 0.01 || budgetCtx.effect === "none") {
+  const impactFloor =
+    effectParams._effectImpactFloor != null
+      ? effectParams._effectImpactFloor
+      : opts && opts.effectImpactFloor != null
+        ? opts.effectImpactFloor
+        : 0.85;
+  const impactMul = impactFloor > 0 ? 0.58 + impactFloor * 0.48 : 1;
+  const effectivePresence = Math.min(1, presence * impactMul);
+  if (effectivePresence <= 0.01 || budgetCtx.effect === "none") {
     ctx.clearRect(0, 0, width, height);
     return;
   }
@@ -408,7 +416,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   const podCenterY = anchor.cy;
   const rand = mulberry32(PARTICLE_SEED);
   const glowMul = scaledParams.glowIntensity / 100;
-  const beamOp = scaledParams.beamOpacity * presence * 0.82;
+  const beamOp = scaledParams.beamOpacity * effectivePresence * 0.88;
 
   ctx.clearRect(0, 0, width, height);
   beginEffectClip(ctx, width, height, layout);
@@ -416,14 +424,14 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
 
   if (groupBgOn && layout && layout.safeZone) {
     const sz = layout.safeZone;
-    ctx.fillStyle = hexWithAlpha(roles.primary, 0.03 * presence);
+    ctx.fillStyle = hexWithAlpha(roles.primary, 0.03 * effectivePresence);
     ctx.fillRect(sz.left, sz.top, sz.width, sz.height);
   }
 
   const drawTransportBeam =
     !stable &&
     budgetCtx.effect !== "none" &&
-    (frame.beamActive !== false || presence > 0.02) &&
+    (frame.beamActive !== false || effectivePresence > 0.02) &&
     (!materializing || (frame.beamClearT == null || frame.beamClearT < 1));
 
   if (!stable && drawTransportBeam) {
@@ -435,9 +443,10 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       podCenterY,
       roles,
       field,
-      presence,
+      effectivePresence,
       glowMul,
       layout,
+      impactFloor,
     );
   }
 
@@ -467,7 +476,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       phase,
       roles,
       scaledParams,
-      presence,
+      effectivePresence,
       rand,
       (frame && frame.particleMode) || "drift",
       frame && frame.phaseProgress != null ? frame.phaseProgress : 0,
@@ -512,20 +521,23 @@ function endEffectClip(ctx) {
 }
 
 /** Glyph-local anticipation glow — capped to Safe Effect Zone. */
-function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul, layout) {
+function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul, layout, impactFloor) {
   if (field.effect <= 1.02) {
     return;
   }
   const sz = layout && layout.safeZone ? layout.safeZone : { width: w, height: h };
+  const impactBoost = impactFloor > 0 ? 0.72 + impactFloor * 0.32 : 1;
   const boxR = Math.min(sz.width, sz.height) * 0.42;
   const glowColor = roles.glow || roles.accent;
   const outerR =
     boxR *
-    (0.48 + (field.effect - 1) * 0.16) *
-    Math.min(field.glow, PAINT_BOX_FIELD_CAPS.glow);
-  const innerR = outerR * 0.12;
+    (0.5 + (field.effect - 1) * 0.18) *
+    Math.min(field.glow, PAINT_BOX_FIELD_CAPS.glow) *
+    Math.min(1.08, impactBoost);
+  const innerR = outerR * 0.14;
   const fieldGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
-  const fieldAlpha = Math.min(0.12, 0.04 + (field.effect - 1) * 0.035) * presence * glowMul;
+  const fieldAlpha =
+    Math.min(0.2, 0.055 + (field.effect - 1) * 0.048) * presence * glowMul * impactBoost;
   fieldGrad.addColorStop(0, hexWithAlpha(glowColor, fieldAlpha * 1.1));
   fieldGrad.addColorStop(0.35, hexWithAlpha(roles.primary, fieldAlpha * 0.65));
   fieldGrad.addColorStop(0.72, hexWithAlpha(roles.primary, fieldAlpha * 0.22));
@@ -619,12 +631,12 @@ function drawSoftFilamentColumn(ctx, cx, top, bottom, baseWidth, roles, beamOp, 
   if (span <= 1) {
     return;
   }
-  const filaments = 3;
+  const filaments = 4;
   for (let i = 0; i < filaments; i += 1) {
-    const offset = (i - (filaments - 1) / 2) * baseWidth * 0.22;
-    const lineW = Math.max(1, baseWidth * (0.28 + i * 0.08));
+    const offset = (i - (filaments - 1) / 2) * baseWidth * 0.2;
+    const lineW = Math.max(1, baseWidth * (0.3 + i * 0.07));
     const grad = ctx.createLinearGradient(cx + offset, bottom, cx + offset, top);
-    const peak = (0.14 + shimmer * (i === 1 ? 1 : 0.55)) * beamOp * glowMul;
+    const peak = (0.17 + shimmer * (i === 1 || i === 2 ? 1 : 0.55)) * beamOp * glowMul;
     grad.addColorStop(0, hexWithAlpha(roles.primary, 0.02 * beamOp));
     grad.addColorStop(0.35, hexWithAlpha(roles.accent, peak * 0.55));
     grad.addColorStop(0.62, hexWithAlpha(roles.accent, peak));
