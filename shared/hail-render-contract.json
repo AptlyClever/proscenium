@@ -1,18 +1,24 @@
 {
-  "version": "v001-presentation-polish-acceptance-candidate",
-  "description": "LCARD preview mirror of Axiom-owned Hails render contract — consumed by preview workbench only; not canonical source of ownership.",
+  "version": "v001-integration",
+  "description": "LCARD preview fallback mirror of Axiom-owned Hails render contract — not canonical; loader prefers Axiom API.",
+  "mirrorRole": "local-mirror-fallback-only",
   "canonicalSource": {
     "repository": "AptlyClever/ctrl-alt-axiom",
     "path": "config/hails/hail-render-contract.v001.json",
     "version": "v001-integration",
-    "module": "backend/hails_render_contract.py",
     "api": "GET /api/hails/render-contract",
-    "note": "LCARD hosts/consumes this mirror for preview harness; Axiom owns Hails"
+    "note": "Fallback mirror only — Axiom API is source of truth"
+  },
+  "canonicalLocation": {
+    "repository": "AptlyClever/ctrl-alt-axiom",
+    "path": "config/hails/hail-render-contract.v001.json",
+    "module": "backend/hails_render_contract.py",
+    "api": "GET /api/hails/render-contract"
   },
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
-    "consumers": ["lcard-preview"],
+    "consumers": ["lcard-preview", "lcard"],
     "futureConsumers": ["lcard", "control-alt-apps"],
     "note": "Axiom owns Hails and this shared contract. LCARD hosts/consumes the preview harness only — not the Hail visual model, Paint Box, named effects, or budget canon."
   },
@@ -28,6 +34,14 @@
       "M": "medium",
       "L": "large"
     }
+  },
+  "lifecycleModel": {
+    "note": "duration_ms on hail records and runtime payloads maps to stable_hold_ms only. Entrance and exit animation ms are additive per named effect lifecycleTiming.",
+    "entrance_animation_ms": "Named effect entrance animation duration",
+    "stable_hold_ms": "Stable readable phase — duration_ms / presets map here",
+    "exit_animation_ms": "Named effect exit animation duration",
+    "holdMode": "entrance -> stable indefinitely -> Hide triggers exit -> clear",
+    "timedMode": "entrance -> stable_hold_ms -> exit -> clear"
   },
   "payloadFields": [
     "hail_id",
@@ -83,7 +97,7 @@
     "legacyAliases": {
       "transporter_beam": "transporter"
     },
-    "note": "Runtime named effect ids — canonical list owned by Axiom; see canonicalSource"
+    "note": "Runtime named effect ids — not legacy transporter_beam"
   },
   "palettes": {
     "axiom_dark_cyan": {

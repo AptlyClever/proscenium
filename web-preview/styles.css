@@ -123,6 +123,28 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.contract-source-readout {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.contract-source-readout.contract-source--axiom {
+  border-color: rgba(50, 181, 160, 0.35);
+  color: #b8ebe3;
+}
+
+.contract-source-readout.contract-source--fallback {
+  border-color: rgba(230, 180, 90, 0.35);
+  color: #e8d4a8;
+}
+
 .field-label {
   margin: 0 0 6px;
   font-size: 0.72rem;

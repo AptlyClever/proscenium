@@ -38,6 +38,11 @@ import {
   isStableLifecyclePhase,
   resetLifecycle,
 } from "./renderer.js";
+import {
+  formatContractSourceDiagnostics,
+  loadAxiomRenderPayload,
+  loadHailRenderContract,
+} from "./contract-loader.js";
 
 const PLACEMENT_LABELS = {
   center_soft: "Center",
@@ -89,6 +94,8 @@ const state = {
   reviewSlowMotion: false,
   reviewFreezeAtStable: false,
   reviewAutoTimedExit: true,
+  contractSource: null,
+  contractMetadata: null,
 };
 
 const els = {};
@@ -169,17 +176,26 @@ function cacheElements() {
     replayEntranceBtn: document.getElementById("replay-entrance-btn"),
     replayExitBtn: document.getElementById("replay-exit-btn"),
     reviewSlowMotionBtn: document.getElementById("review-slow-motion-btn"),
+    contractSourceReadout: document.getElementById("contract-source-readout"),
+    axiomHailId: document.getElementById("axiom-hail-id"),
+    loadAxiomHailBtn: document.getElementById("load-axiom-hail-btn"),
   });
 }
 
 async function init() {
   try {
     cacheElements();
-    const res = await fetch("/shared/hail-render-contract.json");
-    if (!res.ok) {
-      throw new Error("contract fetch failed: HTTP " + res.status);
+    const loaded = await loadHailRenderContract({
+      proxyContractUrl: "/api/hails/render-contract",
+      mirrorUrl: "/shared/hail-render-contract.json",
+    });
+    if (!loaded.contract || loaded.source === "error") {
+      throw new Error(loaded.error || "contract load failed");
     }
-    state.contract = await res.json();
+    state.contract = loaded.contract;
+    state.contractSource = loaded.source;
+    state.contractMetadata = loaded.metadata;
+    syncContractSourceReadout();
     buildPlacementGrid();
     buildPalettePills();
     buildNamedEffectPills();
@@ -202,6 +218,74 @@ async function init() {
         null,
         2,
       );
+    }
+  }
+}
+
+function syncContractSourceReadout() {
+  if (!els.contractSourceReadout || !state.contractMetadata) {
+    return;
+  }
+  els.contractSourceReadout.textContent = formatContractSourceDiagnostics(state.contractMetadata);
+  els.contractSourceReadout.dataset.source = state.contractSource || "";
+  els.contractSourceReadout.classList.toggle(
+    "contract-source--fallback",
+    state.contractSource === "local-mirror-fallback",
+  );
+  els.contractSourceReadout.classList.toggle(
+    "contract-source--axiom",
+    state.contractSource === "axiom-api",
+  );
+}
+
+async function loadAxiomHailIntoWorkbench() {
+  if (!els.axiomHailId) {
+    return;
+  }
+  const hailId = (els.axiomHailId.value || "").trim();
+  if (!hailId) {
+    return;
+  }
+  try {
+    const payload = await loadAxiomRenderPayload(hailId, {
+      proxyPayloadBase: "/api/hails",
+    });
+    if (payload.message) {
+      els.message.value = payload.message;
+    }
+    if (payload.glyph_id && els.glyph.querySelector('option[value="' + payload.glyph_id + '"]')) {
+      els.glyph.value = payload.glyph_id;
+    }
+    if (payload.effect_id) {
+      applyNamedEffectToState(payload.effect_id);
+      buildNamedEffectPills();
+      syncEffectUiFromState();
+    }
+    if (payload.palette_id) {
+      state.paletteId = payload.palette_id;
+      buildPalettePills();
+    }
+    if (payload.size_tier) {
+      state.hailScaleTier = payload.size_tier;
+      document.querySelectorAll("[data-hail-scale-tier]").forEach(function (btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-hail-scale-tier") === payload.size_tier);
+      });
+    }
+    if (payload.duration_ms != null) {
+      state.previewCustomDurationMs = Number(payload.duration_ms);
+      state.previewTimingPreset = "custom";
+      els.duration.value = String(payload.duration_ms);
+      document.querySelectorAll("[data-preview-duration]").forEach(function (btn) {
+        btn.classList.remove("active");
+      });
+    }
+    refreshScaledEffectParams();
+    updatePayloadPreview();
+  } catch (err) {
+    console.error("Axiom hail payload load failed:", err);
+    if (els.contractSourceReadout) {
+      els.contractSourceReadout.textContent +=
+        " · payload error: " + (err && err.message ? err.message : String(err));
     }
   }
 }
@@ -805,6 +889,9 @@ function bindEvents() {
         renderStaticOverlay({ skipVisualReset: true });
       }
     });
+  }
+  if (els.loadAxiomHailBtn) {
+    els.loadAxiomHailBtn.addEventListener("click", loadAxiomHailIntoWorkbench);
   }
   els.copyPayloadBtn.addEventListener("click", copyPayload);
   window.addEventListener("resize", resizeStage);

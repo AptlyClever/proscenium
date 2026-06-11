@@ -231,6 +231,13 @@
               <button type="button" id="review-slow-motion-btn" class="btn-ghost segmented-btn" aria-pressed="false">Slow 50%</button>
             </div>
             <p class="field-hint">Workbench-only — replay entrance/exit or slow entrance/exit animation.</p>
+            <p id="contract-source-readout" class="contract-source-readout" aria-live="polite" title="Active Hails contract source"></p>
+            <label class="field-compact block">
+              <span>Axiom hail id (preview)</span>
+              <input id="axiom-hail-id" type="text" placeholder="hail.sniffer.001" value="hail.sniffer.001" />
+            </label>
+            <button type="button" id="load-axiom-hail-btn" class="btn-ghost">Load from Axiom</button>
+            <p class="field-hint">Dev-only — loads render-payload when Axiom API is reachable.</p>
             <p id="presence-readout" class="presence-readout" aria-live="polite" title="Named effect presence"></p>
             <details id="payload-details" class="payload-details">
               <summary>Payload JSON</summary>

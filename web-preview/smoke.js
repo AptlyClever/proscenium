@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-presentation-polish-acceptance-candidate",
-  "contract version should be v001-presentation-polish-acceptance-candidate",
+  contract.version === "v001-integration",
+  "contract version should be v001-integration",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -403,8 +403,20 @@ const contractBlob = contractTextBlob(contract);
 const description = contract.description || "";
 
 assert(
-  contract.ownership && contract.ownership.hails === "axiom",
-  "contract.ownership.hails must be 'axiom'",
+  fs.existsSync(path.join(__dirname, "js", "contract-loader.js")),
+  "contract-loader.js required for Axiom API consumption",
+);
+const contractLoaderSrc = fs.readFileSync(
+  path.join(__dirname, "js", "contract-loader.js"),
+  "utf8",
+);
+assert(
+  contractLoaderSrc.includes("local-mirror-fallback"),
+  "contract-loader should define local-mirror-fallback source",
+);
+assert(
+  contractLoaderSrc.includes("v001-integration"),
+  "contract-loader should validate v001-integration",
 );
 assert(
   Array.isArray(contract.ownership.consumers) &&

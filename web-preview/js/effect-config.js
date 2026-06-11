@@ -1038,6 +1038,16 @@ export function previewVisualPayload(state, contract) {
     background_size_percent: state.groupBgSizePercent,
     background_opacity: state.groupBgOpacityPercent / 100,
     preview_timing: previewTimingPayload(state, contract),
+    contract_source: state.contractMetadata
+      ? {
+          source: state.contractSource,
+          version: state.contractMetadata.version,
+          ownership: state.contractMetadata.ownership,
+          canonical_repository: state.contractMetadata.canonicalRepository,
+          fetched_at: state.contractMetadata.fetchedAt,
+          fallback_reason: state.contractMetadata.fallbackReason,
+        }
+      : null,
     animation_profile: animationProfilePayload(
       getAnimationProfile(contract, selection.legacyPresetId),
       contract,

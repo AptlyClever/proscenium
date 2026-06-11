@@ -1,9 +1,11 @@
 "use strict";
 
 const http = require("http");
+const https = require("https");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { URL } = require("url");
 
 const ROOT = __dirname;
 const SHARED_ROOT =
@@ -11,6 +13,8 @@ const SHARED_ROOT =
 const HOST = process.env.HAIL_PREVIEW_HOST || "127.0.0.1";
 const PORT = Number(process.env.HAIL_PREVIEW_PORT || 8766);
 const DEV = process.env.HAIL_PREVIEW_DEV === "1";
+const AXIOM_BASE_URL = (process.env.HAIL_AXIOM_BASE_URL || process.env.AXIOM_BASE_URL || "")
+  .replace(/\/+$/, "");
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -33,6 +37,9 @@ function safePath(urlPath) {
   const decoded = decodeURIComponent(urlPath.split("?")[0]);
   if (decoded === "/shared/hail-render-contract.json") {
     return path.join(SHARED_ROOT, "hail-render-contract.json");
+  }
+  if (decoded === "/api/hails/render-contract" || decoded.startsWith("/api/hails/")) {
+    return "__axiom_proxy__";
   }
   if (DEV && decoded === "/__dev/reload") {
     return "__dev_reload__";
@@ -97,11 +104,88 @@ function startDevWatch() {
   watchTree(SHARED_ROOT);
 }
 
+function resolveAxiomBaseFromRequest(req) {
+  try {
+    const url = new URL(req.url || "/", "http://localhost");
+    const fromQuery = url.searchParams.get("axiomBaseUrl");
+    if (fromQuery) {
+      return fromQuery.replace(/\/+$/, "");
+    }
+  } catch (_err) {
+    /* ignore */
+  }
+  return AXIOM_BASE_URL;
+}
+
+function proxyAxiomJson(req, res, targetUrl) {
+  const lib = targetUrl.startsWith("https:") ? https : http;
+  const proxyReq = lib.get(
+    targetUrl,
+    { headers: { Accept: "application/json" } },
+    function (proxyRes) {
+      let body = "";
+      proxyRes.on("data", function (chunk) {
+        body += chunk;
+      });
+      proxyRes.on("end", function () {
+        res.writeHead(proxyRes.statusCode || 502, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Hail-Axiom-Proxy": "1",
+        });
+        res.end(body);
+      });
+    },
+  );
+  proxyReq.on("error", function (err) {
+    res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ error: "axiom_proxy_failed", message: err.message }));
+  });
+  proxyReq.setTimeout(8000, function () {
+    proxyReq.destroy(new Error("axiom proxy timeout"));
+  });
+}
+
+function handleAxiomProxy(req, res) {
+  const base = resolveAxiomBaseFromRequest(req);
+  const decoded = decodeURIComponent((req.url || "").split("?")[0]);
+  if (!base) {
+    res.writeHead(503, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(
+      JSON.stringify({
+        error: "axiom_not_configured",
+        message: "Set HAIL_AXIOM_BASE_URL to proxy Axiom Hails API",
+      }),
+    );
+    return;
+  }
+  if (decoded === "/api/hails/render-contract") {
+    proxyAxiomJson(req, res, base + "/api/hails/render-contract");
+    return;
+  }
+  const payloadMatch = decoded.match(/^\/api\/hails\/([^/]+)\/render-payload$/);
+  if (payloadMatch) {
+    proxyAxiomJson(
+      req,
+      res,
+      base + "/api/hails/" + encodeURIComponent(payloadMatch[1]) + "/render-payload",
+    );
+    return;
+  }
+  res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+  res.end(JSON.stringify({ error: "not_found" }));
+}
+
 const server = http.createServer(function (req, res) {
   const filePath = safePath(req.url || "/");
   if (!filePath) {
     res.writeHead(403);
     res.end("Forbidden");
+    return;
+  }
+
+  if (filePath === "__axiom_proxy__") {
+    handleAxiomProxy(req, res);
     return;
   }
 
@@ -161,6 +245,12 @@ server.listen(PORT, HOST, function () {
     }
   }
 
-  console.log("Contract: /shared/hail-render-contract.json");
+  console.log("Contract mirror: /shared/hail-render-contract.json");
+  console.log("Axiom proxy:  /api/hails/render-contract");
+  if (AXIOM_BASE_URL) {
+    console.log("Axiom base:   " + AXIOM_BASE_URL);
+  } else {
+    console.log("Axiom base:   (not set — loader uses local mirror fallback)");
+  }
   console.log("Stop with Ctrl+C");
 });

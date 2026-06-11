@@ -73,7 +73,14 @@ async function main() {
   });
   page.on("console", function (msg) {
     if (msg.type() === "error") {
-      errors.push(msg.text());
+      const text = msg.text();
+      if (
+        /Failed to load resource/i.test(text) &&
+        /(404|503|502)/i.test(text)
+      ) {
+        return;
+      }
+      errors.push(text);
     }
   });
 
@@ -425,6 +432,42 @@ async function main() {
     }
   });
   assert(payloadAfterFx === "none", "named effect selector should update payload");
+
+  const contractSourceInfo = await page.evaluate(function () {
+    try {
+      const p = JSON.parse(document.getElementById("payload-out").textContent || "{}");
+      const pv = p.preview_visual || {};
+      const cs = pv.contract_source || {};
+      const readout = document.getElementById("contract-source-readout");
+      return {
+        source: cs.source || (readout && readout.dataset.source) || null,
+        version: cs.version || null,
+        ownership: cs.ownership || null,
+        readout: readout ? readout.textContent : "",
+      };
+    } catch (e) {
+      return {};
+    }
+  });
+  assert(
+    contractSourceInfo.version === "v001-integration",
+    "active contract version should be v001-integration",
+  );
+  assert(
+    contractSourceInfo.ownership === "axiom",
+    "active contract ownership should be axiom",
+  );
+  assert(
+    contractSourceInfo.source === "axiom-api" ||
+      contractSourceInfo.source === "local-mirror-fallback",
+    "contract source must be axiom-api or local-mirror-fallback (got " +
+      contractSourceInfo.source +
+      ")",
+  );
+  assert(
+    contractSourceInfo.readout && contractSourceInfo.readout.length > 10,
+    "contract source readout should be visible in diagnostics",
+  );
 
   const identityByEffect = {};
   for (const effectId of ["none", "pop", "burst", "transporter"]) {

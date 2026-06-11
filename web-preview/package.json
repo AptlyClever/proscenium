@@ -11,6 +11,7 @@
     "dev:stop": "docker compose -f docker-compose.dev.yml down",
     "stable:rebuild": "docker compose build && docker compose up -d",
     "smoke": "node smoke.js",
+    "smoke:contract-loader": "node smoke-contract-loader.mjs",
     "smoke:lan": "node smoke-lan.js",
     "smoke:dev": "HAIL_PREVIEW_SMOKE_PORT=8197 node smoke-lan.js",
     "smoke:workbench": "node smoke-workbench.js",

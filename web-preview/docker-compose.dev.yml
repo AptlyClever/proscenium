@@ -13,6 +13,7 @@ services:
       HAIL_PREVIEW_PORT: "8197"
       HAIL_PREVIEW_DEV: "1"
       HAIL_PREVIEW_SHARED_ROOT: "/srv/shared"
+      HAIL_AXIOM_BASE_URL: "${HAIL_AXIOM_BASE_URL:-}"
     volumes:
       - .:/srv/web-preview:cached
       - ../shared:/srv/shared:cached
