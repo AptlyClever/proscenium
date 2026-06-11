@@ -149,6 +149,55 @@ async function main() {
     "payload layout_regions should include safe_zone_inset_fraction",
   );
 
+  async function canvasNonZeroAlpha() {
+    return page.evaluate(function () {
+      const canvas = document.getElementById("overlay-canvas");
+      if (!canvas || !canvas.width || !canvas.height) {
+        return 0;
+      }
+      const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+      let count = 0;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 3) {
+          count += 1;
+        }
+      }
+      return count;
+    });
+  }
+
+  async function waitForCanvasEffects(minPixels, timeoutMs) {
+    const min = minPixels || 5;
+    const timeout = timeoutMs || 3000;
+    await page.waitForFunction(
+      function (threshold) {
+        const canvas = document.getElementById("overlay-canvas");
+        if (!canvas || !canvas.width || !canvas.height) {
+          return false;
+        }
+        const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+        let count = 0;
+        for (let i = 3; i < data.length; i += 4) {
+          if (data[i] > 3) {
+            count += 1;
+            if (count >= threshold) {
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      min,
+      { timeout: timeout },
+    );
+    return canvasNonZeroAlpha();
+  }
+
+  async function clickNamedEffect(id) {
+    await page.click('[data-named-effect="' + id + '"]');
+  }
+
+  await clickNamedEffect("transporter");
   await page.click("#preview-btn");
   await page.waitForFunction(
     function () {
@@ -156,6 +205,12 @@ async function main() {
       return group && !group.hidden;
     },
     { timeout: 5000 },
+  );
+
+  const transporterCanvasPx = await waitForCanvasEffects(10, 3000);
+  assert(
+    transporterCanvasPx > 10,
+    "transporter entrance should draw visible canvas effects (got " + transporterCanvasPx + " px)",
   );
 
   const overlay = await page.evaluate(function () {
@@ -173,6 +228,98 @@ async function main() {
     overlay.glyphHtmlLen > 0 || Number(overlay.glyphOpacity) > 0,
     "preview should render visible hail glyph content",
   );
+
+  await page.click("#hide-btn");
+  await page.waitForFunction(
+    function () {
+      return document.getElementById("overlay-group").hidden;
+    },
+    { timeout: 5000 },
+  );
+
+  await clickNamedEffect("pop");
+  await page.click('[data-preview-hold="off"]');
+  await page.click("#preview-btn");
+  await page.waitForFunction(
+    function () {
+      return !document.getElementById("overlay-group").hidden;
+    },
+    { timeout: 5000 },
+  );
+  const popCanvasPx = await waitForCanvasEffects(5, 2500);
+  assert(popCanvasPx > 5, "pop entrance should draw canvas effects (got " + popCanvasPx + " px)");
+  await page.click("#hide-btn");
+  await page.waitForTimeout(1200);
+
+  await clickNamedEffect("burst");
+  await page.click("#preview-btn");
+  await page.waitForFunction(
+    function () {
+      return !document.getElementById("overlay-group").hidden;
+    },
+    { timeout: 5000 },
+  );
+  const burstCanvasPx = await waitForCanvasEffects(5, 3000);
+  assert(
+    burstCanvasPx > 5,
+    "burst entrance should draw canvas effects (got " + burstCanvasPx + " px)",
+  );
+  await page.click("#hide-btn");
+  await page.waitForTimeout(1200);
+
+  await page.click('[data-preview-hold="on"]');
+  await clickNamedEffect("transporter");
+  await page.click("#preview-btn");
+  await page.waitForTimeout(6500);
+  const holdStillVisible = await page.evaluate(function () {
+    return !document.getElementById("overlay-group").hidden;
+  });
+  assert(holdStillVisible, "hold mode should not auto-clear before Hide");
+  await page.click("#hide-btn");
+  await page.waitForFunction(
+    function () {
+      return document.getElementById("overlay-group").hidden;
+    },
+    { timeout: 5000 },
+  );
+
+  await page.click('[data-preview-hold="off"]');
+  await page.click('[data-preview-duration="5s"]');
+  await clickNamedEffect("transporter");
+  await page.click("#preview-btn");
+  await page.waitForFunction(
+    function () {
+      return !document.getElementById("overlay-group").hidden;
+    },
+    { timeout: 5000 },
+  );
+  await page.waitForTimeout(8500);
+  const timedCleared = await page.evaluate(function () {
+    return document.getElementById("overlay-group").hidden;
+  });
+  assert(timedCleared, "timed 5s preview should auto-clear without Hide");
+
+  await clickNamedEffect("none");
+  await page.click("#preview-btn");
+  await page.waitForTimeout(500);
+  await page.click("#hide-btn");
+  await page.waitForFunction(
+    function () {
+      return document.getElementById("overlay-group").hidden;
+    },
+    { timeout: 5000 },
+  );
+
+  const payloadAfterFx = await page.evaluate(function () {
+    try {
+      const p = JSON.parse(document.getElementById("payload-out").textContent || "{}");
+      return p.effect_id;
+    } catch (e) {
+      return null;
+    }
+  });
+  assert(payloadAfterFx === "none", "named effect selector should update payload");
+
   assert(errors.length === 0, "browser console/page errors: " + errors.join(" | "));
 
   await browser.close();

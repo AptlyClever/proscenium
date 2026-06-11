@@ -693,6 +693,13 @@ export function advanceLifecycle(
   autoTimedExit,
   contract,
 ) {
+  if (lifecycleRef.phase === LIFECYCLE_PHASES.CLEARED) {
+    return {
+      done: true,
+      frame: computeFrame(lifecycleRef, profile, grammar, now, contract),
+    };
+  }
+
   const timings = resolvePhaseTimings(profile, contract);
   const elapsed = now - lifecycleRef.start;
 

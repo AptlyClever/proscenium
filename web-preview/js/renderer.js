@@ -684,6 +684,7 @@ function drawParticles(
   const top = beam.top;
   const bottom = beam.bottom;
   const bw = beam.bw * travelEnv;
+  const bh = beam.bh;
 
   for (let i = 0; i < count; i += 1) {
     const seed = rand();
@@ -882,17 +883,21 @@ export function createOverlayAnimator(
       layoutRegions: opts && opts.layoutRegions,
     };
 
-    if (lifecycleRef.phase !== "hidden") {
-      drawHailEffect(
-        canvas.getContext("2d"),
-        canvas.width,
-        canvas.height,
-        phase,
-        roles,
-        effectParams,
-        frame,
-        drawOpts,
-      );
+    if (lifecycleRef.phase !== "hidden" && lifecycleRef.phase !== "cleared") {
+      try {
+        drawHailEffect(
+          canvas.getContext("2d"),
+          canvas.width,
+          canvas.height,
+          phase,
+          roles,
+          effectParams,
+          frame,
+          drawOpts,
+        );
+      } catch (err) {
+        console.error("Hails effect draw failed:", err);
+      }
     }
 
     onFrame({

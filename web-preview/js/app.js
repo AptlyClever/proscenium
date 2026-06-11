@@ -793,6 +793,10 @@ function toggleBackgroundFile() {
 function onControlChange() {
   refreshScaledEffectParams();
   updatePayloadPreview();
+  if (!els.overlayGroup.hidden && state.useLifecycle) {
+    renderStaticOverlay({ skipVisualReset: true });
+    return;
+  }
   if (!els.overlayGroup.hidden) {
     state.useLifecycle = false;
     renderStaticOverlay();

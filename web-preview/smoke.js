@@ -530,5 +530,9 @@ assert(
   rendererSrc.includes("beginEffectClip") || rendererSrc.includes("safeZone"),
   "renderer.js should clip/fade effects to Safe Effect Zone",
 );
+assert(
+  rendererSrc.includes("const bh = beam.bh"),
+  "renderer drawParticles must define bh from resolveBeamBounds",
+);
 
 console.log("smoke: control-alt-hails web preview OK");
