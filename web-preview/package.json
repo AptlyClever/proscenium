@@ -12,6 +12,11 @@
     "stable:rebuild": "docker compose build && docker compose up -d",
     "smoke": "node smoke.js",
     "smoke:lan": "node smoke-lan.js",
-    "smoke:dev": "HAIL_PREVIEW_SMOKE_PORT=8197 node smoke-lan.js"
+    "smoke:dev": "HAIL_PREVIEW_SMOKE_PORT=8197 node smoke-lan.js",
+    "smoke:workbench": "node smoke-workbench.js",
+    "smoke:workbench:dev": "HAIL_PREVIEW_SMOKE_PORT=8197 node smoke-workbench.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
   }
 }

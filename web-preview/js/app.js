@@ -161,20 +161,37 @@ function cacheElements() {
 }
 
 async function init() {
-  cacheElements();
-  const res = await fetch("/shared/hail-render-contract.json");
-  state.contract = await res.json();
-  buildPlacementGrid();
-  buildPalettePills();
-  buildNamedEffectPills();
-  buildBeamShapePills();
-  populateGlyphSelect();
-  bindEvents();
-  applyDefaults();
-  requestAnimationFrame(function () {
-    resizeStage();
-    updatePayloadPreview();
-  });
+  try {
+    cacheElements();
+    const res = await fetch("/shared/hail-render-contract.json");
+    if (!res.ok) {
+      throw new Error("contract fetch failed: HTTP " + res.status);
+    }
+    state.contract = await res.json();
+    buildPlacementGrid();
+    buildPalettePills();
+    buildNamedEffectPills();
+    buildBeamShapePills();
+    populateGlyphSelect();
+    bindEvents();
+    applyDefaults();
+    requestAnimationFrame(function () {
+      resizeStage();
+      updatePayloadPreview();
+    });
+  } catch (err) {
+    console.error("Hails preview init failed:", err);
+    if (els.payloadOut) {
+      els.payloadOut.textContent = JSON.stringify(
+        {
+          error: "init_failed",
+          message: err && err.message ? err.message : String(err),
+        },
+        null,
+        2,
+      );
+    }
+  }
 }
 
 function buildPlacementGrid() {
@@ -245,10 +262,15 @@ function applyDefaults() {
   state.paletteId = d.palette_id;
   state.screenPreset = "1920x1080";
   state.effectPreset = pv.defaultEffectPreset || "transporter_soft";
-  state.namedEffectId =
+  const defaultNamed =
     (pv.defaultNamedEffectId && NAMED_EFFECT_IDS.indexOf(pv.defaultNamedEffectId) >= 0
       ? pv.defaultNamedEffectId
-      : null) || namedEffectFromPresetId(state.effectPreset, state.contract);
+      : null) ||
+    (pv.defaultNamedEffect && NAMED_EFFECT_IDS.indexOf(pv.defaultNamedEffect) >= 0
+      ? pv.defaultNamedEffect
+      : null);
+  state.namedEffectId =
+    defaultNamed || namedEffectFromPresetId(state.effectPreset, state.contract);
   state.effectPreset = resolveNamedEffectPresetId(state.namedEffectId);
   state.hailScaleTier = pv.defaultHailScaleTier || d.hail_scale_tier || "medium";
   state.hailScaleManualPercent =
@@ -444,6 +466,8 @@ function syncPaintBoxToggleUi() {
     els.showPaintBox.checked = state.showPaintBox === true;
   }
 }
+
+function syncHailScaleUi() {
   els.hailScale.value = String(state.hailScaleManualPercent);
   els.hailScaleLabel.textContent = state.hailScaleManualPercent + "%";
   els.hailScaleTierBtns.forEach(function (btn) {
