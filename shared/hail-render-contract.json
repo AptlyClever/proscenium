@@ -1,6 +1,14 @@
 {
   "version": "v001-presentation-polish-acceptance-candidate",
-  "description": "Axiom-owned Hails render contract — presentation polish acceptance candidate with separated entrance/stable-hold/exit lifecycle timing. LCARD preview workbench consumes this file as a test surface only.",
+  "description": "LCARD preview mirror of Axiom-owned Hails render contract — consumed by preview workbench only; not canonical source of ownership.",
+  "canonicalSource": {
+    "repository": "AptlyClever/ctrl-alt-axiom",
+    "path": "config/hails/hail-render-contract.v001.json",
+    "version": "v001-integration",
+    "module": "backend/hails_render_contract.py",
+    "api": "GET /api/hails/render-contract",
+    "note": "LCARD hosts/consumes this mirror for preview harness; Axiom owns Hails"
+  },
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
@@ -71,7 +79,11 @@
     }
   },
   "effects": {
-    "allowlist": ["transporter_beam"]
+    "allowlist": ["none", "pop", "burst", "transporter"],
+    "legacyAliases": {
+      "transporter_beam": "transporter"
+    },
+    "note": "Runtime named effect ids — canonical list owned by Axiom; see canonicalSource"
   },
   "palettes": {
     "axiom_dark_cyan": {
@@ -836,7 +848,7 @@
   },
   "previewDefaults": {
     "hail_id": "hail.sniffer.001",
-    "effect_id": "transporter_beam",
+    "effect_id": "transporter",
     "glyph_id": "hail-sniffer",
     "palette_id": "axiom_dark_cyan",
     "message": "What's sniffing?",

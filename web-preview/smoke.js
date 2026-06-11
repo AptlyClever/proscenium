@@ -422,8 +422,19 @@ assert(
   "contract description must not imply LCARD owns Hails",
 );
 assert(
-  !/lcard owns|owned by lcard|lcard-owned hails/i.test(contractBlob),
+  !/lcard owns|owned by lcard|lcard-owned hails|lcard owns hails/i.test(contractBlob),
   "contract JSON must not contain LCARD ownership language",
+);
+assert(
+  contract.canonicalSource &&
+    contract.canonicalSource.repository &&
+    /axiom/i.test(contract.canonicalSource.repository),
+  "contract canonicalSource.repository must point to Axiom",
+);
+assert(
+  contract.canonicalSource.path &&
+    contract.canonicalSource.path.includes("hail-render-contract"),
+  "contract canonicalSource.path must reference Axiom render contract",
 );
 
 assert(pv.namedEffects, "previewVisual.namedEffects registry required");
