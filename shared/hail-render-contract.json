@@ -1,6 +1,6 @@
 {
-  "version": "v001-animation-impact",
-  "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color/animation grammar is preview-only until Axiom owns the visual contract.",
+  "version": "v001-composition-presence-impact",
+  "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color/animation/presence grammar is preview-only until Axiom owns the visual contract.",
   "payloadFields": [
     "hail_id",
     "effect_id",
@@ -110,6 +110,8 @@
     "messageFontSizeFractionOfHeight": 0.021,
     "glyphSizeFractionOfHeight": 0.048,
     "messageBackingAlpha": 0.46,
+    "messageFontWeight": 500,
+    "anchorMessageGapFractionOfHeight": 0.016,
     "messageShadow": "0 0 1px rgba(0,0,0,1), 0 1px 2px rgba(0,0,0,0.92), 0 2px 10px rgba(0,0,0,0.62), 0 0 18px rgba(0,0,0,0.38)"
   },
   "visual": {
@@ -120,29 +122,50 @@
     "note": "Preview harness only — future Axiom-owned candidates: scaleGrammar, palette role catalog, effectPresets, animationProfiles, defaults.",
     "defaultEffectPreset": "transporter_soft",
     "defaultHailScaleTier": "medium",
+    "presenceGrammar": {
+      "note": "Preview-only presence multipliers per S/M/L tier. Decouples content module scale from effect field envelope. Canonical values live on scaleGrammar.tiers; resolved by resolvePresenceGrammar().",
+      "fields": {
+        "content_scale": "Glyph + content module layout scale",
+        "message_scale": "Message typography scale",
+        "effect_field_scale": "Overall soft effect region vs content bounds",
+        "beam_field_scale": "Beam column/cone height and width envelope",
+        "particle_travel_scale": "Particle drift/travel distance from anchor",
+        "glow_radius_scale": "Glyph and field glow reach",
+        "anchor_weight": "Arrival anchor glyph visual weight",
+        "message_backing_emphasis": "Message backing pad prominence"
+      }
+    },
     "scaleGrammar": {
       "defaultTier": "medium",
       "manualPercent": { "min": 50, "max": 150, "default": 100 },
       "tiers": {
         "small": {
           "label": "Ambient",
-          "intent": "Corner passive notices — compact footprint, reduced beam and particles",
-          "layoutScale": 0.85,
+          "intent": "Corner passive notices — compact content module, tight effect field",
+          "layoutScale": 0.88,
           "glyphScale": 0.9,
           "messageScale": 0.92,
-          "beamWidthMul": 0.86,
-          "beamHeightMul": 0.78,
-          "particleDensityMul": 0.68,
-          "particleSpreadMul": 0.82,
-          "glowIntensityMul": 0.72,
-          "effectIntensityMul": 0.88,
+          "beamWidthMul": 0.82,
+          "beamHeightMul": 0.72,
+          "particleDensityMul": 0.65,
+          "particleSpreadMul": 0.62,
+          "glowIntensityMul": 0.68,
+          "effectIntensityMul": 0.82,
           "entranceIntensityMul": 0.88,
           "exitIntensityMul": 0.9,
-          "messagePaddingMul": 0.9
+          "messagePaddingMul": 0.9,
+          "content_scale": 0.88,
+          "message_scale": 0.92,
+          "effect_field_scale": 0.7,
+          "beam_field_scale": 0.72,
+          "particle_travel_scale": 0.62,
+          "glow_radius_scale": 0.68,
+          "anchor_weight": 0.88,
+          "message_backing_emphasis": 0.95
         },
         "medium": {
           "label": "Default",
-          "intent": "Normal hail — balanced beam, glyph, and message",
+          "intent": "Normal hail — balanced content module and controlled effect field",
           "layoutScale": 1,
           "glyphScale": 1,
           "messageScale": 1,
@@ -154,23 +177,39 @@
           "effectIntensityMul": 1,
           "entranceIntensityMul": 1,
           "exitIntensityMul": 1,
-          "messagePaddingMul": 1
+          "messagePaddingMul": 1,
+          "content_scale": 1,
+          "message_scale": 1,
+          "effect_field_scale": 1,
+          "beam_field_scale": 1,
+          "particle_travel_scale": 1,
+          "glow_radius_scale": 1,
+          "anchor_weight": 1,
+          "message_backing_emphasis": 1
         },
         "large": {
-          "label": "Attention",
-          "intent": "Upper-center and center-soft — larger effect field and stronger animation without ghost column",
-          "layoutScale": 1.35,
-          "glyphScale": 1.18,
+          "label": "Impact",
+          "intent": "Screen event — modest content growth, effect field dominates (+80–140% field, +100–180% particle travel)",
+          "layoutScale": 1.2,
+          "glyphScale": 1.15,
           "messageScale": 1.08,
-          "beamWidthMul": 1.14,
-          "beamHeightMul": 1.32,
-          "particleDensityMul": 1.42,
-          "particleSpreadMul": 1.08,
-          "glowIntensityMul": 1.22,
-          "effectIntensityMul": 1.1,
+          "beamWidthMul": 1.35,
+          "beamHeightMul": 1.95,
+          "particleDensityMul": 1.28,
+          "particleSpreadMul": 2.2,
+          "glowIntensityMul": 1.8,
+          "effectIntensityMul": 1.15,
           "entranceIntensityMul": 1.32,
           "exitIntensityMul": 1.25,
-          "messagePaddingMul": 1.1
+          "messagePaddingMul": 1.06,
+          "content_scale": 1.2,
+          "message_scale": 1.08,
+          "effect_field_scale": 2.1,
+          "beam_field_scale": 1.95,
+          "particle_travel_scale": 2.4,
+          "glow_radius_scale": 1.8,
+          "anchor_weight": 1.18,
+          "message_backing_emphasis": 1.12
         }
       }
     },
@@ -181,6 +220,67 @@
       "subtle_ping",
       "high_attention"
     ],
+    "presetPresence": {
+      "note": "Preview-only — per-preset screen presence multipliers; stacks with scaleGrammar tiers. Future Axiom-owned candidate.",
+      "defaults": {
+        "effect_field_scale": 1,
+        "beam_field_scale": 1,
+        "particle_travel_scale": 1,
+        "glow_radius_scale": 1,
+        "anchor_weight": 1,
+        "message_backing_emphasis": 1
+      },
+      "clean_hail": {
+        "label": "Compact",
+        "intent": "System quiet — tight field, restrained glow and anchor",
+        "effect_field_scale": 0.72,
+        "beam_field_scale": 0.66,
+        "particle_travel_scale": 0.72,
+        "glow_radius_scale": 0.68,
+        "anchor_weight": 0.9,
+        "message_backing_emphasis": 0.8
+      },
+      "transporter_soft": {
+        "label": "Standard",
+        "intent": "Refined event — balanced field and readable message",
+        "effect_field_scale": 1,
+        "beam_field_scale": 1,
+        "particle_travel_scale": 1,
+        "glow_radius_scale": 1,
+        "anchor_weight": 1,
+        "message_backing_emphasis": 1
+      },
+      "transporter_dense": {
+        "label": "Impact",
+        "intent": "Transporter event — expanded field, strong beam and travel",
+        "effect_field_scale": 1.38,
+        "beam_field_scale": 1.32,
+        "particle_travel_scale": 1.45,
+        "glow_radius_scale": 1.24,
+        "anchor_weight": 1.14,
+        "message_backing_emphasis": 1.06
+      },
+      "subtle_ping": {
+        "label": "Burst",
+        "intent": "Compact achievement ping — tight field, punchy anchor",
+        "effect_field_scale": 0.86,
+        "beam_field_scale": 0.8,
+        "particle_travel_scale": 1.18,
+        "glow_radius_scale": 1.02,
+        "anchor_weight": 1.16,
+        "message_backing_emphasis": 0.9
+      },
+      "high_attention": {
+        "label": "Visible",
+        "intent": "High visibility — strong field without alarm styling",
+        "effect_field_scale": 1.22,
+        "beam_field_scale": 1.2,
+        "particle_travel_scale": 1.1,
+        "glow_radius_scale": 1.3,
+        "anchor_weight": 1.08,
+        "message_backing_emphasis": 1.12
+      }
+    },
     "beamShapes": ["column", "cone", "orb", "shimmer", "none"],
     "effectPresets": {
       "clean_hail": {
@@ -328,6 +428,84 @@
         "particle_mode_exit": "collapse",
         "glyph_resolve_style": "resolve",
         "glyph_overshoot": 0.06
+      }
+    },
+    "placementPresence": {
+      "note": "Preview-only — per-placement effect field caps, overflow allowance, and safe edge offsets. Applied after scale grammar; does not change tier base values.",
+      "defaultPlacementId": "top_right",
+      "customPlacement": {
+        "label": "Custom anchor",
+        "intent": "Neutral caps — placement chosen manually",
+        "effectFieldCapMul": 0.95,
+        "beamFieldCapMul": 0.95,
+        "particleTravelCapMul": 0.92,
+        "maxOverflowFraction": 0.32,
+        "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+      },
+      "placements": {
+        "top_right": {
+          "label": "Top right",
+          "intent": "Controlled medium/large — visible corner hail without screen domination",
+          "effectFieldCapMul": 0.88,
+          "beamFieldCapMul": 0.9,
+          "particleTravelCapMul": 0.84,
+          "maxOverflowFraction": 0.24,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "top_left": {
+          "label": "Top left",
+          "intent": "Mirror top_right — controlled corner field",
+          "effectFieldCapMul": 0.88,
+          "beamFieldCapMul": 0.9,
+          "particleTravelCapMul": 0.84,
+          "maxOverflowFraction": 0.24,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "bottom_right": {
+          "label": "Bottom right",
+          "intent": "Controlled medium — tighter beam and particle travel",
+          "effectFieldCapMul": 0.76,
+          "beamFieldCapMul": 0.8,
+          "particleTravelCapMul": 0.72,
+          "maxOverflowFraction": 0.18,
+          "safeOffsetFraction": { "top": 0, "bottom": 0.01, "start": 0, "end": 0 }
+        },
+        "bottom_left": {
+          "label": "Bottom left",
+          "intent": "Mirror bottom_right — controlled medium corner",
+          "effectFieldCapMul": 0.76,
+          "beamFieldCapMul": 0.8,
+          "particleTravelCapMul": 0.72,
+          "maxOverflowFraction": 0.18,
+          "safeOffsetFraction": { "top": 0, "bottom": 0.01, "start": 0, "end": 0 }
+        },
+        "upper_center": {
+          "label": "Upper center",
+          "intent": "Large event-like field — achievement arrival zone",
+          "effectFieldCapMul": 1.32,
+          "beamFieldCapMul": 1.36,
+          "particleTravelCapMul": 1.38,
+          "maxOverflowFraction": 0.58,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "center_soft": {
+          "label": "Center soft",
+          "intent": "Largest presentation field — restrained event, not full-screen chaos",
+          "effectFieldCapMul": 1.48,
+          "beamFieldCapMul": 1.52,
+          "particleTravelCapMul": 1.55,
+          "maxOverflowFraction": 0.72,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "lower_center": {
+          "label": "Lower center",
+          "intent": "Restrained subtitle-safe — compact effect envelope above lower third",
+          "effectFieldCapMul": 0.7,
+          "beamFieldCapMul": 0.74,
+          "particleTravelCapMul": 0.68,
+          "maxOverflowFraction": 0.14,
+          "safeOffsetFraction": { "top": 0, "bottom": 0.045, "start": 0, "end": 0 }
+        }
       }
     },
     "previewTiming": {

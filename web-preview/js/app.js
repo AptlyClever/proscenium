@@ -3,20 +3,24 @@ import {
   requestLifecycleExit,
 } from "./animation-profile.js";
 import {
-  applyScaleGrammarToEffectParams,
   BEAM_SHAPE_LABELS,
   PRESET_LABELS,
+  formatPresetPresenceReadout,
   getEffectPreset,
   mergeEffectParams,
   previewVisualPayload,
+  resolveContentHierarchy,
   resolvePaletteRoles,
+  resolvePlacementPresence,
+  resolvePresetPresence,
   resolvePreviewTiming,
   resolveScaleGrammar,
+  resolveScaledEffectParams,
   scaleLayoutFractions,
   scaledTypography,
 } from "./effect-config.js";
 import { validateMessage } from "./message.js";
-import { resolveGroupRect } from "./placement.js";
+import { resolveCompositionBounds } from "./placement.js";
 import {
   createOverlayAnimator,
   glyphMarkup,
@@ -55,6 +59,8 @@ const state = {
   effectPreset: "transporter_soft",
   effectParams: null,
   scaledEffectParams: null,
+  presetPresence: null,
+  placementPresence: null,
   effectTouched: false,
   hailScaleTier: "medium",
   hailScaleManualPercent: 100,
@@ -133,10 +139,13 @@ function cacheElements() {
     groupBgPaletteColor: document.getElementById("group-bg-palette-color"),
     groupBgColorWrap: document.getElementById("group-bg-color-wrap"),
     groupBgColor: document.getElementById("group-bg-color"),
+    overlayEffectField: document.getElementById("overlay-effect-field"),
+    overlayContentModule: document.getElementById("overlay-content-module"),
     overlayCanvas: document.getElementById("overlay-canvas"),
     overlayGlyph: document.getElementById("overlay-glyph"),
     overlayMessage: document.getElementById("overlay-message"),
     scaleLabel: document.getElementById("scale-label"),
+    presenceReadout: document.getElementById("presence-readout"),
   });
 }
 
@@ -187,8 +196,12 @@ function buildEffectPresetPills() {
   const ids = state.contract.previewVisual.effectPresetIds || [];
   els.effectPresetPills.innerHTML = ids
     .map(function (id) {
+      const presence = resolvePresetPresence(state.contract, id);
+      const title = presence.intent || PRESET_LABELS[id] || id;
       return (
-        '<button type="button" data-effect-preset="' + id + '">' +
+        '<button type="button" data-effect-preset="' + id + '" title="' +
+        escapeAttr(title) +
+        '">' +
         (PRESET_LABELS[id] || id) +
         "</button>"
       );
@@ -322,11 +335,66 @@ function currentScaleGrammar() {
   );
 }
 
+function currentPlacementId() {
+  if (state.placementMode === state.contract.placement.modeCustom) {
+    return "custom";
+  }
+  return state.placementPreset;
+}
+
 function refreshScaledEffectParams() {
-  state.scaledEffectParams = applyScaleGrammarToEffectParams(
+  const resolved = resolveScaledEffectParams(
+    state.contract,
     state.effectParams,
-    currentScaleGrammar(),
+    state.hailScaleTier,
+    state.hailScaleManualPercent,
+    state.effectPreset,
+    currentPlacementId(),
   );
+  state.scaledEffectParams = resolved.scaled;
+  state.presetPresence = resolved.presetPresence;
+  state.placementPresence = resolved.placementPresence;
+  syncPresenceReadout();
+}
+
+function syncPresenceReadout() {
+  if (!els.presenceReadout) {
+    return;
+  }
+  const presence =
+    state.presetPresence || resolvePresetPresence(state.contract, state.effectPreset);
+  els.presenceReadout.textContent = formatPresetPresenceReadout(presence);
+  if (presence.intent) {
+    els.presenceReadout.title = presence.intent;
+  }
+}
+
+/** Position effect field vs content module; returns canvas pixel size for renderer. */
+function layoutCompositionBounds(composition) {
+  const effect = composition.effect;
+  const content = composition.content;
+
+  els.overlayGroup.style.left = effect.left + "px";
+  els.overlayGroup.style.top = effect.top + "px";
+  els.overlayGroup.style.width = effect.width + "px";
+  els.overlayGroup.style.height = effect.height + "px";
+
+  els.overlayContentModule.style.left = effect.contentLeft + "px";
+  els.overlayContentModule.style.top = effect.contentTop + "px";
+  els.overlayContentModule.style.width = effect.contentWidth + "px";
+  els.overlayContentModule.style.height = effect.contentHeight + "px";
+
+  els.overlayCanvas.style.left = "0";
+  els.overlayCanvas.style.top = "0";
+  els.overlayCanvas.style.width = "100%";
+  els.overlayCanvas.style.height = "100%";
+
+  return {
+    width: Math.max(1, Math.floor(effect.width)),
+    height: Math.max(1, Math.floor(effect.height)),
+    contentWidth: content.width,
+    contentHeight: content.height,
+  };
 }
 
 function syncHailScaleUi() {
@@ -784,23 +852,57 @@ function renderStaticOverlay(renderOpts) {
 
   const size = screenSize();
   const contractForLayout = scaledContract();
-  const rect = resolveGroupRect(payload, size.width, size.height, contractForLayout);
+  const placementPresence = state.placementPresence || resolvePlacementPresence(
+    state.contract,
+    currentPlacementId(),
+  );
+  const composition = resolveCompositionBounds(
+    payload,
+    size.width,
+    size.height,
+    contractForLayout,
+    { safeOffsetFraction: placementPresence.safeOffsetFraction },
+    placementPresence,
+  );
   const palette = state.contract.palettes[payload.palette_id];
   const roles = resolvePaletteRoles(palette, state.contract);
   const grammar = currentScaleGrammar();
   const typography = scaledTypography(state.contract, grammar);
+  const hierarchy = resolveContentHierarchy(
+    state.contract,
+    state.hailScaleTier,
+    state.hailScaleManualPercent,
+    state.effectPreset,
+    state.groupBgEnabled,
+  );
   const visual = state.contract.visual || {};
   const glowAlpha = visual.glyphGlowAlpha != null ? visual.glyphGlowAlpha : 0.22;
   const glowStrength = state.scaledEffectParams.glowIntensity / 100;
+  const anchorGlowAlpha =
+    glowAlpha *
+    glowStrength *
+    hierarchy.anchorWeight *
+    Math.sqrt(hierarchy.glowRadiusScale);
 
-  els.overlayGroup.style.left = rect.left + "px";
-  els.overlayGroup.style.top = rect.top + "px";
-  els.overlayGroup.style.width = rect.width + "px";
-  els.overlayGroup.style.height = rect.height + "px";
-  applyGroupBackground(roles, rect);
+  const layout = layoutCompositionBounds(composition);
+  applyGroupBackground(roles, {
+    width: layout.contentWidth,
+    height: layout.contentHeight,
+  });
+  els.overlayGroup.style.setProperty("--anchor-weight", String(hierarchy.anchorWeight));
+  els.overlayGroup.style.setProperty(
+    "--anchor-message-gap",
+    Math.round(
+      size.height * hierarchy.anchorGapFraction * hierarchy.messagePaddingMul,
+    ) + "px",
+  );
   els.overlayGroup.style.setProperty(
     "--overlay-glow",
-    hexWithAlpha(roles.glow, glowAlpha * glowStrength),
+    hexWithAlpha(roles.glow, anchorGlowAlpha),
+  );
+  els.overlayGroup.style.setProperty(
+    "--overlay-glow-halo",
+    hexWithAlpha(roles.glow, anchorGlowAlpha * 0.38),
   );
   if (!skipVisualReset) {
     els.overlayGroup.classList.remove("is-exiting");
@@ -810,8 +912,8 @@ function renderStaticOverlay(renderOpts) {
   }
 
   const canvas = els.overlayCanvas;
-  canvas.width = Math.max(1, Math.floor(rect.width));
-  canvas.height = Math.max(1, Math.floor(rect.height));
+  canvas.width = layout.width;
+  canvas.height = layout.height;
 
   const glyphSize = size.height * typography.glyphSizeFractionOfHeight;
   els.overlayGlyph.style.width = glyphSize + "px";
@@ -820,21 +922,31 @@ function renderStaticOverlay(renderOpts) {
   els.overlayGlyph.innerHTML = glyphMarkup(payload.glyph_id, state.contract);
 
   const fontSize = size.height * typography.messageFontSizeFractionOfHeight;
-  const msgAlpha = roles.messageBackingOpacity != null
+  const baseMsgAlpha = roles.messageBackingOpacity != null
     ? roles.messageBackingOpacity
     : typography.messageBackingAlpha;
+  const msgAlpha = Math.min(
+    0.72,
+    baseMsgAlpha * hierarchy.messageBackingEmphasis,
+  );
   els.overlayMessage.textContent = validation.value;
   els.overlayMessage.style.color = roles.text;
   els.overlayMessage.style.fontSize = fontSize + "px";
+  els.overlayMessage.style.fontWeight = String(hierarchy.messageFontWeight);
   els.overlayMessage.style.textShadow = typography.messageShadow;
   els.overlayMessage.style.background = hexWithAlpha(
     roles.messageBacking,
     msgAlpha,
   );
-  const padMul = typography.messagePaddingMul || 1;
+  const padMul = hierarchy.messagePaddingMul || 1;
   els.overlayMessage.style.padding =
-    Math.round(5 * padMul) + "px " + Math.round(9 * padMul) + "px";
-  els.overlayMessage.style.marginTop = Math.round(5 * padMul) + "px";
+    Math.round(4 * padMul) + "px " + Math.round(8 * padMul) + "px";
+  els.overlayMessage.style.marginTop = "0";
+  els.overlayMessage.classList.toggle("overlay-message--subtle", !state.groupBgEnabled);
+  els.overlayMessage.classList.toggle(
+    "overlay-message--with-group-bg",
+    state.groupBgEnabled,
+  );
 
   if (state.stopAnimation) {
     state.stopAnimation();
@@ -962,6 +1074,13 @@ function clampInt(value, min, max, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function escapeAttr(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
 }
 
 init();

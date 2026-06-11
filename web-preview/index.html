@@ -11,7 +11,7 @@
       <aside class="rail" aria-label="Preview workbench controls">
         <header class="rail-header">
           <h1>Control Alt Hails</h1>
-          <p class="rail-subtitle">Visual workbench · preset-driven animation</p>
+          <p class="rail-subtitle">Visual workbench · preset-driven presence</p>
         </header>
 
         <div class="rail-body">
@@ -219,6 +219,7 @@
 
           <section class="card card-diagnostics" aria-labelledby="group-diagnostics">
             <h2 id="group-diagnostics">Diagnostics</h2>
+            <p id="presence-readout" class="presence-readout" aria-live="polite"></p>
             <details id="payload-details" class="payload-details">
               <summary>Payload JSON</summary>
               <div class="payload-tools">
@@ -247,11 +248,15 @@
               <div id="stage-background" class="stage-background mode-dark-neutral"></div>
               <div id="overlay-root" class="overlay-root">
                 <div id="overlay-group" class="overlay-group overlay-group--bg-off" hidden>
-                  <div id="overlay-group-bg" class="overlay-group-bg" hidden aria-hidden="true"></div>
-                  <canvas id="overlay-canvas" class="overlay-canvas"></canvas>
-                  <div class="overlay-content">
-                    <div id="overlay-glyph" class="overlay-glyph"></div>
-                    <p id="overlay-message" class="overlay-message"></p>
+                  <div id="overlay-effect-field" class="overlay-effect-field" aria-hidden="true">
+                    <canvas id="overlay-canvas" class="overlay-canvas"></canvas>
+                  </div>
+                  <div id="overlay-content-module" class="overlay-content-module">
+                    <div id="overlay-group-bg" class="overlay-group-bg" hidden aria-hidden="true"></div>
+                    <div class="overlay-content">
+                      <div id="overlay-glyph" class="overlay-glyph"></div>
+                      <p id="overlay-message" class="overlay-message"></p>
+                    </div>
                   </div>
                 </div>
               </div>

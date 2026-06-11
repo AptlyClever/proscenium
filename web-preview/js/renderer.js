@@ -22,6 +22,26 @@ function easeInCubic(t) {
   return t * t * t;
 }
 
+/** Presence field scales composed in effect-config (tier × preset × placement). */
+function resolveFieldEnvelope(params) {
+  return {
+    effect: params.effectFieldScale != null ? params.effectFieldScale : 1,
+    beam: params.beamFieldScale != null ? params.beamFieldScale : 1,
+    travel: params.particleTravelScale != null ? params.particleTravelScale : 1,
+    glow: params.glowRadiusScale != null ? params.glowRadiusScale : 1,
+  };
+}
+
+/** Draw-time beam envelope — params already carry grammar/preset/placement beam muls. */
+function rendererBeamEnvelope(beamScale) {
+  return 1 + Math.max(0, beamScale - 1) * 0.58;
+}
+
+/** Draw-time particle travel — extends drift without increasing count. */
+function rendererTravelEnvelope(travelScale) {
+  return 1 + Math.max(0, travelScale - 1) * 0.72;
+}
+
 export function glyphMarkup(glyphId, contract) {
   if (glyphId === "hail-sniffer") {
     return (
@@ -51,9 +71,13 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   const beamWidthMul = entering
     ? 0.76 + beamScale * 0.24
     : 0.88 + beamScale * 0.12;
+  const field = resolveFieldEnvelope(effectParams);
+  const beamEnv = rendererBeamEnvelope(field.beam);
   const scaledParams = Object.assign({}, effectParams, {
-    beamHeight: effectParams.beamHeight * beamScale,
-    beamWidth: effectParams.beamWidth * beamWidthMul,
+    beamHeight: effectParams.beamHeight * beamScale * beamEnv,
+    beamWidth: effectParams.beamWidth * beamWidthMul * Math.sqrt(beamEnv),
+    _field: field,
+    _travelEnv: rendererTravelEnvelope(field.travel),
   });
 
   const groupBgOn = opts && opts.groupBackgroundEnabled;
@@ -70,6 +94,18 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
     ctx.fillStyle = hexWithAlpha(roles.primary, 0.04 * presence);
     ctx.fillRect(0, 0, width, height);
   }
+
+  drawEventField(
+    ctx,
+    width,
+    height,
+    centerX,
+    podCenterY,
+    roles,
+    field,
+    presence,
+    glowMul,
+  );
 
   if (scaledParams.beamEnabled && scaledParams.beamShape !== "none") {
     drawBeamShape(
@@ -104,10 +140,30 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   );
 
   ctx.filter = "none";
-  applyPodEdgeMask(ctx, width, height, presence, scaledParams);
+  applyPodEdgeMask(ctx, width, height, presence, scaledParams, podCenterY);
+}
+
+/** Soft anticipation / event field — extends beyond content module. */
+function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul) {
+  if (field.effect <= 1.02) {
+    return;
+  }
+  const glowColor = roles.glow || roles.accent;
+  const outerR = Math.max(w, h) * (0.2 + field.effect * 0.14) * field.glow;
+  const innerR = outerR * 0.12;
+  const fieldGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+  const fieldAlpha = Math.min(0.14, 0.05 + (field.effect - 1) * 0.04) * presence * glowMul;
+  fieldGrad.addColorStop(0, hexWithAlpha(glowColor, fieldAlpha * 1.1));
+  fieldGrad.addColorStop(0.35, hexWithAlpha(roles.primary, fieldAlpha * 0.65));
+  fieldGrad.addColorStop(0.72, hexWithAlpha(roles.primary, fieldAlpha * 0.22));
+  fieldGrad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = fieldGrad;
+  ctx.fillRect(0, 0, w, h);
 }
 
 function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul) {
+  const field = params._field || resolveFieldEnvelope(params);
+  const glowReach = field.glow;
   const bw = w * params.beamWidth;
   const bh = h * params.beamHeight;
   const top = cy - bh * 0.55;
@@ -116,7 +172,7 @@ function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul)
 
   switch (params.beamShape) {
     case "orb": {
-      const r = Math.min(bw, bh) * 0.55;
+      const r = Math.min(bw, bh) * 0.55 * glowReach;
       const radial = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
       radial.addColorStop(0, hexWithAlpha(roles.accent, (0.32 + shimmer) * beamOp * glowMul));
       radial.addColorStop(0.45, hexWithAlpha(roles.primary, 0.18 * beamOp * glowMul));
@@ -128,22 +184,24 @@ function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul)
       break;
     }
     case "cone": {
+      const coneW = 0.55 + (glowReach - 1) * 0.12;
+      const coneTop = 0.12 + (glowReach - 1) * 0.04;
       const grad = ctx.createLinearGradient(cx, bottom, cx, top);
       grad.addColorStop(0, hexWithAlpha(roles.primary, 0.22 * beamOp * glowMul));
       grad.addColorStop(0.55, hexWithAlpha(roles.accent, (0.2 + shimmer) * beamOp * glowMul));
       grad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(cx - bw * 0.55, bottom);
-      ctx.lineTo(cx + bw * 0.55, bottom);
-      ctx.lineTo(cx + bw * 0.12, top);
-      ctx.lineTo(cx - bw * 0.12, top);
+      ctx.moveTo(cx - bw * coneW, bottom);
+      ctx.lineTo(cx + bw * coneW, bottom);
+      ctx.lineTo(cx + bw * coneTop, top);
+      ctx.lineTo(cx - bw * coneTop, top);
       ctx.closePath();
       ctx.fill();
       break;
     }
     case "shimmer": {
-      const lineW = Math.max(2, bw * 0.08);
+      const lineW = Math.max(2, bw * (0.08 + (glowReach - 1) * 0.025));
       const grad = ctx.createLinearGradient(cx, bottom, cx, top);
       grad.addColorStop(0, hexWithAlpha(roles.primary, 0.05 * beamOp));
       grad.addColorStop(0.5, hexWithAlpha(roles.accent, (0.35 + shimmer) * beamOp * glowMul));
@@ -154,8 +212,8 @@ function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul)
     }
     case "column":
     default: {
-      const rx = bw * 0.45;
-      const ry = bh * 0.42;
+      const rx = bw * (0.45 + (glowReach - 1) * 0.08);
+      const ry = bh * (0.42 + (glowReach - 1) * 0.1);
       ctx.save();
       ctx.translate(cx, cy);
       ctx.scale(rx, ry);
@@ -212,10 +270,18 @@ function drawParticles(
   const speed = 0.12 + (params.particleSpeed / 100) * 0.48;
   const sizeMul = 0.45 + (params.particleSize / 100) * 1.05;
   const glowNorm = params.glowIntensity / 80;
+  const travelEnv = params._travelEnv != null
+    ? params._travelEnv
+    : rendererTravelEnvelope(
+      (params._field || resolveFieldEnvelope(params)).travel,
+    );
+  const densityRestraint =
+    params.particleDensity > 62 && travelEnv > 1.35 ? 0.82 : 1;
   const bh = h * params.beamHeight;
-  const top = cy - bh * 0.55;
-  const bottom = cy + bh * 0.35;
-  const bw = w * params.beamWidth;
+  const beamSpan = (bh * 0.55 + bh * 0.35) * travelEnv;
+  const top = cy - beamSpan * 0.61;
+  const bottom = cy + beamSpan * 0.39;
+  const bw = w * params.beamWidth * Math.sqrt(travelEnv);
 
   for (let i = 0; i < count; i += 1) {
     const seed = rand();
@@ -230,13 +296,13 @@ function drawParticles(
           particleStageT != null ? particleStageT : phaseProgress;
         const gather = easeOutCubic(stageT);
         const angle = (i / count) * Math.PI * 2 + seed * 0.4;
-        const dist = (1 - gather) * bw * (0.38 + seed * 0.55);
+        const dist = (1 - gather) * bw * (0.38 + seed * 0.55) * travelEnv;
         x = cx + Math.cos(angle) * dist;
         y = cy + Math.sin(angle) * dist * 0.5 - bh * 0.06 * (1 - gather);
         alpha =
           stageT <= 0
             ? 0
-            : (0.04 + gather * 0.11) * presence * glowNorm;
+            : (0.04 + gather * 0.11) * presence * glowNorm * densityRestraint;
         radius = (0.5 + seed * 0.85) * sizeMul * (0.5 + gather * 0.5);
         break;
       }
@@ -246,20 +312,20 @@ function drawParticles(
           ? easeOutCubic(phaseProgress / burstPeak)
           : 1 - easeInCubic((phaseProgress - burstPeak) / (1 - burstPeak));
         const angle = (i / count) * Math.PI * 2 + seed * 0.25;
-        const dist = burstT * bw * (0.06 + seed * 0.22);
+        const dist = burstT * bw * (0.06 + seed * 0.22) * travelEnv;
         x = cx + Math.cos(angle) * dist;
         y = cy + Math.sin(angle) * dist * 0.4;
-        alpha = burstT * 0.55 * presence * glowNorm;
+        alpha = burstT * 0.55 * presence * glowNorm * densityRestraint;
         radius = (0.55 + seed * 1.1) * sizeMul * burstT;
         break;
       }
       case "scanfall": {
         const travel = ((i / count) + phase * speed * 0.95) % 1;
         const baseY = bottom - (bottom - top) * travel;
-        const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.1 * spread;
+        const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.1 * spread * travelEnv;
         x = cx + wobble;
         y = baseY;
-        alpha = (0.06 + seed * 0.08) * presence * glowNorm;
+        alpha = (0.06 + seed * 0.08) * presence * glowNorm * densityRestraint;
         radius = (0.7 + seed * 1.2) * sizeMul;
         break;
       }
@@ -267,14 +333,14 @@ function drawParticles(
         const collapse = easeInCubic(phaseProgress);
         const travel = ((i / count) + phase * speed * 0.28) % 1;
         const baseY = bottom - (bottom - top) * travel;
-        const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.18 * spread;
+        const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.18 * spread * travelEnv;
         const startX = cx + wobble;
         const startY = baseY;
         const pull = easeInCubic(Math.min(1, collapse * 1.08));
         x = startX + (cx - startX) * pull;
         y = startY + (cy - startY) * pull * 0.6;
         const fade = 1 - easeInCubic(Math.min(1, collapse * 1.15));
-        alpha = fade * presence * (0.06 + seed * 0.09) * glowNorm;
+        alpha = fade * presence * (0.06 + seed * 0.09) * glowNorm * densityRestraint;
         radius = (0.65 + seed * 1.1) * sizeMul * (1 - pull * 0.75);
         break;
       }
@@ -282,10 +348,10 @@ function drawParticles(
       default: {
         const travel = ((i / count) + phase * speed * 0.82) % 1;
         const baseY = bottom - (bottom - top) * travel;
-        const wobble = Math.sin((i + phase * 3.2) * 0.42) * bw * 0.18 * spread;
+        const wobble = Math.sin((i + phase * 3.2) * 0.42) * bw * 0.18 * spread * travelEnv;
         x = cx + wobble;
         y = baseY;
-        alpha = (0.06 + seed * 0.1) * presence * glowNorm;
+        alpha = (0.06 + seed * 0.1) * presence * glowNorm * densityRestraint;
         radius = (0.7 + seed * 1.3) * sizeMul;
         break;
       }
@@ -317,10 +383,39 @@ function drawParticles(
   }
 }
 
-function applyPodEdgeMask(ctx, width, height, presence, params) {
+function applyPodEdgeMask(ctx, width, height, presence, params, podCenterY) {
+  const field = params._field || resolveFieldEnvelope(params);
+  const envelope = Math.max(field.effect, field.beam);
+  if (envelope <= 1.05) {
+    applyTightPodEdgeMask(ctx, width, height, presence, params, podCenterY);
+    return;
+  }
   ctx.globalCompositeOperation = "destination-in";
   const cx = width / 2;
-  const cy = height * 0.38;
+  const cy = podCenterY != null ? podCenterY : height * 0.38;
+  const spreadBase = 0.36 + (params.particleSpread / 100) * 0.14;
+  const spread = spreadBase * (0.78 + envelope * 0.38);
+  const rx = width * Math.min(0.96, spread);
+  const ry = height * (0.34 + params.beamHeight * 0.14) * (0.8 + envelope * 0.28);
+  const innerStop = envelope > 1.6 ? 0.08 : 0.15;
+  const midStop = envelope > 1.6 ? 0.9 : 0.82;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(rx, ry);
+  const mask = ctx.createRadialGradient(0, 0, innerStop, 0, 0, 1);
+  mask.addColorStop(0, "rgba(0,0,0," + (0.98 * presence) + ")");
+  mask.addColorStop(midStop, "rgba(0,0,0," + (0.92 * presence) + ")");
+  mask.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = mask;
+  ctx.fillRect(-1.35, -1.35, 2.7, 2.7);
+  ctx.restore();
+  ctx.globalCompositeOperation = "source-over";
+}
+
+function applyTightPodEdgeMask(ctx, width, height, presence, params, podCenterY) {
+  ctx.globalCompositeOperation = "destination-in";
+  const cx = width / 2;
+  const cy = podCenterY != null ? podCenterY : height * 0.38;
   const spread = 0.38 + (params.particleSpread / 100) * 0.12;
   const rx = width * spread;
   const ry = height * (0.36 + params.beamHeight * 0.12);
