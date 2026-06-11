@@ -1,0 +1,23 @@
+# Fast visual tuning — bind-mounts source; no image rebuild per edit.
+# Stable accepted preview stays on docker-compose.yml port 8196.
+services:
+  control-alt-hails-preview-dev:
+    image: node:20-alpine
+    container_name: control-alt-hails-preview-dev
+    working_dir: /srv/web-preview
+    restart: unless-stopped
+    ports:
+      - "8197:8197"
+    environment:
+      HAIL_PREVIEW_HOST: "0.0.0.0"
+      HAIL_PREVIEW_PORT: "8197"
+      HAIL_PREVIEW_DEV: "1"
+      HAIL_PREVIEW_SHARED_ROOT: "/srv/shared"
+    volumes:
+      - .:/srv/web-preview:cached
+      - ../shared:/srv/shared:cached
+      - hails-preview-dev-node-modules:/srv/web-preview/node_modules
+    command: ["node", "server.js"]
+
+volumes:
+  hails-preview-dev-node-modules:

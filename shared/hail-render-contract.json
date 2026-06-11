@@ -1,0 +1,232 @@
+{
+  "version": "v001-team-pass-visual-language",
+  "description": "Shared Control Alt Hails render payload and layout constants. Browser preview reads this file; Android mirrors via HailRenderContract.kt after preview acceptance.",
+  "payloadFields": [
+    "hail_id",
+    "effect_id",
+    "glyph_id",
+    "palette_id",
+    "message",
+    "duration_ms",
+    "placement_id",
+    "placement_mode",
+    "x_percent",
+    "y_percent"
+  ],
+  "message": {
+    "maxLength": 120,
+    "plainTextOnly": true
+  },
+  "placement": {
+    "modePreset": "preset",
+    "modeCustom": "custom",
+    "minPercent": 5,
+    "maxPercent": 95,
+    "presetIds": [
+      "center_soft",
+      "top_right",
+      "bottom_right",
+      "top_left",
+      "bottom_left",
+      "upper_center",
+      "lower_center"
+    ],
+    "edgeInsets": {
+      "horizontalFraction": 0.065,
+      "topFraction": 0.085,
+      "bottomFraction": 0.105,
+      "upperCenterExtraTopFraction": 0.035,
+      "centerSoftVerticalFraction": 0.07
+    },
+    "layoutFractions": {
+      "groupWidth": 0.24,
+      "groupHeight": 0.26
+    }
+  },
+  "glyphs": {
+    "allowlist": ["hail-sniffer", "default"],
+    "emojiFallback": {
+      "hail-sniffer": "👃",
+      "default": "✦"
+    }
+  },
+  "effects": {
+    "allowlist": ["transporter_beam"]
+  },
+  "palettes": {
+    "axiom_dark_cyan": {
+      "beamCyan": "#38C9A8",
+      "beamWhite": "#C8EDE4",
+      "beamBase": "#0A3528",
+      "messageColor": "#E6F8F2",
+      "backdropTint": "#0A3528",
+      "glyphGlow": "#3DD4B0",
+      "roles": {
+        "primary": "#38C9A8",
+        "accent": "#C8EDE4",
+        "glow": "#3DD4B0",
+        "particle": "#A8E8D8",
+        "text": "#E6F8F2",
+        "messageBacking": "#000000",
+        "messageBackingOpacity": 0.46
+      }
+    },
+    "transporter_white": {
+      "beamCyan": "#A8C8C8",
+      "beamWhite": "#E8F0F0",
+      "beamBase": "#1A2430",
+      "messageColor": "#EEF2F6",
+      "backdropTint": "#161e28",
+      "glyphGlow": "#D0E8E8",
+      "roles": {
+        "primary": "#98B8B8",
+        "accent": "#E8F0F0",
+        "glow": "#D0E8E8",
+        "particle": "#C8D8D8",
+        "text": "#EEF2F6",
+        "messageBacking": "#0A0E14",
+        "messageBackingOpacity": 0.52
+      }
+    },
+    "cute_purple": {
+      "beamCyan": "#D66A9A",
+      "beamWhite": "#F8E8F2",
+      "beamBase": "#3D1568",
+      "messageColor": "#FDECF6",
+      "backdropTint": "#341260",
+      "glyphGlow": "#E879A8",
+      "roles": {
+        "primary": "#D66A9A",
+        "accent": "#F8E8F2",
+        "glow": "#E879A8",
+        "particle": "#F0C0D8",
+        "text": "#FDECF6",
+        "messageBacking": "#1A0828",
+        "messageBackingOpacity": 0.48
+      }
+    }
+  },
+  "typography": {
+    "messageFontSizeFractionOfHeight": 0.021,
+    "glyphSizeFractionOfHeight": 0.048,
+    "messageBackingAlpha": 0.46,
+    "messageShadow": "0 0 1px rgba(0,0,0,1), 0 1px 2px rgba(0,0,0,0.92), 0 2px 10px rgba(0,0,0,0.62), 0 0 18px rgba(0,0,0,0.38)"
+  },
+  "visual": {
+    "groupBackdropAlpha": 0.24,
+    "glyphGlowAlpha": 0.26
+  },
+  "previewVisual": {
+    "note": "Preview harness only — not part of production payloadFields until renderer contract expands.",
+    "defaultEffectPreset": "transporter_soft",
+    "defaultHailScalePercent": 100,
+    "hailScale": { "min": 50, "max": 150, "presets": { "small": 85, "medium": 100, "large": 115 } },
+    "effectPresetIds": [
+      "clean_hail",
+      "transporter_soft",
+      "transporter_dense",
+      "subtle_ping",
+      "high_attention"
+    ],
+    "beamShapes": ["column", "cone", "orb", "shimmer", "none"],
+    "effectPresets": {
+      "clean_hail": {
+        "beamEnabled": false,
+        "beamShape": "none",
+        "particleDensity": 18,
+        "particleSpread": 25,
+        "particleSpeed": 30,
+        "particleSize": 35,
+        "glowIntensity": 35,
+        "effectIntensity": 0.75,
+        "shimmerIntensity": 0.2
+      },
+      "transporter_soft": {
+        "beamEnabled": true,
+        "beamShape": "column",
+        "beamWidth": 0.2,
+        "beamHeight": 0.52,
+        "beamOpacity": 0.82,
+        "particleDensity": 42,
+        "particleSpread": 36,
+        "particleSpeed": 40,
+        "particleSize": 45,
+        "glowIntensity": 48,
+        "shimmerIntensity": 0.4
+      },
+      "transporter_dense": {
+        "beamEnabled": true,
+        "beamShape": "column",
+        "beamWidth": 0.26,
+        "beamHeight": 0.62,
+        "beamOpacity": 0.92,
+        "particleDensity": 78,
+        "particleSpread": 48,
+        "particleSpeed": 55,
+        "particleSize": 58,
+        "glowIntensity": 62,
+        "shimmerIntensity": 0.55
+      },
+      "subtle_ping": {
+        "beamEnabled": true,
+        "beamShape": "orb",
+        "beamWidth": 0.18,
+        "beamHeight": 0.38,
+        "beamOpacity": 0.65,
+        "particleDensity": 22,
+        "particleSpread": 30,
+        "particleSpeed": 28,
+        "particleSize": 40,
+        "glowIntensity": 42,
+        "shimmerIntensity": 0.35
+      },
+      "high_attention": {
+        "beamEnabled": true,
+        "beamShape": "cone",
+        "beamWidth": 0.28,
+        "beamHeight": 0.68,
+        "beamOpacity": 0.95,
+        "beamBlur": 2,
+        "particleDensity": 85,
+        "particleSpread": 55,
+        "particleSpeed": 62,
+        "particleSize": 62,
+        "glowIntensity": 72,
+        "shimmerIntensity": 0.65,
+        "effectIntensity": 1.05
+      }
+    },
+    "groupBackground": {
+      "defaultEnabled": false,
+      "defaultShape": "rounded_rect",
+      "defaultSizePercent": 100,
+      "defaultOpacityPercent": 24,
+      "shapes": ["rounded_rect", "soft_panel", "circle_orb"],
+      "sizePercentMin": 50,
+      "sizePercentMax": 140
+    }
+  },
+  "animation": {
+    "beamPhaseMs": 3200,
+    "glyphAlphaMs": 1800,
+    "enterMs": 480,
+    "exitMs": 360
+  },
+  "previewDefaults": {
+    "hail_id": "hail.sniffer.001",
+    "effect_id": "transporter_beam",
+    "glyph_id": "hail-sniffer",
+    "palette_id": "axiom_dark_cyan",
+    "message": "What's sniffing?",
+    "duration_ms": 5500,
+    "placement_id": "top_right",
+    "placement_mode": "preset"
+  },
+  "recommendedTvDefaults": {
+    "placement_id": "top_right",
+    "placement_mode": "preset",
+    "palette_id": "axiom_dark_cyan",
+    "effect_preset": "transporter_soft",
+    "note": "Corner presets keep overlay noticeable without dominating the screen."
+  }
+}

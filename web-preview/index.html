@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Control Alt Hails — Visual Preview</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="rail" aria-label="Preview workbench controls">
+        <header class="rail-header">
+          <h1>Control Alt Hails</h1>
+          <p class="rail-subtitle">Visual workbench · team pass v001</p>
+        </header>
+
+        <div class="rail-body">
+          <section class="card" aria-labelledby="group-placement">
+            <h2 id="group-placement">Placement</h2>
+            <div class="segmented" role="group" aria-label="Placement mode">
+              <button type="button" class="segmented-btn active" data-placement-mode="preset">Preset</button>
+              <button type="button" class="segmented-btn" data-placement-mode="custom">Custom</button>
+            </div>
+            <div id="placement-grid" class="btn-grid" role="group" aria-label="Placement preset"></div>
+            <div id="custom-placement" class="field-row" hidden>
+              <label class="field-compact">
+                <span>x%</span>
+                <input id="x-percent" type="number" min="5" max="95" value="72" />
+              </label>
+              <label class="field-compact">
+                <span>y%</span>
+                <input id="y-percent" type="number" min="5" max="95" value="18" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="group-look">
+            <h2 id="group-look">Look</h2>
+            <p class="field-label">Palette</p>
+            <div id="palette-pills" class="pill-group" role="group" aria-label="Palette"></div>
+            <label class="field-compact block">
+              <span>Glyph</span>
+              <select id="glyph-id"></select>
+            </label>
+            <p class="field-label">Hail size</p>
+            <div class="segmented segmented-3" role="group" aria-label="Hail size preset">
+              <button type="button" class="segmented-btn" data-hail-scale-preset="small">S</button>
+              <button type="button" class="segmented-btn active" data-hail-scale-preset="medium">M</button>
+              <button type="button" class="segmented-btn" data-hail-scale-preset="large">L</button>
+            </div>
+            <label class="field-compact block">
+              <span>Scale %</span>
+              <input id="hail-scale" type="range" min="50" max="150" value="100" />
+              <span id="hail-scale-label" class="range-value">100%</span>
+            </label>
+          </section>
+
+          <section class="card" aria-labelledby="group-effect">
+            <h2 id="group-effect">Effect</h2>
+            <p class="field-label">Preset</p>
+            <div id="effect-preset-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Effect preset"></div>
+            <p class="field-label">Beam</p>
+            <div class="segmented" role="group" aria-label="Beam enabled">
+              <button type="button" class="segmented-btn active" data-beam-enabled="off">Off</button>
+              <button type="button" class="segmented-btn" data-beam-enabled="on">On</button>
+            </div>
+            <p class="field-label">Beam shape</p>
+            <div id="beam-shape-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Beam shape"></div>
+            <details class="control-details">
+              <summary>Advanced effect</summary>
+              <label class="field-compact block">
+                <span>Beam width</span>
+                <input id="beam-width" type="range" min="5" max="55" value="20" />
+                <span id="beam-width-label" class="range-value">20%</span>
+              </label>
+              <label class="field-compact block">
+                <span>Beam height</span>
+                <input id="beam-height" type="range" min="10" max="90" value="52" />
+                <span id="beam-height-label" class="range-value">52%</span>
+              </label>
+              <label class="field-compact block">
+                <span>Beam opacity</span>
+                <input id="beam-opacity" type="range" min="0" max="100" value="82" />
+                <span id="beam-opacity-label" class="range-value">82%</span>
+              </label>
+              <label class="field-compact block">
+                <span>Particle density</span>
+                <input id="particle-density" type="range" min="0" max="100" value="42" />
+                <span id="particle-density-label" class="range-value">42</span>
+              </label>
+              <label class="field-compact block">
+                <span>Particle spread</span>
+                <input id="particle-spread" type="range" min="0" max="100" value="36" />
+                <span id="particle-spread-label" class="range-value">36</span>
+              </label>
+              <label class="field-compact block">
+                <span>Particle speed</span>
+                <input id="particle-speed" type="range" min="0" max="100" value="40" />
+                <span id="particle-speed-label" class="range-value">40</span>
+              </label>
+              <label class="field-compact block">
+                <span>Glow intensity</span>
+                <input id="glow-intensity" type="range" min="0" max="100" value="48" />
+                <span id="glow-intensity-label" class="range-value">48</span>
+              </label>
+            </details>
+          </section>
+
+          <section class="card" aria-labelledby="group-background">
+            <h2 id="group-background">Background</h2>
+            <p class="field-label">Group background</p>
+            <div class="segmented" role="group" aria-label="Group background">
+              <button type="button" class="segmented-btn active" data-group-bg="off">Off</button>
+              <button type="button" class="segmented-btn" data-group-bg="on">On</button>
+            </div>
+            <div id="group-bg-controls" class="group-bg-controls" hidden>
+              <p class="field-label">Shape</p>
+              <div id="group-bg-shape" class="pill-group pill-group-compact" role="group" aria-label="Background shape">
+                <button type="button" class="active" data-bg-shape="rounded_rect">Rounded</button>
+                <button type="button" data-bg-shape="soft_panel">Soft panel</button>
+                <button type="button" data-bg-shape="circle_orb">Orb</button>
+              </div>
+              <label class="field-compact block">
+                <span>Size %</span>
+                <input id="group-bg-size" type="range" min="50" max="140" value="100" />
+                <span id="group-bg-size-label" class="range-value">100%</span>
+              </label>
+              <label class="field-compact block">
+                <span>Opacity %</span>
+                <input id="group-bg-opacity" type="range" min="0" max="100" value="24" />
+                <span id="group-bg-opacity-label" class="range-value">24%</span>
+              </label>
+              <label class="field-compact block checkbox-row">
+                <input id="group-bg-palette-color" type="checkbox" checked />
+                <span>Palette color</span>
+              </label>
+              <label class="field-compact block" id="group-bg-color-wrap" hidden>
+                <span>Custom color</span>
+                <input id="group-bg-color" type="color" value="#0A3528" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="group-content">
+            <h2 id="group-content">Content</h2>
+            <label class="field-compact block">
+              <span>Message</span>
+              <textarea id="message" rows="2" maxlength="120"></textarea>
+            </label>
+            <p id="message-error" class="error" aria-live="polite"></p>
+            <label class="field-compact block">
+              <span>Duration (ms)</span>
+              <input id="duration-ms" type="number" min="1000" max="30000" step="100" value="5500" />
+            </label>
+          </section>
+
+          <section class="card" aria-labelledby="group-tv-frame">
+            <h2 id="group-tv-frame">TV Frame</h2>
+            <div class="segmented segmented-3" role="group" aria-label="Screen size">
+              <button type="button" class="segmented-btn active" data-screen="1920x1080">1080p</button>
+              <button type="button" class="segmented-btn" data-screen="3840x2160">4K</button>
+              <button type="button" class="segmented-btn" data-screen="custom">Custom</button>
+            </div>
+            <div id="custom-screen" class="field-row" hidden>
+              <label class="field-compact">
+                <span>W</span>
+                <input id="screen-width" type="number" min="640" max="7680" value="1920" />
+              </label>
+              <label class="field-compact">
+                <span>H</span>
+                <input id="screen-height" type="number" min="360" max="4320" value="1080" />
+              </label>
+            </div>
+            <label class="field-compact block">
+              <span>Stage background</span>
+              <select id="background-mode">
+                <option value="dark-neutral">Dark neutral</option>
+                <option value="busy-contrast">Busy / high-contrast</option>
+                <option value="light-mock">Light mock</option>
+                <option value="image">Uploaded image</option>
+              </select>
+            </label>
+            <label class="field-compact block file-field" id="background-file-wrap" hidden>
+              <span>Image file</span>
+              <input id="background-file" type="file" accept="image/*" />
+            </label>
+          </section>
+
+          <section class="card card-diagnostics" aria-labelledby="group-diagnostics">
+            <h2 id="group-diagnostics">Diagnostics</h2>
+            <details id="payload-details" class="payload-details">
+              <summary>Payload JSON</summary>
+              <div class="payload-tools">
+                <button type="button" id="copy-payload-btn" class="btn-ghost">Copy payload</button>
+                <span id="copy-feedback" class="copy-feedback" aria-live="polite"></span>
+              </div>
+              <pre id="payload-out" class="payload"></pre>
+            </details>
+          </section>
+        </div>
+
+        <div class="rail-actions">
+          <button id="preview-btn" type="button" class="btn-primary">Preview overlay</button>
+          <button id="hide-btn" type="button" class="btn-secondary">Hide overlay</button>
+        </div>
+      </aside>
+
+      <main class="stage-panel">
+        <div class="stage-toolbar">
+          <span class="stage-title">TV stage</span>
+          <span id="scale-label" class="stage-meta"></span>
+        </div>
+        <div id="stage-shell" class="stage-shell">
+          <div id="stage-scaler" class="stage-scaler">
+            <div id="tv-stage" class="tv-stage">
+              <div id="stage-background" class="stage-background mode-dark-neutral"></div>
+              <div id="overlay-root" class="overlay-root">
+                <div id="overlay-group" class="overlay-group overlay-group--bg-off" hidden>
+                  <div id="overlay-group-bg" class="overlay-group-bg" hidden aria-hidden="true"></div>
+                  <canvas id="overlay-canvas" class="overlay-canvas"></canvas>
+                  <div class="overlay-content">
+                    <div id="overlay-glyph" class="overlay-glyph"></div>
+                    <p id="overlay-message" class="overlay-message"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
