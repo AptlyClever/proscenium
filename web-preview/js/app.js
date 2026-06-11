@@ -1,5 +1,8 @@
 import {
   getAnimationProfile,
+  isEntrancePhase,
+  isExitPhase,
+  LIFECYCLE_PHASES,
   requestLifecycleExit,
 } from "./animation-profile.js";
 import {
@@ -25,6 +28,7 @@ import {
   createOverlayAnimator,
   glyphMarkup,
   hexWithAlpha,
+  isStableLifecyclePhase,
   resetLifecycle,
 } from "./renderer.js";
 
@@ -54,7 +58,7 @@ const state = {
   screenPreset: "1920x1080",
   useLifecycle: false,
   holdDurationMs: null,
-  lifecycleRef: { phase: "hidden" },
+  lifecycleRef: { phase: "hidden", stableStart: null, exitStart: null },
   pendingLifecycleReset: false,
   effectPreset: "transporter_soft",
   effectParams: null,
@@ -364,9 +368,6 @@ function syncPresenceReadout() {
   const presence =
     state.presetPresence || resolvePresetPresence(state.contract, state.effectPreset);
   els.presenceReadout.textContent = formatPresetPresenceReadout(presence);
-  if (presence.intent) {
-    els.presenceReadout.title = presence.intent;
-  }
 }
 
 /** Position effect field vs content module; returns canvas pixel size for renderer. */
@@ -963,16 +964,18 @@ function renderStaticOverlay(renderOpts) {
   const staticFrame = state.useLifecycle
     ? null
     : {
-        phase: "hold",
-        particleMode: animProfile.particle_mode_hold,
-        phaseProgress: 0.5,
-        beamScale: 1,
-        beamIntensity: 1,
+        phase: "stable_object",
+        particleMode: "none",
+        phaseProgress: 0,
+        beamScale: 0,
+        beamIntensity: 0,
+        objectLocked: true,
         glyphAlpha: 1,
         glyphScale: 1,
         messageAlpha: 1,
         overallIntensity: 1,
         holdPulse: 1,
+        glyphResidual: state.scaledEffectParams.shimmerIntensity,
       };
 
   state.stopAnimation = createOverlayAnimator(
@@ -985,20 +988,41 @@ function renderStaticOverlay(renderOpts) {
     grammar,
     holdDurationMs,
     function (frame) {
-      const entering = frame.phase === "enter";
-      const exiting = frame.phase === "exit";
-      const stageGlyph = entering || exiting;
+      const stable = isStableLifecyclePhase(frame.phase);
+      const entering = isEntrancePhase(frame.phase);
+      const exiting = isExitPhase(frame.phase);
+      const beamOutSeed = frame.phase === LIFECYCLE_PHASES.BEAM_OUT_SEED;
+      const objectLocked = stable || beamOutSeed || frame.objectLocked === true;
+      const stageGlyph = entering || (exiting && !beamOutSeed);
 
-      els.overlayGlyph.style.opacity = String(frame.glyphAlpha);
-      els.overlayMessage.style.opacity = String(frame.messageAlpha);
+      els.overlayGroup.classList.toggle("is-stable-object", stable);
+      els.overlayGroup.classList.toggle(
+        "is-stable-object--minimal",
+        stable && state.scaledEffectParams.shimmerIntensity < 0.22,
+      );
+      els.overlayGroup.classList.toggle("is-exiting", beamOutSeed || exiting);
+
+      const glyphAlpha = objectLocked ? 1 : frame.glyphAlpha;
+      const messageAlpha = objectLocked ? 1 : frame.messageAlpha;
+      const glyphScale = objectLocked ? 1 : frame.glyphScale;
+
+      els.overlayGlyph.style.opacity = String(glyphAlpha);
+      els.overlayMessage.style.opacity = String(messageAlpha);
       els.overlayGlyph.style.transition = stageGlyph ? "none" : "";
       els.overlayMessage.style.transition = stageGlyph ? "none" : "";
 
-      if (entering) {
+      if (stable) {
         els.overlayGlyph.style.transformOrigin = "center center";
-        els.overlayGlyph.style.transform = "scale(" + frame.glyphScale + ")";
-      } else if (exiting) {
-        els.overlayGlyph.style.transform = "scale(" + frame.glyphScale + ")";
+        els.overlayGlyph.style.transform = "scale(1)";
+        els.overlayGroup.style.setProperty(
+          "--glyph-residual-strength",
+          String(state.scaledEffectParams.shimmerIntensity),
+        );
+      } else if (entering) {
+        els.overlayGlyph.style.transformOrigin = "center center";
+        els.overlayGlyph.style.transform = "scale(" + glyphScale + ")";
+      } else if (exiting && !beamOutSeed) {
+        els.overlayGlyph.style.transform = "scale(" + glyphScale + ")";
       } else {
         els.overlayGlyph.style.transform = "scale(1)";
       }
@@ -1033,7 +1057,7 @@ function hideOverlay(instant) {
     clearOverlayImmediate();
     return;
   }
-  if (els.overlayGroup.hidden || state.lifecycleRef.phase === "exit") {
+  if (els.overlayGroup.hidden || isExitPhase(state.lifecycleRef.phase)) {
     return;
   }
   const wasStatic = !state.useLifecycle;
@@ -1058,7 +1082,11 @@ function clearOverlayImmediate() {
     }
   }
   els.overlayGroup.hidden = true;
-  els.overlayGroup.classList.remove("is-exiting");
+  els.overlayGroup.classList.remove(
+    "is-exiting",
+    "is-stable-object",
+    "is-stable-object--minimal",
+  );
   els.overlayGroup.style.opacity = "1";
   els.overlayGlyph.style.transform = "scale(1)";
   els.overlayGlyph.style.opacity = "1";
@@ -1066,7 +1094,7 @@ function clearOverlayImmediate() {
   state.useLifecycle = false;
   state.holdDurationMs = null;
   state.lifecycleRef.phase = "hidden";
-  state.lifecycleRef.holdStart = null;
+  state.lifecycleRef.stableStart = null;
   state.lifecycleRef.exitStart = null;
 }
 

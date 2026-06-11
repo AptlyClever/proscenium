@@ -1,5 +1,5 @@
 {
-  "version": "v001-composition-presence-impact",
+  "version": "v001-object-materialization-scale",
   "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color/animation/presence grammar is preview-only until Axiom owns the visual contract.",
   "payloadFields": [
     "hail_id",
@@ -123,14 +123,16 @@
     "defaultEffectPreset": "transporter_soft",
     "defaultHailScaleTier": "medium",
     "presenceGrammar": {
-      "note": "Preview-only presence multipliers per S/M/L tier. Decouples content module scale from effect field envelope. Canonical values live on scaleGrammar.tiers; resolved by resolvePresenceGrammar().",
+      "note": "Preview-only presence per S/M/L tier. object_scale (content_scale) sizes the stable Hail; transport_event_scale sizes beam-in/out only — not applied during stable_object. Canonical values live on scaleGrammar.tiers.",
       "fields": {
-        "content_scale": "Glyph + content module layout scale",
+        "content_scale": "Object scale — glyph + content module layout (alias: object_scale)",
+        "object_scale": "Alias for content_scale — stable Hail object size",
         "message_scale": "Message typography scale",
-        "effect_field_scale": "Overall soft effect region vs content bounds",
-        "beam_field_scale": "Beam column/cone height and width envelope",
-        "particle_travel_scale": "Particle drift/travel distance from anchor",
-        "glow_radius_scale": "Glyph and field glow reach",
+        "transport_event_scale": "Beam-in/out transport envelope — dramatic during enter/exit, zeroed at stable_object",
+        "effect_field_scale": "Stable-state residual field (preview: 1.0 — transport uses transport_event_scale)",
+        "beam_field_scale": "Transport beam column/cone envelope (enter/exit only)",
+        "particle_travel_scale": "Transport particle drift/travel (enter/exit only)",
+        "glow_radius_scale": "Transport glow reach during materialization; modest stable glyph glow via renderer",
         "anchor_weight": "Arrival anchor glyph visual weight",
         "message_backing_emphasis": "Message backing pad prominence"
       }
@@ -141,7 +143,7 @@
       "tiers": {
         "small": {
           "label": "Ambient",
-          "intent": "Corner passive notices — compact content module, tight effect field",
+          "intent": "Compact Hail object with a small beam-in/out transport event",
           "layoutScale": 0.88,
           "glyphScale": 0.9,
           "messageScale": 0.92,
@@ -155,8 +157,10 @@
           "exitIntensityMul": 0.9,
           "messagePaddingMul": 0.9,
           "content_scale": 0.88,
+          "object_scale": 0.88,
           "message_scale": 0.92,
-          "effect_field_scale": 0.7,
+          "transport_event_scale": 0.7,
+          "effect_field_scale": 1,
           "beam_field_scale": 0.72,
           "particle_travel_scale": 0.62,
           "glow_radius_scale": 0.68,
@@ -165,7 +169,7 @@
         },
         "medium": {
           "label": "Default",
-          "intent": "Normal hail — balanced content module and controlled effect field",
+          "intent": "Default readable Hail object with balanced transport event",
           "layoutScale": 1,
           "glyphScale": 1,
           "messageScale": 1,
@@ -179,7 +183,9 @@
           "exitIntensityMul": 1,
           "messagePaddingMul": 1,
           "content_scale": 1,
+          "object_scale": 1,
           "message_scale": 1,
+          "transport_event_scale": 1,
           "effect_field_scale": 1,
           "beam_field_scale": 1,
           "particle_travel_scale": 1,
@@ -189,7 +195,7 @@
         },
         "large": {
           "label": "Impact",
-          "intent": "Screen event — modest content growth, effect field dominates (+80–140% field, +100–180% particle travel)",
+          "intent": "Larger Hail object and more dramatic transport — clean stable object after beam clears",
           "layoutScale": 1.2,
           "glyphScale": 1.15,
           "messageScale": 1.08,
@@ -203,8 +209,10 @@
           "exitIntensityMul": 1.25,
           "messagePaddingMul": 1.06,
           "content_scale": 1.2,
+          "object_scale": 1.2,
           "message_scale": 1.08,
-          "effect_field_scale": 2.1,
+          "transport_event_scale": 2.1,
+          "effect_field_scale": 1,
           "beam_field_scale": 1.95,
           "particle_travel_scale": 2.4,
           "glow_radius_scale": 1.8,
@@ -221,8 +229,9 @@
       "high_attention"
     ],
     "presetPresence": {
-      "note": "Preview-only — per-preset screen presence multipliers; stacks with scaleGrammar tiers. Future Axiom-owned candidate.",
+      "note": "Preview-only — per-preset transport presence; stacks with scaleGrammar tiers. transport_event_scale applies during beam-in/out only.",
       "defaults": {
+        "transport_event_scale": 1,
         "effect_field_scale": 1,
         "beam_field_scale": 1,
         "particle_travel_scale": 1,
@@ -232,8 +241,9 @@
       },
       "clean_hail": {
         "label": "Compact",
-        "intent": "System quiet — tight field, restrained glow and anchor",
-        "effect_field_scale": 0.72,
+        "intent": "Minimal transport — tight beam-in/out, restrained glow",
+        "transport_event_scale": 0.72,
+        "effect_field_scale": 1,
         "beam_field_scale": 0.66,
         "particle_travel_scale": 0.72,
         "glow_radius_scale": 0.68,
@@ -242,7 +252,8 @@
       },
       "transporter_soft": {
         "label": "Standard",
-        "intent": "Refined event — balanced field and readable message",
+        "intent": "Default transporter — balanced transport, clean stable object",
+        "transport_event_scale": 1,
         "effect_field_scale": 1,
         "beam_field_scale": 1,
         "particle_travel_scale": 1,
@@ -252,8 +263,9 @@
       },
       "transporter_dense": {
         "label": "Impact",
-        "intent": "Transporter event — expanded field, strong beam and travel",
-        "effect_field_scale": 1.38,
+        "intent": "Stronger materialization transport — stable object still clean after arrival",
+        "transport_event_scale": 1.38,
+        "effect_field_scale": 1,
         "beam_field_scale": 1.32,
         "particle_travel_scale": 1.45,
         "glow_radius_scale": 1.24,
@@ -262,8 +274,9 @@
       },
       "subtle_ping": {
         "label": "Burst",
-        "intent": "Compact achievement ping — tight field, punchy anchor",
-        "effect_field_scale": 0.86,
+        "intent": "Quick achievement transport — tight beam, punchy anchor",
+        "transport_event_scale": 0.86,
+        "effect_field_scale": 1,
         "beam_field_scale": 0.8,
         "particle_travel_scale": 1.18,
         "glow_radius_scale": 1.02,
@@ -272,8 +285,9 @@
       },
       "high_attention": {
         "label": "Visible",
-        "intent": "High visibility — strong field without alarm styling",
-        "effect_field_scale": 1.22,
+        "intent": "High-visibility transport in/out — stable object clear, not alarm styling",
+        "transport_event_scale": 1.22,
+        "effect_field_scale": 1,
         "beam_field_scale": 1.2,
         "particle_travel_scale": 1.1,
         "glow_radius_scale": 1.3,
@@ -359,6 +373,7 @@
       "sizePercentMax": 140
     },
     "animationProfiles": {
+      "note": "Per-preset animation. Optional overrides: beam_in_seed_ms, beam_out_seed_ms (defaults scale from lifecyclePhases.reference).",
       "clean_hail": {
         "entrance_style": "fade",
         "entrance_ms": 380,
@@ -428,6 +443,15 @@
         "particle_mode_exit": "collapse",
         "glyph_resolve_style": "resolve",
         "glyph_overshoot": 0.06
+      }
+    },
+    "lifecyclePhases": {
+      "note": "Preview-only object materialization lifecycle. entrance_ms splits into beam_in_seed + materializing_object; exit_ms splits into beam_out_seed + dematerializing_object.",
+      "reference": {
+        "entrance_ms": 700,
+        "beam_in_seed_ms": 150,
+        "exit_ms": 520,
+        "beam_out_seed_ms": 180
       }
     },
     "placementPresence": {

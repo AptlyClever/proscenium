@@ -27,6 +27,7 @@ const SCALE_TIER_LABELS = {
 const PRESENCE_FIELD_KEYS = [
   "content_scale",
   "message_scale",
+  "transport_event_scale",
   "effect_field_scale",
   "beam_field_scale",
   "particle_travel_scale",
@@ -52,6 +53,7 @@ const DEFAULT_GRAMMAR = {
   messagePaddingMul: 1,
   content_scale: 1,
   message_scale: 1,
+  transport_event_scale: 1,
   effect_field_scale: 1,
   beam_field_scale: 1,
   particle_travel_scale: 1,
@@ -76,7 +78,7 @@ export function resolveTierPresenceFields(contract, tierId, manualPercent) {
   };
   PRESENCE_FIELD_KEYS.forEach(function (key) {
     const base = tier[key] != null ? tier[key] : 1;
-    if (key === "content_scale" || key === "effect_field_scale") {
+    if (key === "content_scale" || key === "transport_event_scale") {
       resolved[key] = base * manual;
     } else {
       resolved[key] = base;
@@ -88,6 +90,7 @@ export function resolveTierPresenceFields(contract, tierId, manualPercent) {
 const DEFAULT_PRESET_PRESENCE = {
   label: "Standard",
   intent: "",
+  transport_event_scale: 1,
   effect_field_scale: 1,
   beam_field_scale: 1,
   particle_travel_scale: 1,
@@ -127,6 +130,7 @@ export function resolveScaleGrammar(contract, tierId, manualPercent) {
     manualPercent: presence.manualPercent,
     content_scale: presence.content_scale,
     message_scale: presence.message_scale,
+    transport_event_scale: presence.transport_event_scale,
     effect_field_scale: presence.effect_field_scale,
     beam_field_scale: presence.beam_field_scale,
     particle_travel_scale: presence.particle_travel_scale,
@@ -208,10 +212,16 @@ export function resolveEffectFieldEnvelope(
 export function applyPresenceGrammarToEffectParams(params, presence) {
   const p = presence || DEFAULT_FIELD_SCALES;
   return normalizeEffectParams(Object.assign({}, params, {
-    effectFieldScale: p.effectFieldScale,
+    transportEventScale: p.transportEventScale != null ? p.transportEventScale : p.effectFieldScale,
+    effectFieldScale: p.transportEventScale != null ? p.transportEventScale : p.effectFieldScale,
+    stableEffectFieldScale:
+      p.stableEffectFieldScale != null ? p.stableEffectFieldScale : 1,
     beamFieldScale: p.beamFieldScale,
     particleTravelScale: p.particleTravelScale,
     glowRadiusScale: p.glowRadiusScale,
+    stableGlowRadiusScale:
+      p.stableGlowRadiusScale != null ? p.stableGlowRadiusScale : 1,
+    _fieldScales: p,
   }));
 }
 
@@ -223,6 +233,16 @@ export function resolvePresetPresence(contract, presetId) {
     presetId: presetId || "",
     label: entry.label || DEFAULT_PRESET_PRESENCE.label,
     intent: entry.intent || "",
+    transport_event_scale:
+      entry.transport_event_scale != null
+        ? entry.transport_event_scale
+        : entry.effect_field_scale != null
+          ? entry.effect_field_scale
+          : defaults.transport_event_scale != null
+            ? defaults.transport_event_scale
+            : defaults.effect_field_scale != null
+              ? defaults.effect_field_scale
+              : 1,
     effect_field_scale:
       entry.effect_field_scale != null
         ? entry.effect_field_scale
@@ -264,7 +284,12 @@ export function resolvePresetPresence(contract, presetId) {
 
 export function applyPresetPresenceToEffectParams(params, presence) {
   const p = presence || DEFAULT_PRESET_PRESENCE;
-  const field = p.effect_field_scale != null ? p.effect_field_scale : 1;
+  const field =
+    p.transport_event_scale != null
+      ? p.transport_event_scale
+      : p.effect_field_scale != null
+        ? p.effect_field_scale
+        : 1;
   const beam = p.beam_field_scale != null ? p.beam_field_scale : 1;
   const travel = p.particle_travel_scale != null ? p.particle_travel_scale : 1;
   const glow = p.glow_radius_scale != null ? p.glow_radius_scale : 1;
@@ -286,13 +311,31 @@ export function applyPresetPresenceToEffectParams(params, presence) {
 }
 
 const DEFAULT_FIELD_SCALES = {
+  transportEventScale: 1,
   effectFieldScale: 1,
   beamFieldScale: 1,
   particleTravelScale: 1,
   glowRadiusScale: 1,
+  stableGlowRadiusScale: 1,
 };
 
-/** Compose renderer field-scale metadata from tier grammar, preset presence, and placement caps (L3). */
+function tierTransportScale(grammar) {
+  const g = grammar || {};
+  if (g.transport_event_scale != null) {
+    return g.transport_event_scale;
+  }
+  return g.effect_field_scale != null ? g.effect_field_scale : 1;
+}
+
+function presetTransportScale(preset) {
+  const p = preset || DEFAULT_PRESET_PRESENCE;
+  if (p.transport_event_scale != null) {
+    return p.transport_event_scale;
+  }
+  return p.effect_field_scale != null ? p.effect_field_scale : 1;
+}
+
+/** Compose renderer field-scale metadata from tier grammar, preset presence, and placement caps. */
 export function composeEffectFieldScales(grammar, presetPresence, placementPresence) {
   const g = grammar || {};
   const preset = presetPresence || DEFAULT_PRESET_PRESENCE;
@@ -301,11 +344,18 @@ export function composeEffectFieldScales(grammar, presetPresence, placementPrese
   const beamCap = placement.beamFieldCapMul != null ? placement.beamFieldCapMul : placementCap;
   const travelCap =
     placement.particleTravelCapMul != null ? placement.particleTravelCapMul : placementCap;
+  const transportEventScale = tierTransportScale(g) * presetTransportScale(preset) * placementCap;
+  const stableGlowRadiusScale = Math.min(
+    1.2,
+    (g.glow_radius_scale != null ? g.glow_radius_scale : 1) *
+      (preset.glow_radius_scale != null ? preset.glow_radius_scale : 1) *
+      0.72,
+  );
   return {
-    effectFieldScale:
-      (g.effect_field_scale != null ? g.effect_field_scale : 1) *
-      (preset.effect_field_scale != null ? preset.effect_field_scale : 1) *
-      placementCap,
+    transportEventScale: transportEventScale,
+    effectFieldScale: transportEventScale,
+    stableEffectFieldScale:
+      g.effect_field_scale != null ? g.effect_field_scale : 1,
     beamFieldScale:
       (g.beam_field_scale != null ? g.beam_field_scale : 1) *
       (preset.beam_field_scale != null ? preset.beam_field_scale : 1) *
@@ -318,7 +368,35 @@ export function composeEffectFieldScales(grammar, presetPresence, placementPrese
       (g.glow_radius_scale != null ? g.glow_radius_scale : 1) *
       (preset.glow_radius_scale != null ? preset.glow_radius_scale : 1) *
       placementCap,
+    stableGlowRadiusScale: stableGlowRadiusScale,
     placementCap: placementCap,
+  };
+}
+
+/**
+ * Lane 5 — lifecycle-aware field envelope.
+ * Transport scales apply during enter/exit only; stable_object (hold) keeps a clean object.
+ */
+const STABLE_LIFECYCLE_PHASES = new Set(["hold", "stable_object"]);
+
+export function resolveLifecycleFieldEnvelope(fieldScales, lifecyclePhase) {
+  const scales = fieldScales || DEFAULT_FIELD_SCALES;
+  const isStable = STABLE_LIFECYCLE_PHASES.has(lifecyclePhase);
+  if (isStable) {
+    return {
+      effect: scales.stableEffectFieldScale != null ? scales.stableEffectFieldScale : 1,
+      beam: 1,
+      travel: 0.68,
+      glow: scales.stableGlowRadiusScale != null ? scales.stableGlowRadiusScale : 1,
+      transportActive: false,
+    };
+  }
+  return {
+    effect: scales.transportEventScale != null ? scales.transportEventScale : 1,
+    beam: scales.beamFieldScale != null ? scales.beamFieldScale : 1,
+    travel: scales.particleTravelScale != null ? scales.particleTravelScale : 1,
+    glow: scales.glowRadiusScale != null ? scales.glowRadiusScale : 1,
+    transportActive: true,
   };
 }
 
@@ -352,16 +430,11 @@ export function resolveScaledEffectParams(
 
 export function formatPresetPresenceReadout(presence) {
   const p = presence || DEFAULT_PRESET_PRESENCE;
-  return (
-    (p.label || "Standard") +
-    " · field " +
-    Math.round((p.effect_field_scale || 1) * 100) +
-    "% · beam " +
-    Math.round((p.beam_field_scale || 1) * 100) +
-    "% · travel " +
-    Math.round((p.particle_travel_scale || 1) * 100) +
-    "%"
-  );
+  const label = p.label || "Standard";
+  if (p.intent) {
+    return label + " · " + p.intent;
+  }
+  return label;
 }
 
 const DEFAULT_PLACEMENT_PRESENCE = {
@@ -457,7 +530,15 @@ function normalizeEffectParams(raw) {
     particleSize: clampInt(raw.particleSize, 0, 100, 48),
     glowIntensity: clampInt(raw.glowIntensity, 0, 100, 50),
     effectIntensity: clampNum(raw.effectIntensity, 0, 1.2, 1),
+    transportEventScale: clampNum(
+      raw.transportEventScale != null ? raw.transportEventScale : raw.effectFieldScale,
+      0.5,
+      3.5,
+      1,
+    ),
+    stableEffectFieldScale: clampNum(raw.stableEffectFieldScale, 0.5, 1.5, 1),
     effectFieldScale: clampNum(raw.effectFieldScale, 0.5, 3.5, 1),
+    stableGlowRadiusScale: clampNum(raw.stableGlowRadiusScale, 0.5, 1.5, 1),
     beamFieldScale: clampNum(raw.beamFieldScale, 0.5, 3.5, 1),
     particleTravelScale: clampNum(raw.particleTravelScale, 0.5, 3.5, 1),
     glowRadiusScale: clampNum(raw.glowRadiusScale, 0.5, 3.5, 1),
@@ -591,6 +672,7 @@ export function previewVisualPayload(state, contract) {
     preset_presence: {
       label: presence.label,
       intent: presence.intent,
+      transport_event_scale: presence.transport_event_scale,
       effect_field_scale: presence.effect_field_scale,
       beam_field_scale: presence.beam_field_scale,
       particle_travel_scale: presence.particle_travel_scale,
@@ -621,7 +703,9 @@ export function previewVisualPayload(state, contract) {
     presence_grammar: {
       tier: grammar.tierId,
       content_scale: grammar.content_scale,
+      object_scale: grammar.content_scale,
       message_scale: grammar.message_scale,
+      transport_event_scale: grammar.transport_event_scale,
       effect_field_scale: grammar.effect_field_scale,
       beam_field_scale: grammar.beam_field_scale,
       particle_travel_scale: grammar.particle_travel_scale,
@@ -638,6 +722,7 @@ export function previewVisualPayload(state, contract) {
     preview_timing: previewTimingPayload(state, contract),
     animation_profile: animationProfilePayload(
       getAnimationProfile(contract, state.effectPreset),
+      contract,
     ),
     placement_presence: state.placementPresence
       ? {

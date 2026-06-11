@@ -9,12 +9,21 @@ const contract = JSON.parse(fs.readFileSync(contractPath, "utf8"));
 const PRESENCE_TIER_FIELDS = [
   "content_scale",
   "message_scale",
+  "transport_event_scale",
   "effect_field_scale",
   "beam_field_scale",
   "particle_travel_scale",
   "glow_radius_scale",
   "anchor_weight",
   "message_backing_emphasis",
+];
+
+const LIFECYCLE_PHASE_IDS = [
+  "beam_in_seed",
+  "materializing_object",
+  "stable_object",
+  "beam_out_seed",
+  "dematerializing_object",
 ];
 
 const EFFECT_PRESET_IDS = [
@@ -32,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-composition-presence-impact",
-  "contract version should be v001-composition-presence-impact",
+  contract.version === "v001-object-materialization-scale",
+  "contract version should be v001-object-materialization-scale",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -85,36 +94,40 @@ PRESENCE_TIER_FIELDS.forEach(function (field) {
 
 const large = pv.scaleGrammar.tiers.large;
 assert(
-  large.effect_field_scale >= 1.8,
-  "large tier should expand effect field materially (>= 1.8)",
+  large.transport_event_scale >= 1.8,
+  "large tier should expand transport event materially (>= 1.8)",
 );
 assert(
-  large.effect_field_scale > large.content_scale,
-  "large tier effect field should exceed content scale",
+  large.transport_event_scale > large.content_scale,
+  "large tier transport event should exceed object scale",
 );
 assert(
   large.particle_travel_scale >= 2,
   "large tier should expand particle travel materially",
 );
 assert(large.label === "Impact", "large tier label should be Impact");
+assert(
+  large.effect_field_scale === 1,
+  "large tier effect_field_scale should be neutral stable residual (1.0)",
+);
 
 assert(pv.presetPresence, "presetPresence block required");
 EFFECT_PRESET_IDS.forEach(function (presetId) {
   const entry = pv.presetPresence[presetId];
   assert(entry, "presetPresence entry required: " + presetId);
   assert(
-    typeof entry.effect_field_scale === "number",
-    presetId + " presetPresence.effect_field_scale required",
+    typeof entry.transport_event_scale === "number",
+    presetId + " presetPresence.transport_event_scale required",
   );
 });
 assert(
-  pv.presetPresence.transporter_dense.effect_field_scale >
-    pv.presetPresence.transporter_soft.effect_field_scale,
-  "dense preset should have stronger field than soft",
+  pv.presetPresence.transporter_dense.transport_event_scale >
+    pv.presetPresence.transporter_soft.transport_event_scale,
+  "dense preset should have stronger transport than soft",
 );
 assert(
-  pv.presetPresence.clean_hail.effect_field_scale <
-    pv.presetPresence.transporter_soft.effect_field_scale,
+  pv.presetPresence.clean_hail.transport_event_scale <
+    pv.presetPresence.transporter_soft.transport_event_scale,
   "clean preset should be quieter than soft",
 );
 
@@ -145,6 +158,120 @@ assert(
 assert(
   placements.top_right.effectFieldCapMul > placements.lower_center.effectFieldCapMul,
   "top_right should allow larger field than lower_center",
+);
+
+/** Lane 7 — object materialization lifecycle contract + source vocabulary */
+const MATERIALIZATION_PROFILE = "transporter_soft";
+const softProfile =
+  pv.animationProfiles && pv.animationProfiles[MATERIALIZATION_PROFILE];
+assert(softProfile, "transporter_soft animation profile required for materialization");
+assert(
+  softProfile.entrance_style === "beam_materialize",
+  "transporter_soft entrance_style should be beam_materialize",
+);
+assert(
+  softProfile.particle_mode_enter === "materialize",
+  "transporter_soft particle_mode_enter should be materialize",
+);
+assert(
+  softProfile.exit_style === "beam_dematerialize",
+  "transporter_soft exit_style should be beam_dematerialize",
+);
+
+const lifecyclePhases = pv.lifecyclePhases;
+const matLifecycle = pv.materializationLifecycle;
+assert(
+  lifecyclePhases || matLifecycle,
+  "previewVisual.lifecyclePhases or materializationLifecycle required",
+);
+
+if (lifecyclePhases && lifecyclePhases.reference) {
+  const ref = lifecyclePhases.reference;
+  assert(typeof ref.entrance_ms === "number", "lifecyclePhases.reference.entrance_ms required");
+  assert(typeof ref.beam_in_seed_ms === "number", "lifecyclePhases.reference.beam_in_seed_ms required");
+  assert(typeof ref.exit_ms === "number", "lifecyclePhases.reference.exit_ms required");
+  assert(typeof ref.beam_out_seed_ms === "number", "lifecyclePhases.reference.beam_out_seed_ms required");
+  assert(
+    ref.beam_in_seed_ms < ref.entrance_ms,
+    "beam_in_seed_ms should be shorter than entrance_ms",
+  );
+  assert(
+    ref.beam_out_seed_ms < ref.exit_ms,
+    "beam_out_seed_ms should be shorter than exit_ms",
+  );
+}
+
+if (matLifecycle && matLifecycle.phases) {
+  const phaseIds = Object.keys(matLifecycle.phases);
+  ["beam", "materialize", "stable", "beam_out", "exit"].forEach(function (name) {
+    assert(phaseIds.includes(name), "materializationLifecycle missing phase: " + name);
+  });
+  const stable = matLifecycle.phases.stable;
+  assert(
+    stable &&
+      (stable.beam_suppressed === true ||
+        stable.beam_suppress === true ||
+        stable.suppress_beam === true),
+    "materializationLifecycle.phases.stable should declare beam suppression",
+  );
+}
+
+const animationProfileSrc = fs.readFileSync(
+  path.join(__dirname, "js", "animation-profile.js"),
+  "utf8",
+);
+const rendererSrc = fs.readFileSync(path.join(__dirname, "js", "renderer.js"), "utf8");
+
+assert(
+  animationProfileSrc.includes('case "beam_materialize"'),
+  "animation-profile.js should implement beam_materialize entrance",
+);
+assert(
+  animationProfileSrc.includes('case "beam_dematerialize"'),
+  "animation-profile.js should implement beam_dematerialize exit",
+);
+LIFECYCLE_PHASE_IDS.forEach(function (phaseId) {
+  assert(
+    animationProfileSrc.includes('"' + phaseId + '"'),
+    "animation-profile.js should reference lifecycle phase: " + phaseId,
+  );
+});
+assert(
+  animationProfileSrc.includes("LIFECYCLE_PHASES"),
+  "animation-profile.js should export LIFECYCLE_PHASES",
+);
+assert(
+  rendererSrc.includes('case "materialize"'),
+  "renderer.js should implement materialize particle mode",
+);
+assert(
+  rendererSrc.includes("isStableLifecyclePhase"),
+  "renderer.js should gate stable phase separately from transport draw",
+);
+assert(
+  rendererSrc.includes("beamIntensity") && rendererSrc.includes("presence <= 0.01"),
+  "renderer.js should gate transport draw on beamIntensity / presence",
+);
+
+const stableBeamSuppressedInCode =
+  /LIFECYCLE_PHASES\.STABLE[\s\S]*?beamIntensity\s*=\s*0/.test(animationProfileSrc) ||
+  /stable_object[\s\S]*?beamIntensity\s*=\s*0/.test(animationProfileSrc);
+assert(
+  stableBeamSuppressedInCode,
+  "stable_object phase should zero beamIntensity in animation-profile.js",
+);
+assert(
+  /isStableLifecyclePhase[\s\S]*?return/.test(rendererSrc),
+  "renderer should early-return during stable_object (no persistent transport beam)",
+);
+
+const beamOutBeforeObjectFade =
+  animationProfileSrc.includes("computeBeamOutSeedFrame") &&
+  /computeBeamOutSeedFrame[\s\S]*?glyphAlpha:\s*1/.test(animationProfileSrc) &&
+  animationProfileSrc.includes("computeDematerializingFrame");
+assert(
+  beamOutBeforeObjectFade,
+  "exit should split beam_out_seed (object locked) before dematerializing_object fade",
 );
 
 console.log("smoke: control-alt-hails web preview OK");

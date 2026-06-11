@@ -1,4 +1,9 @@
-/** Preview-only animation profiles — entrance / hold / exit lifecycle. */
+/**
+ * Preview-only animation profiles — object materialization lifecycle.
+ *
+ * Phases: beam_in_seed → materializing_object → stable_object →
+ *         beam_out_seed → dematerializing_object → cleared
+ */
 
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
@@ -12,8 +17,16 @@ function clamp01(t) {
   return Math.max(0, Math.min(1, t));
 }
 
-/** Canonical staged entrance windows (ms) — scaled to profile.entrance_ms. */
-const ENTRANCE_STAGE_REF_MS = 700;
+/** Reference entrance/exit splits — scaled to profile entrance_ms / exit_ms. */
+const LIFECYCLE_PHASE_REF = {
+  entrance_ms: 700,
+  beam_in_seed_ms: 150,
+  exit_ms: 520,
+  beam_out_seed_ms: 180,
+};
+
+/** Staged materialization windows within full entrance_ms. */
+const ENTRANCE_STAGE_REF_MS = LIFECYCLE_PHASE_REF.entrance_ms;
 const ENTRANCE_STAGES = {
   beamSeedEnd: 150,
   particleStart: 150,
@@ -21,8 +34,47 @@ const ENTRANCE_STAGES = {
   glyphStart: 350,
   glyphEnd: 550,
   messageStart: 450,
-  messageEnd: 700,
+  messageEnd: 650,
+  beamClearStart: 580,
 };
+
+/** Preset entrance-style beam-in flavor — transport only, not stable identity. */
+const BEAM_IN_TUNING = {
+  fade: { seedMul: 0.55, beamPeak: 0.36, materializeMul: 0.88, clearMul: 1.15, fieldMul: 0.55 },
+  beam_materialize: { seedMul: 1, beamPeak: 1, materializeMul: 1, clearMul: 1, fieldMul: 1 },
+  scan_resolve: { seedMul: 1.12, beamPeak: 1.24, materializeMul: 1.06, clearMul: 0.92, fieldMul: 1.18 },
+  pop_ping: { seedMul: 0.42, beamPeak: 0.68, materializeMul: 0.72, clearMul: 1.3, fieldMul: 0.62 },
+  achievement_snap: { seedMul: 0.5, beamPeak: 0.82, materializeMul: 0.78, clearMul: 1.2, fieldMul: 0.7 },
+};
+
+export const LIFECYCLE_PHASES = {
+  IDLE: "idle",
+  BEAM_IN_SEED: "beam_in_seed",
+  MATERIALIZING: "materializing_object",
+  STABLE: "stable_object",
+  BEAM_OUT_SEED: "beam_out_seed",
+  DEMATERIALIZING: "dematerializing_object",
+  CLEARED: "cleared",
+  HIDDEN: "hidden",
+};
+
+export function isEntrancePhase(phase) {
+  return (
+    phase === LIFECYCLE_PHASES.BEAM_IN_SEED ||
+    phase === LIFECYCLE_PHASES.MATERIALIZING
+  );
+}
+
+export function isStablePhase(phase) {
+  return phase === LIFECYCLE_PHASES.STABLE;
+}
+
+export function isExitPhase(phase) {
+  return (
+    phase === LIFECYCLE_PHASES.BEAM_OUT_SEED ||
+    phase === LIFECYCLE_PHASES.DEMATERIALIZING
+  );
+}
 
 function stageProgress(elapsedMs, entranceMs, startRef, endRef) {
   const scale = entranceMs / ENTRANCE_STAGE_REF_MS;
@@ -31,10 +83,96 @@ function stageProgress(elapsedMs, entranceMs, startRef, endRef) {
   return clamp01((elapsedMs - start) / Math.max(1, end - start));
 }
 
+function entranceStageMs(entranceMs, refMs) {
+  return refMs * (entranceMs / ENTRANCE_STAGE_REF_MS);
+}
+
+function beamInTuning(entranceStyle) {
+  return BEAM_IN_TUNING[entranceStyle] || BEAM_IN_TUNING.beam_materialize;
+}
+
+/**
+ * Enter-phase semantic sub-phase for beam-in materialization.
+ * @returns {{ lifecyclePhase: string, beamClearT: number, inBeamClear: boolean }}
+ */
+function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle) {
+  const tuning = beamInTuning(entranceStyle);
+  const glyphStartMs =
+    entranceStageMs(enterMs, ENTRANCE_STAGES.glyphStart) * tuning.materializeMul;
+  const beamClearStartMs = entranceStageMs(enterMs, ENTRANCE_STAGES.beamClearStart);
+  const beamClearEndMs = enterMs;
+
+  if (enterElapsedMs < glyphStartMs) {
+    return {
+      lifecyclePhase: LIFECYCLE_PHASES.BEAM_IN_SEED,
+      beamClearT: 0,
+      inBeamClear: false,
+    };
+  }
+
+  const beamClearT =
+    enterElapsedMs >= beamClearStartMs
+      ? clamp01((enterElapsedMs - beamClearStartMs) / Math.max(1, beamClearEndMs - beamClearStartMs))
+      : 0;
+
+  return {
+    lifecyclePhase: LIFECYCLE_PHASES.MATERIALIZING,
+    beamClearT: beamClearT * tuning.clearMul,
+    inBeamClear: beamClearT > 0,
+  };
+}
+
+function applyBeamClear(beamScale, beamIntensity, beamClearT) {
+  if (beamClearT <= 0) {
+    return { beamScale, beamIntensity };
+  }
+  const fade = 1 - easeInCubic(clamp01(beamClearT));
+  return {
+    beamScale: beamScale * (0.12 + fade * 0.88),
+    beamIntensity: beamIntensity * fade,
+  };
+}
+
 /** Subtle settle — small overshoot, not cartoon bounce. */
 function easeOutSubtleSnap(t, amount) {
   const bump = (amount || 0.04) * Math.sin(clamp01(t) * Math.PI);
   return clamp01(easeOutCubic(t) + bump * (1 - easeOutCubic(t)));
+}
+
+/**
+ * Resolve per-phase durations from profile (optional overrides) and contract ref.
+ * @param {object} profile
+ * @param {object} [contract]
+ */
+export function resolvePhaseTimings(profile, contract) {
+  const ref =
+    (contract &&
+      contract.previewVisual &&
+      contract.previewVisual.lifecyclePhases &&
+      contract.previewVisual.lifecyclePhases.reference) ||
+    LIFECYCLE_PHASE_REF;
+
+  const entranceMs = profile.entrance_ms;
+  const exitMs = profile.exit_ms;
+  const beamInSeedMs =
+    profile.beam_in_seed_ms != null
+      ? profile.beam_in_seed_ms
+      : Math.round(
+          entranceMs * (ref.beam_in_seed_ms / ref.entrance_ms),
+        );
+  const beamOutSeedMs =
+    profile.beam_out_seed_ms != null
+      ? profile.beam_out_seed_ms
+      : Math.round(exitMs * (ref.beam_out_seed_ms / ref.exit_ms));
+
+  return {
+    entranceMs,
+    exitMs,
+    beamInSeedMs: Math.max(1, Math.min(beamInSeedMs, entranceMs - 1)),
+    materializingMs: Math.max(1, entranceMs - beamInSeedMs),
+    beamOutSeedMs: Math.max(1, Math.min(beamOutSeedMs, exitMs - 1)),
+    dematerializingMs: Math.max(1, exitMs - beamOutSeedMs),
+  };
 }
 
 const DEFAULT_PROFILE = {
@@ -58,15 +196,18 @@ export function getAnimationProfile(contract, presetId) {
   return Object.assign({}, DEFAULT_PROFILE, raw);
 }
 
-export function animationProfilePayload(profile) {
+export function animationProfilePayload(profile, contract) {
+  const timings = resolvePhaseTimings(profile, contract);
   return {
     entrance_style: profile.entrance_style,
     entrance_ms: profile.entrance_ms,
     entrance_intensity: profile.entrance_intensity,
+    beam_in_seed_ms: timings.beamInSeedMs,
     hold_motion: profile.hold_motion,
     exit_style: profile.exit_style,
     exit_ms: profile.exit_ms,
     exit_intensity: profile.exit_intensity,
+    beam_out_seed_ms: timings.beamOutSeedMs,
     particle_mode_enter: profile.particle_mode_enter,
     particle_mode_hold: profile.particle_mode_hold,
     particle_mode_exit: profile.particle_mode_exit,
@@ -76,8 +217,255 @@ export function animationProfilePayload(profile) {
   };
 }
 
+function computeEntranceFrame(
+  enterElapsedMs,
+  enterMs,
+  profile,
+  enterMul,
+  overshoot,
+  objectVisible,
+) {
+  const tuning = beamInTuning(profile.entrance_style);
+  const t = clamp01(enterElapsedMs / enterMs);
+  const overall = easeOutCubic(t) * profile.entrance_intensity * enterMul;
+
+  const beamT = stageProgress(
+    enterElapsedMs,
+    enterMs,
+    0,
+    ENTRANCE_STAGES.beamSeedEnd * tuning.seedMul,
+  );
+  const particleStageT = stageProgress(
+    enterElapsedMs,
+    enterMs,
+    ENTRANCE_STAGES.particleStart,
+    ENTRANCE_STAGES.particleEnd,
+  );
+  const glyphT = stageProgress(
+    enterElapsedMs,
+    enterMs,
+    ENTRANCE_STAGES.glyphStart,
+    ENTRANCE_STAGES.glyphEnd,
+  );
+  const messageT = stageProgress(
+    enterElapsedMs,
+    enterMs,
+    ENTRANCE_STAGES.messageStart,
+    ENTRANCE_STAGES.messageEnd,
+  );
+
+  let beamScale = 1;
+  let beamIntensity = 1;
+  let glyphAlpha = objectVisible ? 0 : 0;
+  let glyphScale = 0.94;
+  let messageAlpha = 0;
+
+  switch (profile.entrance_style) {
+    case "pop_ping": {
+      const snap = 0.05 + overshoot * 0.35;
+      beamScale = 0.9 + easeOutCubic(beamT) * 0.1;
+      beamIntensity =
+        easeOutCubic(beamT) * 0.45 + easeOutCubic(particleStageT) * 0.55;
+      if (objectVisible) {
+        glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
+        glyphScale =
+          glyphT > 0
+            ? 0.94 + easeOutSubtleSnap(glyphT, snap * 1.4) * 0.06
+            : 0.94;
+        messageAlpha = easeOutCubic(messageT);
+      }
+      break;
+    }
+    case "achievement_snap": {
+      const snap = 0.04 + overshoot * 0.55;
+      beamScale =
+        0.84 +
+        easeOutCubic(beamT) * 0.1 +
+        easeOutCubic(particleStageT) * 0.06;
+      beamIntensity =
+        easeOutCubic(beamT) * 0.5 + easeOutCubic(particleStageT) * 0.5;
+      if (objectVisible) {
+        glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
+        glyphScale =
+          glyphT > 0
+            ? 0.9 + easeOutSubtleSnap(glyphT, snap * 1.2) * 0.1
+            : 0.9;
+        messageAlpha = easeOutCubic(messageT);
+      }
+      break;
+    }
+    case "scan_resolve": {
+      const scanFlicker =
+        particleStageT > 0 && particleStageT < 1
+          ? Math.sin(particleStageT * Math.PI * 5) * 0.04
+          : 0;
+      beamScale =
+        0.18 +
+        easeOutCubic(beamT) * 0.52 +
+        easeOutCubic(particleStageT) * 0.3;
+      beamIntensity =
+        0.06 +
+        easeOutCubic(beamT) * 0.28 +
+        easeOutCubic(particleStageT) * 0.58 +
+        scanFlicker;
+      if (objectVisible) {
+        glyphAlpha =
+          glyphT < 0.1
+            ? (glyphT / 0.1) * 0.3
+            : 0.3 + easeOutCubic((glyphT - 0.1) / 0.9) * 0.7;
+        glyphScale = 0.88 + easeOutCubic(glyphT) * 0.12;
+        messageAlpha = easeOutCubic(messageT);
+      }
+      break;
+    }
+    case "beam_materialize":
+      beamScale =
+        0.16 +
+        easeOutCubic(beamT) * 0.52 +
+        easeOutCubic(particleStageT) * 0.32;
+      beamIntensity =
+        0.08 +
+        easeOutCubic(beamT) * 0.3 +
+        easeOutCubic(particleStageT) * 0.62;
+      if (objectVisible) {
+        glyphAlpha = easeOutCubic(glyphT);
+        glyphScale = 0.9 + easeOutCubic(glyphT) * 0.1;
+        messageAlpha = easeOutCubic(messageT);
+      }
+      break;
+    case "fade":
+    default:
+      beamScale = 0.72 + easeOutCubic(beamT) * 0.18;
+      beamIntensity = easeOutCubic(beamT);
+      if (objectVisible) {
+        glyphAlpha = easeOutCubic(glyphT);
+        glyphScale = 0.96 + easeOutCubic(glyphT) * 0.04;
+        messageAlpha = easeOutCubic(messageT);
+      }
+      break;
+  }
+
+  beamIntensity *= tuning.beamPeak;
+  if (profile.entrance_style !== "fade") {
+    beamScale *= 0.88 + tuning.beamPeak * 0.12;
+  }
+
+  return {
+    overall,
+    beamScale,
+    beamIntensity,
+    glyphAlpha,
+    glyphScale,
+    messageAlpha,
+    particleStageT,
+    fieldMul: tuning.fieldMul,
+  };
+}
+
+function computeDematerializingFrame(t, profile, exitMul) {
+  const overall = (1 - easeInCubic(t)) * profile.exit_intensity * exitMul;
+  let beamScale = 1;
+  let beamIntensity = 1;
+  let glyphAlpha = 1;
+  let glyphScale = 1;
+  let messageAlpha = 1;
+
+  switch (profile.exit_style) {
+    case "snap_out":
+      beamScale = 1 - easeInCubic(t) * 0.35;
+      beamIntensity = 1 - easeInCubic(t);
+      glyphAlpha = 1 - easeInCubic(Math.min(1, t * 1.5));
+      glyphScale = 1 - easeInCubic(t) * 0.12;
+      messageAlpha = t < 0.2 ? 1 - t / 0.2 : 0;
+      break;
+    case "beam_dematerialize":
+      beamScale = 1 - easeInCubic(Math.min(1, t * 1.35)) * 0.78;
+      beamIntensity = t < 0.6 ? 1 - easeInCubic(t / 0.6) : 0;
+      messageAlpha =
+        t < 0.4
+          ? 1 - easeInCubic(t / 0.4) * 0.55
+          : 1 - easeInCubic((t - 0.4) / 0.6);
+      glyphAlpha = t < 0.48 ? 1 : 1 - easeInCubic((t - 0.48) / 0.52);
+      glyphScale = 1 - easeInCubic(t) * 0.07;
+      break;
+    case "collapse_to_scan": {
+      const scanT = easeInCubic(t);
+      beamScale = 1 - scanT * 0.88;
+      beamIntensity = 1 - easeInCubic(Math.min(1, t * 1.15));
+      messageAlpha = t < 0.18 ? 1 - t / 0.18 : 0;
+      glyphAlpha =
+        t < 0.28
+          ? 1 - easeInCubic(t / 0.28) * 0.35
+          : 1 - easeInCubic((t - 0.28) / 0.72);
+      glyphScale = 1 - scanT * 0.18;
+      break;
+    }
+    case "particle_dissolve": {
+      const bloom = easeInCubic(Math.min(1, t * 1.8)) * (1 - easeInCubic(t));
+      beamScale = 1 + bloom * 0.14;
+      beamIntensity = 1 - easeInCubic(Math.min(1, t * 1.1));
+      messageAlpha = t < 0.3 ? 1 - easeInCubic(t / 0.3) : 0;
+      glyphAlpha = t < 0.42 ? 1 : 1 - easeInCubic((t - 0.42) / 0.58);
+      glyphScale = 1 + bloom * 0.06;
+      break;
+    }
+    case "fade":
+    default:
+      beamScale = 1 - easeInCubic(t) * 0.08;
+      beamIntensity = 1 - easeInCubic(t);
+      glyphAlpha = 1 - easeInCubic(t);
+      glyphScale = 1 - easeInCubic(t) * 0.04;
+      messageAlpha = 1 - easeInCubic(t);
+      break;
+  }
+
+  return {
+    overall,
+    beamScale,
+    beamIntensity,
+    glyphAlpha,
+    glyphScale,
+    messageAlpha,
+  };
+}
+
+function computeBeamOutSeedFrame(t, profile, exitMul) {
+  const rise = easeOutCubic(t);
+  const peak = profile.exit_intensity * exitMul;
+  let beamScale = 1;
+  let beamIntensity = rise * peak;
+
+  switch (profile.exit_style) {
+    case "snap_out":
+      beamScale = 1 + rise * 0.14;
+      break;
+    case "beam_dematerialize":
+      beamScale = 1 + rise * 0.24;
+      break;
+    case "collapse_to_scan":
+      beamScale = 1 + rise * 0.18;
+      break;
+    case "particle_dissolve":
+      beamScale = 1 + rise * 0.12;
+      break;
+    case "fade":
+    default:
+      beamScale = 1 + rise * 0.1;
+      break;
+  }
+
+  return {
+    overall: 1,
+    beamScale,
+    beamIntensity,
+    glyphAlpha: 1,
+    glyphScale: 1,
+    messageAlpha: 1,
+  };
+}
+
 /**
- * @param {object} lifecycleRef { phase, start, holdStart, exitStart }
+ * @param {object} lifecycleRef { phase, start, stableStart, exitStart }
  * @param {object} profile animation profile
  * @param {object} grammar scale grammar (entranceIntensityMul, exitIntensityMul)
  * @param {number} now performance.now()
@@ -89,57 +477,93 @@ export function advanceLifecycle(
   now,
   holdDurationMs,
   autoTimedExit,
+  contract,
 ) {
-  const enterMs = profile.entrance_ms;
-  const exitMs = profile.exit_ms;
+  const timings = resolvePhaseTimings(profile, contract);
   const elapsed = now - lifecycleRef.start;
 
-  if (lifecycleRef.phase === "enter" && elapsed >= enterMs) {
-    lifecycleRef.phase = "hold";
-    lifecycleRef.holdStart = now;
+  if (
+    lifecycleRef.phase === LIFECYCLE_PHASES.BEAM_IN_SEED &&
+    elapsed >= timings.beamInSeedMs
+  ) {
+    lifecycleRef.phase = LIFECYCLE_PHASES.MATERIALIZING;
+  }
+
+  if (
+    lifecycleRef.phase === LIFECYCLE_PHASES.MATERIALIZING &&
+    elapsed >= timings.entranceMs
+  ) {
+    lifecycleRef.phase = LIFECYCLE_PHASES.STABLE;
+    lifecycleRef.stableStart = now;
   }
 
   if (
     autoTimedExit &&
-    lifecycleRef.phase === "hold" &&
+    lifecycleRef.phase === LIFECYCLE_PHASES.STABLE &&
     holdDurationMs != null &&
-    lifecycleRef.holdStart != null &&
-    now - lifecycleRef.holdStart >= holdDurationMs
+    lifecycleRef.stableStart != null &&
+    now - lifecycleRef.stableStart >= holdDurationMs
   ) {
-    lifecycleRef.phase = "exit";
+    lifecycleRef.phase = LIFECYCLE_PHASES.BEAM_OUT_SEED;
     lifecycleRef.exitStart = now;
   }
 
-  if (lifecycleRef.phase === "exit" && lifecycleRef.exitStart != null) {
-    if (now - lifecycleRef.exitStart >= exitMs) {
-      return { done: true, frame: computeFrame(lifecycleRef, profile, grammar, now) };
+  if (
+    lifecycleRef.phase === LIFECYCLE_PHASES.BEAM_OUT_SEED &&
+    lifecycleRef.exitStart != null
+  ) {
+    const exitElapsed = now - lifecycleRef.exitStart;
+    if (exitElapsed >= timings.beamOutSeedMs) {
+      lifecycleRef.phase = LIFECYCLE_PHASES.DEMATERIALIZING;
     }
   }
 
-  return { done: false, frame: computeFrame(lifecycleRef, profile, grammar, now) };
+  if (
+    lifecycleRef.phase === LIFECYCLE_PHASES.DEMATERIALIZING &&
+    lifecycleRef.exitStart != null
+  ) {
+    const exitElapsed = now - lifecycleRef.exitStart;
+    if (exitElapsed >= timings.exitMs) {
+      lifecycleRef.phase = LIFECYCLE_PHASES.CLEARED;
+      return {
+        done: true,
+        frame: computeFrame(lifecycleRef, profile, grammar, now, contract),
+      };
+    }
+  }
+
+  return {
+    done: false,
+    frame: computeFrame(lifecycleRef, profile, grammar, now, contract),
+  };
 }
 
 export function requestLifecycleExit(lifecycleRef) {
-  if (lifecycleRef.phase === "exit" || lifecycleRef.phase === "hidden") {
+  if (
+    isExitPhase(lifecycleRef.phase) ||
+    lifecycleRef.phase === LIFECYCLE_PHASES.CLEARED ||
+    lifecycleRef.phase === LIFECYCLE_PHASES.HIDDEN
+  ) {
     return;
   }
-  lifecycleRef.phase = "exit";
+  lifecycleRef.phase = LIFECYCLE_PHASES.BEAM_OUT_SEED;
   lifecycleRef.exitStart = performance.now();
 }
 
 export function resetLifecycle(lifecycleRef) {
-  lifecycleRef.phase = "enter";
+  lifecycleRef.phase = LIFECYCLE_PHASES.BEAM_IN_SEED;
   lifecycleRef.start = performance.now();
-  lifecycleRef.holdStart = null;
+  lifecycleRef.stableStart = null;
   lifecycleRef.exitStart = null;
 }
 
-export function computeFrame(lifecycleRef, profile, grammar, now) {
+export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
   const enterMul = (grammar && grammar.entranceIntensityMul) || 1;
   const exitMul = (grammar && grammar.exitIntensityMul) || 1;
   const overshoot = profile.glyph_overshoot || 0;
+  const timings = resolvePhaseTimings(profile, contract);
 
-  let phase = lifecycleRef.phase;
+  const phase = lifecycleRef.phase;
   let beamScale = 1;
   let beamIntensity = 1;
   let glyphAlpha = 1;
@@ -150,191 +574,179 @@ export function computeFrame(lifecycleRef, profile, grammar, now) {
   let overall = 1;
   let holdPulse = 1;
   let enterElapsedMs = 0;
+  let objectLocked = false;
+  let beamClearT = 0;
+  let beamActive = false;
+  let fieldMul = 1;
+  let objectMaterialized = false;
 
-  if (phase === "enter") {
-    const enterMs = profile.entrance_ms;
+  if (phase === LIFECYCLE_PHASES.BEAM_IN_SEED) {
     enterElapsedMs = now - lifecycleRef.start;
-    const t = clamp01(enterElapsedMs / enterMs);
     particleMode = profile.particle_mode_enter;
-    overall = easeOutCubic(t) * profile.entrance_intensity * enterMul;
+    const entrance = computeEntranceFrame(
+      enterElapsedMs,
+      timings.entranceMs,
+      profile,
+      enterMul,
+      overshoot,
+      false,
+    );
+    overall = entrance.overall;
+    beamScale = entrance.beamScale;
+    beamIntensity = entrance.beamIntensity;
+    fieldMul = entrance.fieldMul;
+    glyphAlpha = 0;
+    messageAlpha = 0;
+    glyphScale = 0.94;
+    particleStageT = entrance.particleStageT;
+    beamActive = beamIntensity > 0.02;
+  } else if (phase === LIFECYCLE_PHASES.MATERIALIZING) {
+    enterElapsedMs = now - lifecycleRef.start;
+    particleMode = profile.particle_mode_enter;
+    const entrance = computeEntranceFrame(
+      enterElapsedMs,
+      timings.entranceMs,
+      profile,
+      enterMul,
+      overshoot,
+      true,
+    );
+    overall = entrance.overall;
+    beamScale = entrance.beamScale;
+    beamIntensity = entrance.beamIntensity;
+    fieldMul = entrance.fieldMul;
+    glyphAlpha = entrance.glyphAlpha;
+    glyphScale = entrance.glyphScale;
+    messageAlpha = entrance.messageAlpha;
+    particleStageT = entrance.particleStageT;
 
-    const beamT = stageProgress(
+    const enterBeam = resolveEnterBeamInPhase(
       enterElapsedMs,
-      enterMs,
-      0,
-      ENTRANCE_STAGES.beamSeedEnd,
+      timings.entranceMs,
+      profile.entrance_style,
     );
-    particleStageT = stageProgress(
-      enterElapsedMs,
-      enterMs,
-      ENTRANCE_STAGES.particleStart,
-      ENTRANCE_STAGES.particleEnd,
-    );
-    const glyphT = stageProgress(
-      enterElapsedMs,
-      enterMs,
-      ENTRANCE_STAGES.glyphStart,
-      ENTRANCE_STAGES.glyphEnd,
-    );
-    const messageT = stageProgress(
-      enterElapsedMs,
-      enterMs,
-      ENTRANCE_STAGES.messageStart,
-      ENTRANCE_STAGES.messageEnd,
-    );
-
-    switch (profile.entrance_style) {
-      case "pop_ping": {
-        const snap = 0.05 + overshoot * 0.35;
-        beamScale = 0.9 + easeOutCubic(beamT) * 0.1;
-        beamIntensity =
-          easeOutCubic(beamT) * 0.45 + easeOutCubic(particleStageT) * 0.55;
-        glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
-        glyphScale = glyphT > 0 ? 0.94 + easeOutSubtleSnap(glyphT, snap * 1.4) * 0.06 : 0.94;
-        messageAlpha = easeOutCubic(messageT);
-        break;
-      }
-      case "achievement_snap": {
-        const snap = 0.04 + overshoot * 0.55;
-        beamScale =
-          0.84 +
-          easeOutCubic(beamT) * 0.1 +
-          easeOutCubic(particleStageT) * 0.06;
-        beamIntensity =
-          easeOutCubic(beamT) * 0.5 + easeOutCubic(particleStageT) * 0.5;
-        glyphAlpha = glyphT > 0 ? easeOutSubtleSnap(glyphT, snap) : 0;
-        glyphScale =
-          glyphT > 0 ? 0.9 + easeOutSubtleSnap(glyphT, snap * 1.2) * 0.1 : 0.9;
-        messageAlpha = easeOutCubic(messageT);
-        break;
-      }
-      case "scan_resolve": {
-        const scanFlicker =
-          particleStageT > 0 && particleStageT < 1
-            ? Math.sin(particleStageT * Math.PI * 5) * 0.04
-            : 0;
-        beamScale =
-          0.18 +
-          easeOutCubic(beamT) * 0.52 +
-          easeOutCubic(particleStageT) * 0.3;
-        beamIntensity =
-          0.06 +
-          easeOutCubic(beamT) * 0.28 +
-          easeOutCubic(particleStageT) * 0.58 +
-          scanFlicker;
-        glyphAlpha =
-          glyphT < 0.1
-            ? glyphT / 0.1 * 0.3
-            : 0.3 + easeOutCubic((glyphT - 0.1) / 0.9) * 0.7;
-        glyphScale = 0.88 + easeOutCubic(glyphT) * 0.12;
-        messageAlpha = easeOutCubic(messageT);
-        break;
-      }
-      case "beam_materialize":
-        beamScale =
-          0.16 +
-          easeOutCubic(beamT) * 0.52 +
-          easeOutCubic(particleStageT) * 0.32;
-        beamIntensity =
-          0.08 +
-          easeOutCubic(beamT) * 0.3 +
-          easeOutCubic(particleStageT) * 0.62;
-        glyphAlpha = easeOutCubic(glyphT);
-        glyphScale = 0.9 + easeOutCubic(glyphT) * 0.1;
-        messageAlpha = easeOutCubic(messageT);
-        break;
-      case "fade":
-      default:
-        beamScale = 0.86 + easeOutCubic(beamT) * 0.14;
-        beamIntensity = easeOutCubic(t);
-        glyphAlpha = easeOutCubic(glyphT);
-        glyphScale = 0.96 + easeOutCubic(glyphT) * 0.04;
-        messageAlpha = easeOutCubic(messageT);
-        break;
+    beamClearT = enterBeam.beamClearT;
+    if (enterBeam.inBeamClear) {
+      objectLocked = true;
+      glyphAlpha = 1;
+      messageAlpha = 1;
+      glyphScale = 1;
     }
-  } else if (phase === "hold") {
-    const holdElapsed = lifecycleRef.holdStart ? now - lifecycleRef.holdStart : 0;
+    objectMaterialized = glyphAlpha >= 0.98 && messageAlpha >= 0.98;
+    const cleared = applyBeamClear(beamScale, beamIntensity, beamClearT);
+    beamScale = cleared.beamScale;
+    beamIntensity = cleared.beamIntensity;
+    beamActive = beamIntensity > 0.02;
+  } else if (phase === LIFECYCLE_PHASES.STABLE) {
+    const stableElapsed = lifecycleRef.stableStart
+      ? now - lifecycleRef.stableStart
+      : 0;
     particleMode = profile.particle_mode_hold;
-    beamScale = 1;
-    beamIntensity = 1;
+    beamScale = 0;
+    beamIntensity = 0;
     glyphAlpha = 1;
     glyphScale = 1;
     messageAlpha = 1;
+    objectLocked = true;
+    objectMaterialized = true;
+    beamActive = false;
 
     if (profile.hold_motion === "pulse" || profile.hold_motion === "scanfall") {
-      holdPulse = 1 + Math.sin((holdElapsed / 2200) * Math.PI * 2) * 0.045;
+      holdPulse = 1 + Math.sin((stableElapsed / 2200) * Math.PI * 2) * 0.045;
     }
     overall = holdPulse;
-  } else if (phase === "exit") {
-    const t = clamp01((now - lifecycleRef.exitStart) / profile.exit_ms);
+  } else if (phase === LIFECYCLE_PHASES.BEAM_OUT_SEED) {
+    const exitElapsed = now - lifecycleRef.exitStart;
+    const t = clamp01(exitElapsed / timings.beamOutSeedMs);
+    particleMode = profile.particle_mode_enter;
+    objectLocked = true;
+    const seed = computeBeamOutSeedFrame(t, profile, exitMul);
+    overall = seed.overall;
+    beamScale = seed.beamScale;
+    beamIntensity = seed.beamIntensity;
+    glyphAlpha = seed.glyphAlpha;
+    glyphScale = seed.glyphScale;
+    messageAlpha = seed.messageAlpha;
+  } else if (phase === LIFECYCLE_PHASES.DEMATERIALIZING) {
+    const exitElapsed = now - lifecycleRef.exitStart;
+    const phaseElapsed = exitElapsed - timings.beamOutSeedMs;
+    const t = clamp01(phaseElapsed / timings.dematerializingMs);
     particleMode = profile.particle_mode_exit;
-    overall = (1 - easeInCubic(t)) * profile.exit_intensity * exitMul;
-
-    switch (profile.exit_style) {
-      case "snap_out":
-        beamScale = 1 - easeInCubic(t) * 0.35;
-        beamIntensity = 1 - easeInCubic(t);
-        glyphAlpha = 1 - easeInCubic(Math.min(1, t * 1.5));
-        glyphScale = 1 - easeInCubic(t) * 0.12;
-        messageAlpha = t < 0.2 ? 1 - t / 0.2 : 0;
-        break;
-      case "beam_dematerialize":
-        beamScale = 1 - easeInCubic(Math.min(1, t * 1.35)) * 0.78;
-        beamIntensity = t < 0.6 ? 1 - easeInCubic(t / 0.6) : 0;
-        messageAlpha = t < 0.4 ? 1 - easeInCubic(t / 0.4) * 0.55 : 1 - easeInCubic((t - 0.4) / 0.6);
-        glyphAlpha = t < 0.48 ? 1 : 1 - easeInCubic((t - 0.48) / 0.52);
-        glyphScale = 1 - easeInCubic(t) * 0.07;
-        break;
-      case "collapse_to_scan": {
-        const scanT = easeInCubic(t);
-        beamScale = 1 - scanT * 0.88;
-        beamIntensity = 1 - easeInCubic(Math.min(1, t * 1.15));
-        messageAlpha = t < 0.18 ? 1 - t / 0.18 : 0;
-        glyphAlpha = t < 0.28 ? 1 - easeInCubic(t / 0.28) * 0.35 : 1 - easeInCubic((t - 0.28) / 0.72);
-        glyphScale = 1 - scanT * 0.18;
-        break;
-      }
-      case "particle_dissolve": {
-        const bloom = easeInCubic(Math.min(1, t * 1.8)) * (1 - easeInCubic(t));
-        beamScale = 1 + bloom * 0.14;
-        beamIntensity = 1 - easeInCubic(Math.min(1, t * 1.1));
-        messageAlpha = t < 0.3 ? 1 - easeInCubic(t / 0.3) : 0;
-        glyphAlpha = t < 0.42 ? 1 : 1 - easeInCubic((t - 0.42) / 0.58);
-        glyphScale = 1 + bloom * 0.06;
-        break;
-      }
-      case "fade":
-      default:
-        beamScale = 1 - easeInCubic(t) * 0.08;
-        beamIntensity = 1 - easeInCubic(t);
-        glyphAlpha = 1 - easeInCubic(t);
-        glyphScale = 1 - easeInCubic(t) * 0.04;
-        messageAlpha = 1 - easeInCubic(t);
-        break;
-    }
+    const demat = computeDematerializingFrame(t, profile, exitMul);
+    overall = demat.overall;
+    beamScale = demat.beamScale;
+    beamIntensity = demat.beamIntensity;
+    glyphAlpha = demat.glyphAlpha;
+    glyphScale = demat.glyphScale;
+    messageAlpha = demat.messageAlpha;
   }
 
   let phaseProgress = 0;
-  if (phase === "enter") {
-    phaseProgress = clamp01((now - lifecycleRef.start) / profile.entrance_ms);
-  } else if (phase === "hold" && lifecycleRef.holdStart != null) {
-    phaseProgress = clamp01((now - lifecycleRef.holdStart) / 1200);
-  } else if (phase === "exit" && lifecycleRef.exitStart != null) {
-    phaseProgress = clamp01((now - lifecycleRef.exitStart) / profile.exit_ms);
+  if (phase === LIFECYCLE_PHASES.BEAM_IN_SEED) {
+    phaseProgress = clamp01((now - lifecycleRef.start) / timings.beamInSeedMs);
+  } else if (phase === LIFECYCLE_PHASES.MATERIALIZING) {
+    const matElapsed = now - lifecycleRef.start - timings.beamInSeedMs;
+    phaseProgress = clamp01(matElapsed / timings.materializingMs);
+  } else if (phase === LIFECYCLE_PHASES.STABLE && lifecycleRef.stableStart != null) {
+    phaseProgress = clamp01((now - lifecycleRef.stableStart) / 1200);
+  } else if (phase === LIFECYCLE_PHASES.BEAM_OUT_SEED && lifecycleRef.exitStart != null) {
+    phaseProgress = clamp01((now - lifecycleRef.exitStart) / timings.beamOutSeedMs);
+    particleStageT = 1 - phaseProgress;
+  } else if (phase === LIFECYCLE_PHASES.DEMATERIALIZING && lifecycleRef.exitStart != null) {
+    const dematElapsed = now - lifecycleRef.exitStart - timings.beamOutSeedMs;
+    phaseProgress = clamp01(dematElapsed / timings.dematerializingMs);
+  }
+
+  const objectAlphaMul =
+    objectLocked || phase === LIFECYCLE_PHASES.DEMATERIALIZING ? 1 : overall;
+  const beamPresenceMul =
+    phase === LIFECYCLE_PHASES.BEAM_IN_SEED ||
+    phase === LIFECYCLE_PHASES.BEAM_OUT_SEED ||
+    objectLocked
+      ? 1
+      : phase === LIFECYCLE_PHASES.DEMATERIALIZING
+        ? overall
+        : overall;
+
+  if (beamActive === false && beamIntensity > 0.02) {
+    beamActive = true;
+  }
+  if (phase === LIFECYCLE_PHASES.STABLE || beamIntensity <= 0.02) {
+    beamActive = false;
   }
 
   return {
     phase,
+    exitSubPhase:
+      phase === LIFECYCLE_PHASES.BEAM_OUT_SEED
+        ? "beam_out_seed"
+        : phase === LIFECYCLE_PHASES.DEMATERIALIZING
+          ? "dematerializing_object"
+          : null,
+    exitDematT:
+      phase === LIFECYCLE_PHASES.DEMATERIALIZING && lifecycleRef.exitStart != null
+        ? clamp01(
+            (now - lifecycleRef.exitStart - timings.beamOutSeedMs) /
+              timings.dematerializingMs,
+          )
+        : 0,
     particleMode,
     phaseProgress,
     particleStageT,
     enterElapsedMs,
-    entranceMs: profile.entrance_ms,
+    entranceMs: timings.entranceMs,
+    beamInSeedMs: timings.beamInSeedMs,
+    beamOutSeedMs: timings.beamOutSeedMs,
+    objectLocked,
+    objectMaterialized,
+    beamActive,
+    beamClearT,
+    fieldMul,
     beamScale,
-    beamIntensity: beamIntensity * overall,
-    glyphAlpha: Math.max(0, glyphAlpha * overall),
+    beamIntensity: Math.max(0, beamIntensity * beamPresenceMul),
+    glyphAlpha: Math.max(0, glyphAlpha * objectAlphaMul),
     glyphScale,
-    messageAlpha: Math.max(0, messageAlpha * overall),
+    messageAlpha: Math.max(0, messageAlpha * objectAlphaMul),
     overallIntensity: Math.max(0, overall),
     holdPulse,
   };

@@ -2,6 +2,7 @@ import {
   advanceLifecycle,
   resetLifecycle,
 } from "./animation-profile.js";
+import { resolveLifecycleFieldEnvelope } from "./effect-config.js";
 
 const PARTICLE_SEED = 42;
 
@@ -22,14 +23,51 @@ function easeInCubic(t) {
   return t * t * t;
 }
 
-/** Presence field scales composed in effect-config (tier × preset × placement). */
+/** Base transport field scales from effect-config (tier × preset × placement). */
 function resolveFieldEnvelope(params) {
   return {
-    effect: params.effectFieldScale != null ? params.effectFieldScale : 1,
+    effect: params.transportEventScale != null
+      ? params.transportEventScale
+      : params.effectFieldScale != null
+        ? params.effectFieldScale
+        : 1,
     beam: params.beamFieldScale != null ? params.beamFieldScale : 1,
     travel: params.particleTravelScale != null ? params.particleTravelScale : 1,
     glow: params.glowRadiusScale != null ? params.glowRadiusScale : 1,
   };
+}
+
+/** Lane 5 + L2 — transport envelope; beam-in seed uses tighter field via fieldMul. */
+function resolveDrawFieldEnvelope(params, lifecyclePhase, frame) {
+  const fieldScales = params._fieldScales || {
+    transportEventScale: params.transportEventScale != null
+      ? params.transportEventScale
+      : params.effectFieldScale,
+    stableEffectFieldScale: params.stableEffectFieldScale,
+    beamFieldScale: params.beamFieldScale,
+    particleTravelScale: params.particleTravelScale,
+    glowRadiusScale: params.glowRadiusScale,
+    stableGlowRadiusScale: params.stableGlowRadiusScale,
+  };
+  const base = resolveLifecycleFieldEnvelope(fieldScales, lifecyclePhase);
+  const fieldMul = frame && frame.fieldMul != null ? frame.fieldMul : 1;
+  if (lifecyclePhase === "beam_in_seed") {
+    return {
+      effect: base.effect * fieldMul * 0.75,
+      beam: base.beam * fieldMul,
+      travel: base.travel * 0.85,
+      glow: base.glow * fieldMul,
+    };
+  }
+  if (lifecyclePhase === "materializing_object") {
+    return {
+      effect: base.effect * fieldMul,
+      beam: base.beam * fieldMul,
+      travel: base.travel,
+      glow: base.glow * fieldMul,
+    };
+  }
+  return base;
 }
 
 /** Draw-time beam envelope — params already carry grammar/preset/placement beam muls. */
@@ -40,6 +78,23 @@ function rendererBeamEnvelope(beamScale) {
 /** Draw-time particle travel — extends drift without increasing count. */
 function rendererTravelEnvelope(travelScale) {
   return 1 + Math.max(0, travelScale - 1) * 0.72;
+}
+
+/** Stable object phase — hold (legacy) or explicit stable_object from lifecycle model. */
+function isStableLifecyclePhase(phase) {
+  return phase === "hold" || phase === "stable_object";
+}
+
+/** Transport/materialization phases — beam and field effects remain active. */
+function isTransportLifecyclePhase(phase) {
+  return (
+    phase === "enter" ||
+    phase === "beam_in_seed" ||
+    phase === "materializing_object" ||
+    phase === "exit" ||
+    phase === "beam_out_seed" ||
+    phase === "dematerializing_object"
+  );
 }
 
 export function glyphMarkup(glyphId, contract) {
@@ -55,10 +110,69 @@ export function glyphMarkup(glyphId, contract) {
   return '<span class="hail-glyph-emoji" aria-hidden="true">' + emoji + "</span>";
 }
 
-/**
- * Parameterized hail effect — beam shapes + lifecycle-aware particles.
- */
+/** Subtle glyph-local shimmer — small radius only, not full-field drift. */
+function drawGlyphLocalResidual(ctx, cx, cy, animPhase, roles, params, intensity) {
+  const shimmer = params.shimmerIntensity != null ? params.shimmerIntensity : 0;
+  if (shimmer < 0.2 || intensity <= 0.01) {
+    return;
+  }
+  const pulse = 0.5 + Math.sin(animPhase * Math.PI * 2) * 0.5;
+  const baseR = Math.min(ctx.canvas.width, ctx.canvas.height);
+  const r = baseR * (0.045 + shimmer * 0.028);
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  grad.addColorStop(
+    0,
+    hexWithAlpha(roles.accent, 0.1 * shimmer * intensity * (0.65 + pulse * 0.35)),
+  );
+  grad.addColorStop(0.5, hexWithAlpha(roles.glow || roles.primary, 0.04 * shimmer * intensity));
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  const sparkCount = shimmer > 0.45 ? 3 : shimmer > 0.28 ? 2 : 1;
+  for (let i = 0; i < sparkCount; i += 1) {
+    const angle = animPhase * Math.PI * 2 + (i / sparkCount) * Math.PI * 2;
+    const dist = r * (0.32 + Math.sin(animPhase * 3.2 + i * 1.7) * 0.12);
+    const sx = cx + Math.cos(angle) * dist;
+    const sy = cy + Math.sin(angle) * dist * 0.55;
+    const sparkAlpha = 0.07 * shimmer * intensity * (0.55 + pulse * 0.45);
+    if (sparkAlpha <= 0.01) {
+      continue;
+    }
+    ctx.beginPath();
+    ctx.fillStyle = hexWithAlpha(roles.particle, sparkAlpha);
+    ctx.arc(sx, sy, 0.65 + shimmer * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 export function drawHailEffect(ctx, width, height, phase, roles, effectParams, frame, opts) {
+  const lifecyclePhase = frame && frame.phase;
+  const stable = isStableLifecyclePhase(lifecyclePhase);
+
+  if (stable) {
+    const residual =
+      (frame && frame.glyphResidual != null ? frame.glyphResidual : 1) *
+      effectParams.shimmerIntensity;
+    ctx.clearRect(0, 0, width, height);
+    if (residual >= 0.2) {
+      const centerX = width / 2;
+      const podCenterY = height * (0.32 + effectParams.beamHeight * 0.08);
+      drawGlyphLocalResidual(
+        ctx,
+        centerX,
+        podCenterY,
+        phase,
+        roles,
+        effectParams,
+        residual,
+      );
+    }
+    return;
+  }
+
   const beamIntensity = frame && frame.beamIntensity != null ? frame.beamIntensity : 1;
   const presence = Math.max(0, Math.min(1, beamIntensity * effectParams.effectIntensity));
   if (presence <= 0.01) {
@@ -67,11 +181,22 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   }
 
   const beamScale = frame && frame.beamScale != null ? frame.beamScale : 1;
-  const entering = frame && frame.phase === "enter";
+  const beamSeedOnly = lifecyclePhase === "beam_in_seed";
+  const materializing = lifecyclePhase === "materializing_object";
+  const entering = beamSeedOnly || materializing || lifecyclePhase === "enter";
+  const beamOutSeed =
+    lifecyclePhase === "beam_out_seed" || frame.exitSubPhase === "beam_out_seed";
+  const dematerializing =
+    lifecyclePhase === "dematerializing_object" ||
+    frame.exitSubPhase === "dematerializing_object";
   const beamWidthMul = entering
-    ? 0.76 + beamScale * 0.24
-    : 0.88 + beamScale * 0.12;
-  const field = resolveFieldEnvelope(effectParams);
+    ? (beamSeedOnly ? 0.68 : 0.76) + beamScale * (beamSeedOnly ? 0.2 : 0.24)
+    : beamOutSeed
+      ? 0.78 + beamScale * 0.22
+      : dematerializing
+        ? 0.84 + beamScale * 0.16
+        : 0.88 + beamScale * 0.12;
+  const field = resolveDrawFieldEnvelope(effectParams, lifecyclePhase, frame);
   const beamEnv = rendererBeamEnvelope(field.beam);
   const scaledParams = Object.assign({}, effectParams, {
     beamHeight: effectParams.beamHeight * beamScale * beamEnv,
@@ -95,19 +220,26 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
     ctx.fillRect(0, 0, width, height);
   }
 
-  drawEventField(
-    ctx,
-    width,
-    height,
-    centerX,
-    podCenterY,
-    roles,
-    field,
-    presence,
-    glowMul,
-  );
+  const drawTransportBeam =
+    !stable &&
+    (frame.beamActive !== false || presence > 0.02) &&
+    (!materializing || (frame.beamClearT == null || frame.beamClearT < 1));
 
-  if (scaledParams.beamEnabled && scaledParams.beamShape !== "none") {
+  if (!stable && drawTransportBeam) {
+    drawEventField(
+      ctx,
+      width,
+      height,
+      centerX,
+      podCenterY,
+      roles,
+      field,
+      presence,
+      glowMul,
+    );
+  }
+
+  if (drawTransportBeam && scaledParams.beamEnabled && scaledParams.beamShape !== "none") {
     drawBeamShape(
       ctx,
       width,
@@ -122,22 +254,26 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
     );
   }
 
-  drawParticles(
-    ctx,
-    width,
-    height,
-    centerX,
-    podCenterY,
-    phase,
-    roles,
-    scaledParams,
-    presence,
-    rand,
-    (frame && frame.particleMode) || "drift",
-    frame && frame.phaseProgress != null ? frame.phaseProgress : 0,
-    frame && frame.phase,
-    frame && frame.particleStageT != null ? frame.particleStageT : null,
-  );
+  if (drawTransportBeam) {
+    drawParticles(
+      ctx,
+      width,
+      height,
+      centerX,
+      podCenterY,
+      phase,
+      roles,
+      scaledParams,
+      presence,
+      rand,
+      (frame && frame.particleMode) || "drift",
+      frame && frame.phaseProgress != null ? frame.phaseProgress : 0,
+      lifecyclePhase,
+      frame && frame.particleStageT != null ? frame.particleStageT : null,
+      frame && frame.exitSubPhase,
+      frame && frame.exitDematT != null ? frame.exitDematT : null,
+    );
+  }
 
   ctx.filter = "none";
   applyPodEdgeMask(ctx, width, height, presence, scaledParams, podCenterY);
@@ -261,6 +397,8 @@ function drawParticles(
   phaseProgress,
   lifecyclePhase,
   particleStageT,
+  exitSubPhase,
+  exitDematT,
 ) {
   const count = particleCountForMode(mode, params);
   if (count <= 0) {
@@ -330,7 +468,11 @@ function drawParticles(
         break;
       }
       case "collapse": {
-        const collapse = easeInCubic(phaseProgress);
+        const collapseT =
+          lifecyclePhase === "exit" && exitSubPhase === "dematerializing_object" && exitDematT != null
+            ? exitDematT
+            : phaseProgress;
+        const collapse = easeInCubic(collapseT);
         const travel = ((i / count) + phase * speed * 0.28) % 1;
         const baseY = bottom - (bottom - top) * travel;
         const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.18 * spread * travelEnv;
@@ -369,7 +511,24 @@ function drawParticles(
   const scanStageT =
     particleStageT != null ? particleStageT : phaseProgress / 0.28;
   if (
-    lifecyclePhase === "enter" &&
+    lifecyclePhase === "dematerializing_object" &&
+    exitDematT != null &&
+    exitDematT > 0 &&
+    exitDematT < 1 &&
+    (mode === "collapse" || mode === "scanfall")
+  ) {
+    const scanY = top + (bottom - top) * easeInCubic(exitDematT);
+    ctx.fillStyle = hexWithAlpha(
+      roles.accent,
+      0.08 * presence * (1 - exitDematT) * (mode === "scanfall" ? 1 : 0.75),
+    );
+    ctx.fillRect(cx - bw * 0.04, scanY - 0.5, bw * 0.08, 1.5);
+  }
+  if (
+    isTransportLifecyclePhase(lifecyclePhase) &&
+    (lifecyclePhase === "enter" ||
+      lifecyclePhase === "beam_in_seed" ||
+      lifecyclePhase === "materializing_object") &&
     scanStageT > 0 &&
     scanStageT < 1 &&
     (mode === "scanfall" || mode === "materialize")
@@ -471,7 +630,11 @@ export function createOverlayAnimator(
     let frame;
     let done = false;
 
-    if (staticFrame && lifecycleRef.phase !== "exit") {
+    const inExit =
+      lifecycleRef.phase === "beam_out_seed" ||
+      lifecycleRef.phase === "dematerializing_object" ||
+      lifecycleRef.phase === "cleared";
+    if (staticFrame && !inExit) {
       frame = staticFrame;
     } else {
       const adv = advanceLifecycle(
@@ -481,6 +644,7 @@ export function createOverlayAnimator(
         ts,
         holdDurationMs,
         autoTimedExit,
+        contract,
       );
       frame = adv.frame;
       done = adv.done;
@@ -488,8 +652,12 @@ export function createOverlayAnimator(
 
     const phase = ((ts || performance.now()) % beamMs) / beamMs;
     const glyphPhase = ((ts || performance.now()) % glyphMs) / glyphMs;
-    const shimmer = 0.9 + Math.sin(glyphPhase * Math.PI * 2) * 0.07 * effectParams.shimmerIntensity;
-    const glyphAlpha = frame.glyphAlpha * shimmer;
+    const stable = isStableLifecyclePhase(frame.phase);
+    const objectLocked = stable || frame.objectLocked === true;
+    const shimmer = objectLocked
+      ? 1
+      : 0.9 + Math.sin(glyphPhase * Math.PI * 2) * 0.07 * effectParams.shimmerIntensity;
+    const glyphAlpha = objectLocked ? frame.glyphAlpha : frame.glyphAlpha * shimmer;
 
     drawHailEffect(
       canvas.getContext("2d"),
@@ -525,4 +693,4 @@ export function createOverlayAnimator(
   };
 }
 
-export { hexWithAlpha, resetLifecycle };
+export { hexWithAlpha, resetLifecycle, isStableLifecyclePhase };

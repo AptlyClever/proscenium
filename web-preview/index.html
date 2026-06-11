@@ -11,7 +11,7 @@
       <aside class="rail" aria-label="Preview workbench controls">
         <header class="rail-header">
           <h1>Control Alt Hails</h1>
-          <p class="rail-subtitle">Visual workbench · preset-driven presence</p>
+          <p class="rail-subtitle">Visual workbench · object materialization preview</p>
         </header>
 
         <div class="rail-body">
@@ -44,42 +44,41 @@
             </label>
             <p class="field-label">Hail size</p>
             <div class="segmented segmented-3" role="group" aria-label="Hail size tier">
-              <button type="button" class="segmented-btn" data-hail-scale-tier="small" title="Ambient — corner notices">
+              <button type="button" class="segmented-btn" data-hail-scale-tier="small" title="Compact hail object, small transport event">
                 <span class="preset-short">S</span>
-                <span class="preset-id">Ambient</span>
+                <span class="preset-id">Small</span>
               </button>
-              <button type="button" class="segmented-btn active" data-hail-scale-tier="medium" title="Default hail">
+              <button type="button" class="segmented-btn active" data-hail-scale-tier="medium" title="Default hail object and transport">
                 <span class="preset-short">M</span>
-                <span class="preset-id">Default</span>
+                <span class="preset-id">Medium</span>
               </button>
-              <button type="button" class="segmented-btn" data-hail-scale-tier="large" title="Attention — center placements">
+              <button type="button" class="segmented-btn" data-hail-scale-tier="large" title="Larger object, stronger transport in/out">
                 <span class="preset-short">L</span>
-                <span class="preset-id">Attention</span>
+                <span class="preset-id">Large</span>
               </button>
             </div>
-            <details class="control-details">
-              <summary>Advanced size</summary>
+            <div id="size-dev-tuning" hidden>
               <label class="field-compact block">
                 <span>Manual layout %</span>
                 <input id="hail-scale" type="range" min="50" max="150" value="100" />
                 <span id="hail-scale-label" class="range-value">100%</span>
               </label>
-            </details>
+            </div>
           </section>
 
           <section class="card" aria-labelledby="group-effect">
-            <h2 id="group-effect">Effect</h2>
+            <h2 id="group-effect">Transport</h2>
+            <p class="field-hint">Preset sets beam-in/out flavor. The hail object is glyph + words.</p>
             <p class="field-label">Preset</p>
-            <div id="effect-preset-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Effect preset"></div>
-            <p class="field-label">Beam</p>
-            <div class="segmented" role="group" aria-label="Beam enabled">
-              <button type="button" class="segmented-btn" data-beam-enabled="off">Off</button>
-              <button type="button" class="segmented-btn active" data-beam-enabled="on">On</button>
-            </div>
-            <p class="field-label">Beam shape</p>
-            <div id="beam-shape-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Beam shape"></div>
-            <details class="control-details">
-              <summary>Advanced effect</summary>
+            <div id="effect-preset-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Transport preset"></div>
+            <div id="effect-dev-tuning" hidden aria-hidden="true">
+              <p class="field-label">Beam</p>
+              <div class="segmented" role="group" aria-label="Beam enabled">
+                <button type="button" class="segmented-btn" data-beam-enabled="off">Off</button>
+                <button type="button" class="segmented-btn active" data-beam-enabled="on">On</button>
+              </div>
+              <p class="field-label">Beam shape</p>
+              <div id="beam-shape-pills" class="pill-group pill-group-compact pill-group-wrap" role="group" aria-label="Beam shape"></div>
               <label class="field-compact block">
                 <span>Beam width</span>
                 <input id="beam-width" type="range" min="5" max="55" value="20" />
@@ -115,7 +114,7 @@
                 <input id="glow-intensity" type="range" min="0" max="100" value="48" />
                 <span id="glow-intensity-label" class="range-value">48</span>
               </label>
-            </details>
+            </div>
           </section>
 
           <section class="card" aria-labelledby="group-background">
@@ -219,7 +218,7 @@
 
           <section class="card card-diagnostics" aria-labelledby="group-diagnostics">
             <h2 id="group-diagnostics">Diagnostics</h2>
-            <p id="presence-readout" class="presence-readout" aria-live="polite"></p>
+            <p id="presence-readout" class="presence-readout" aria-live="polite" title="Preset transport intent"></p>
             <details id="payload-details" class="payload-details">
               <summary>Payload JSON</summary>
               <div class="payload-tools">

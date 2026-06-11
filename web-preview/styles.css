@@ -117,6 +117,14 @@ body {
   color: var(--muted);
 }
 
+.field-hint {
+  margin: 0 0 10px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  line-height: 1.4;
+  opacity: 0.85;
+}
+
 .field-compact {
   display: flex;
   align-items: center;
@@ -606,6 +614,42 @@ textarea {
     );
   transform: translateY(calc(-1px * max(0, var(--anchor-weight, 1) - 0.9)));
   transition: opacity 0.25s ease, filter 0.28s ease;
+}
+
+/* Stable object — glyph-local shimmer only; message stays static */
+.overlay-group.is-stable-object:not(.is-stable-object--minimal) .overlay-glyph {
+  animation: glyph-stable-shimmer 3.4s ease-in-out infinite;
+}
+
+.overlay-group.is-stable-object .overlay-message {
+  animation: none;
+  opacity: 1;
+}
+
+@keyframes glyph-stable-shimmer {
+  0%,
+  100% {
+    filter:
+      drop-shadow(
+        0 0 calc(2px + 2px * var(--anchor-weight, 1))
+        var(--overlay-glow, rgba(61, 212, 176, 0.26))
+      )
+      drop-shadow(
+        0 0 calc(6px + 9px * var(--anchor-weight, 1))
+        var(--overlay-glow-halo, rgba(61, 212, 176, 0.1))
+      );
+  }
+  50% {
+    filter:
+      drop-shadow(
+        0 0 calc(2px + 3px * var(--anchor-weight, 1) * (0.85 + 0.3 * var(--glyph-residual-strength, 0.35)))
+        var(--overlay-glow, rgba(61, 212, 176, 0.26))
+      )
+      drop-shadow(
+        0 0 calc(7px + 11px * var(--anchor-weight, 1) * (0.85 + 0.25 * var(--glyph-residual-strength, 0.35)))
+        var(--overlay-glow-halo, rgba(61, 212, 176, 0.1))
+      );
+  }
 }
 
 .hail-glyph-svg {
