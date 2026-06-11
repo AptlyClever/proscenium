@@ -73,6 +73,10 @@ const DEFAULT_PAINT_BOX_TIERS = {
     messageBackingGapFraction: 0.014,
     maxEffectFootprintFraction: 1,
     contentScale: 0.88,
+    safeZoneInsetFraction: 0.12,
+    glyphFocusFraction: 0.62,
+    messageWeight: 0.38,
+    transporterBeamHeightMultiplier: 1.35,
   },
   medium: {
     sizeCode: "M",
@@ -84,6 +88,10 @@ const DEFAULT_PAINT_BOX_TIERS = {
     messageBackingGapFraction: 0.016,
     maxEffectFootprintFraction: 1,
     contentScale: 1,
+    safeZoneInsetFraction: 0.11,
+    glyphFocusFraction: 0.64,
+    messageWeight: 0.36,
+    transporterBeamHeightMultiplier: 1.5,
   },
   large: {
     sizeCode: "L",
@@ -95,6 +103,10 @@ const DEFAULT_PAINT_BOX_TIERS = {
     messageBackingGapFraction: 0.018,
     maxEffectFootprintFraction: 1,
     contentScale: 1.2,
+    safeZoneInsetFraction: 0.1,
+    glyphFocusFraction: 0.66,
+    messageWeight: 0.34,
+    transporterBeamHeightMultiplier: 1.65,
   },
 };
 
@@ -134,7 +146,69 @@ export function resolvePaintBox(contract, tierId, manualPercent) {
       tier.messageBackingGapFraction != null ? tier.messageBackingGapFraction : 0.016,
     maxEffectFootprintFraction:
       tier.maxEffectFootprintFraction != null ? tier.maxEffectFootprintFraction : 1,
+    safeZoneInsetFraction:
+      tier.safeZoneInsetFraction != null ? tier.safeZoneInsetFraction : 0.11,
+    glyphFocusFraction: tier.glyphFocusFraction != null ? tier.glyphFocusFraction : 0.64,
+    messageWeight: tier.messageWeight != null ? tier.messageWeight : 0.36,
+    transporterBeamHeightMultiplier:
+      tier.transporterBeamHeightMultiplier != null
+        ? tier.transporterBeamHeightMultiplier
+        : 1.5,
     manualPercent: Math.round(manual * 100),
+  };
+}
+
+/**
+ * Axiom layout regions inside a Paint Box (paint-box-local pixel coordinates).
+ * Paint Box -> Safe Effect Zone -> Glyph Focus Region -> transporter beam envelope.
+ */
+export function computeHailLayoutRegions(boxWidth, boxHeight, paintBoxMeta) {
+  const meta = paintBoxMeta || {};
+  const insetFrac = clampNum(meta.safeZoneInsetFraction, 0.06, 0.2, 0.11);
+  const glyphFrac = clampNum(meta.glyphFocusFraction, 0.45, 0.8, 0.64);
+  const beamMul = clampNum(meta.transporterBeamHeightMultiplier, 1.1, 2.2, 1.5);
+  const messageWeight = clampNum(meta.messageWeight, 0.2, 0.5, 0.36);
+
+  const insetX = boxWidth * insetFrac;
+  const insetY = boxHeight * insetFrac;
+  const safeZone = {
+    left: insetX,
+    top: insetY,
+    width: Math.max(1, boxWidth - insetX * 2),
+    height: Math.max(1, boxHeight - insetY * 2),
+  };
+
+  const glyphH = safeZone.height * glyphFrac;
+  const glyphW = Math.min(safeZone.width, glyphH * 1.05);
+  const glyphTop = safeZone.top + safeZone.height * 0.06;
+  const glyphFocus = {
+    left: safeZone.left + (safeZone.width - glyphW) / 2,
+    top: glyphTop,
+    width: glyphW,
+    height: glyphH,
+    centerX: safeZone.left + safeZone.width / 2,
+    centerY: glyphTop + glyphH / 2,
+  };
+
+  const beamHeight = Math.min(safeZone.height, glyphH * beamMul);
+  const beamWidth = Math.min(safeZone.width * 0.72, glyphW * 0.62);
+
+  return {
+    paintBox: { left: 0, top: 0, width: boxWidth, height: boxHeight },
+    safeZone: safeZone,
+    glyphFocus: glyphFocus,
+    transporterBeamEnvelope: {
+      height: beamHeight,
+      width: beamWidth,
+      centerX: glyphFocus.centerX,
+      centerY: glyphFocus.centerY,
+      top: glyphFocus.centerY - beamHeight * 0.5,
+      bottom: glyphFocus.centerY + beamHeight * 0.5,
+    },
+    messageWeight: messageWeight,
+    transporterBeamHeightMultiplier: beamMul,
+    safeZoneInsetFraction: insetFrac,
+    glyphFocusFraction: glyphFrac,
   };
 }
 
@@ -694,24 +768,31 @@ export function resolveContentHierarchy(
   const tierPresence = resolveTierPresenceFields(contract, tierId, manualPercent);
   const presetPresence = resolvePresetPresence(contract, presetId);
   const grammar = resolveScaleGrammar(contract, tierId, manualPercent);
+  const paintBox = resolvePaintBox(contract, tierId, manualPercent);
+  const messageWeight = paintBox.messageWeight != null ? paintBox.messageWeight : 0.36;
+  const glyphFocusWeight = 1 - messageWeight * 0.55;
 
   let anchorWeight =
     (tierPresence.anchor_weight != null ? tierPresence.anchor_weight : 1) *
-    (presetPresence.anchor_weight != null ? presetPresence.anchor_weight : 1);
+    (presetPresence.anchor_weight != null ? presetPresence.anchor_weight : 1) *
+    (1 + glyphFocusWeight * 0.42);
 
   let messageBackingEmphasis =
     (tierPresence.message_backing_emphasis != null ? tierPresence.message_backing_emphasis : 1) *
-    (presetPresence.message_backing_emphasis != null ? presetPresence.message_backing_emphasis : 1);
+    (presetPresence.message_backing_emphasis != null ? presetPresence.message_backing_emphasis : 1) *
+    (0.72 + messageWeight * 0.38);
 
   if (groupBgEnabled) {
     messageBackingEmphasis *= 0.55;
   } else if (anchorWeight > 1.05 && messageBackingEmphasis > 1) {
-    messageBackingEmphasis = 1 + (messageBackingEmphasis - 1) * 0.35;
+    messageBackingEmphasis = 1 + (messageBackingEmphasis - 1) * 0.28;
   }
 
   return {
     anchorWeight: anchorWeight,
     messageBackingEmphasis: messageBackingEmphasis,
+    messageWeight: messageWeight,
+    glyphFocusWeight: glyphFocusWeight,
     glowRadiusScale:
       tierPresence.glow_radius_scale != null ? tierPresence.glow_radius_scale : 1,
     messageFontWeight: typo.messageFontWeight != null ? typo.messageFontWeight : 500,
@@ -851,6 +932,22 @@ export function previewVisualPayload(state, contract) {
           safe_offset_fraction: state.placementPresence.safeOffsetFraction,
         }
       : null,
+    layout_regions: (function () {
+      const pb = resolvePaintBox(contract, state.hailScaleTier, state.hailScaleManualPercent);
+      const refW = 480;
+      const refH = Math.round(refW * (pb.heightFraction / pb.widthFraction));
+      const regions = computeHailLayoutRegions(refW, refH, pb);
+      return {
+        safe_zone_inset_fraction: regions.safeZoneInsetFraction,
+        glyph_focus_fraction: regions.glyphFocusFraction,
+        message_weight: regions.messageWeight,
+        transporter_beam_height_multiplier: regions.transporterBeamHeightMultiplier,
+        transporter_beam_height_vs_paint_box:
+          regions.transporterBeamEnvelope.height / regions.paintBox.height,
+        transporter_beam_inside_safe_zone:
+          regions.transporterBeamEnvelope.height <= regions.safeZone.height,
+      };
+    })(),
     note: "Axiom-owned Hails preview visual — runtime selects effect_id only",
   };
 

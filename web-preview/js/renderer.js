@@ -200,7 +200,67 @@ function resolveDrawFieldEnvelope(params, lifecyclePhase, frame) {
 
 /** Draw-time beam envelope — params already carry grammar/preset/placement beam muls. */
 function rendererBeamEnvelope(beamScale) {
-  return 1 + Math.max(0, beamScale - 1) * 0.58;
+  return 1 + Math.max(0, beamScale - 1) * 0.42;
+}
+
+function resolveDrawLayout(width, height, opts, effectParams) {
+  return (opts && opts.layoutRegions) || (effectParams && effectParams._layoutRegions) || null;
+}
+
+function resolveGlyphAnchor(layout, width, height, effectParams) {
+  if (layout && layout.glyphFocus) {
+    return {
+      cx: layout.glyphFocus.centerX,
+      cy: layout.glyphFocus.centerY,
+    };
+  }
+  return {
+    cx: width / 2,
+    cy: height * (0.32 + effectParams.beamHeight * 0.08),
+  };
+}
+
+/** Transporter beam derives from glyph focus envelope, capped to Safe Effect Zone. */
+function resolveBeamBounds(layout, width, height, params, glowReach) {
+  if (layout && layout.transporterBeamEnvelope) {
+    const env = layout.transporterBeamEnvelope;
+    const widthMul = 0.82 + (params.beamWidth / 0.2) * 0.12;
+    const bw = env.width * widthMul * Math.sqrt(glowReach || 1);
+    const bh = env.height;
+    return {
+      cx: env.centerX,
+      cy: env.centerY,
+      bw: bw,
+      bh: bh,
+      top: env.centerY - bh * 0.5,
+      bottom: env.centerY + bh * 0.5,
+    };
+  }
+  const bh = height * params.beamHeight;
+  const cy = height * (0.32 + params.beamHeight * 0.08);
+  return {
+    cx: width / 2,
+    cy: cy,
+    bw: width * params.beamWidth * Math.sqrt(glowReach || 1),
+    bh: bh,
+    top: cy - bh * 0.55,
+    bottom: cy + bh * 0.35,
+  };
+}
+
+function safeZoneEdgeAlpha(x, y, layout) {
+  if (!layout || !layout.safeZone) {
+    return 1;
+  }
+  const sz = layout.safeZone;
+  const fade = Math.min(sz.width, sz.height) * 0.1;
+  const dx = Math.min(x - sz.left, sz.left + sz.width - x);
+  const dy = Math.min(y - sz.top, sz.top + sz.height - y);
+  const edge = Math.min(dx, dy);
+  if (edge >= fade) {
+    return 1;
+  }
+  return Math.max(0, edge / fade);
 }
 
 /** Draw-time particle travel — extends drift without increasing count. */
@@ -287,25 +347,26 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   const budgetCtx = resolveBudgetContext(effectParams, opts);
   const stable = isStableLifecyclePhase(lifecyclePhase);
 
+  const layout = resolveDrawLayout(width, height, opts, effectParams);
+  const anchor = resolveGlyphAnchor(layout, width, height, effectParams);
+
   if (stable) {
     const residual =
       (frame && frame.glyphResidual != null ? frame.glyphResidual : 1) *
       effectParams.shimmerIntensity;
     ctx.clearRect(0, 0, width, height);
     if (residual >= 0.2 && budgetCtx.effect !== "none") {
-      beginPaintBoxClip(ctx, width, height);
-      const centerX = width / 2;
-      const podCenterY = height * (0.32 + effectParams.beamHeight * 0.08);
+      beginEffectClip(ctx, width, height, layout);
       drawGlyphLocalResidual(
         ctx,
-        centerX,
-        podCenterY,
+        anchor.cx,
+        anchor.cy,
         phase,
         roles,
         effectParams,
         residual,
       );
-      endPaintBoxClip(ctx);
+      endEffectClip(ctx);
     }
     return;
   }
@@ -343,19 +404,20 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
   });
 
   const groupBgOn = opts && opts.groupBackgroundEnabled;
-  const centerX = width / 2;
-  const podCenterY = height * (0.32 + scaledParams.beamHeight * 0.08);
+  const centerX = anchor.cx;
+  const podCenterY = anchor.cy;
   const rand = mulberry32(PARTICLE_SEED);
   const glowMul = scaledParams.glowIntensity / 100;
-  const beamOp = scaledParams.beamOpacity * presence;
+  const beamOp = scaledParams.beamOpacity * presence * 0.82;
 
   ctx.clearRect(0, 0, width, height);
-  beginPaintBoxClip(ctx, width, height);
+  beginEffectClip(ctx, width, height, layout);
   ctx.filter = scaledParams.beamBlur > 0 ? "blur(" + scaledParams.beamBlur + "px)" : "none";
 
-  if (groupBgOn) {
-    ctx.fillStyle = hexWithAlpha(roles.primary, 0.04 * presence);
-    ctx.fillRect(0, 0, width, height);
+  if (groupBgOn && layout && layout.safeZone) {
+    const sz = layout.safeZone;
+    ctx.fillStyle = hexWithAlpha(roles.primary, 0.03 * presence);
+    ctx.fillRect(sz.left, sz.top, sz.width, sz.height);
   }
 
   const drawTransportBeam =
@@ -375,6 +437,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       field,
       presence,
       glowMul,
+      layout,
     );
   }
 
@@ -390,6 +453,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       scaledParams,
       beamOp,
       glowMul,
+      layout,
     );
   }
 
@@ -413,11 +477,12 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, f
       frame && frame.exitDematT != null ? frame.exitDematT : null,
       budgetCtx.size,
       budgetCtx.effect,
+      layout,
     );
   }
 
   ctx.filter = "none";
-  endPaintBoxClip(ctx);
+  endEffectClip(ctx);
 }
 
 function beginPaintBoxClip(ctx, w, h) {
@@ -431,14 +496,33 @@ function endPaintBoxClip(ctx) {
   ctx.restore();
 }
 
-/** Paint-box-local anticipation glow — never viewport-sized. */
-function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul) {
+/** Safe Effect Zone clip with Paint Box as emergency outer guard. */
+function beginEffectClip(ctx, w, h, layout) {
+  beginPaintBoxClip(ctx, w, h);
+  if (layout && layout.safeZone) {
+    const sz = layout.safeZone;
+    ctx.beginPath();
+    ctx.rect(sz.left, sz.top, sz.width, sz.height);
+    ctx.clip();
+  }
+}
+
+function endEffectClip(ctx) {
+  endPaintBoxClip(ctx);
+}
+
+/** Glyph-local anticipation glow — capped to Safe Effect Zone. */
+function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul, layout) {
   if (field.effect <= 1.02) {
     return;
   }
-  const boxR = Math.min(w, h) * 0.5;
+  const sz = layout && layout.safeZone ? layout.safeZone : { width: w, height: h };
+  const boxR = Math.min(sz.width, sz.height) * 0.42;
   const glowColor = roles.glow || roles.accent;
-  const outerR = boxR * (0.52 + (field.effect - 1) * 0.22) * Math.min(field.glow, PAINT_BOX_FIELD_CAPS.glow);
+  const outerR =
+    boxR *
+    (0.48 + (field.effect - 1) * 0.16) *
+    Math.min(field.glow, PAINT_BOX_FIELD_CAPS.glow);
   const innerR = outerR * 0.12;
   const fieldGrad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
   const fieldAlpha = Math.min(0.12, 0.04 + (field.effect - 1) * 0.035) * presence * glowMul;
@@ -452,14 +536,15 @@ function drawEventField(ctx, w, h, cx, cy, roles, field, presence, glowMul) {
   ctx.fill();
 }
 
-function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul) {
+function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul, layout) {
   const field = params._field || resolveFieldEnvelope(params);
   const glowReach = field.glow;
-  const bw = w * params.beamWidth;
-  const bh = h * params.beamHeight;
-  const top = cy - bh * 0.55;
-  const bottom = cy + bh * 0.35;
-  const shimmer = Math.sin(phase * Math.PI * 2) * params.shimmerIntensity * 0.12;
+  const beam = resolveBeamBounds(layout, w, h, params, glowReach);
+  const bw = beam.bw;
+  const bh = beam.bh;
+  const top = beam.top;
+  const bottom = beam.bottom;
+  const shimmer = Math.sin(phase * Math.PI * 2) * params.shimmerIntensity * 0.1;
 
   switch (params.beamShape) {
     case "orb": {
@@ -492,39 +577,61 @@ function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul)
       break;
     }
     case "shimmer": {
-      const lineW = Math.max(2, bw * (0.08 + (glowReach - 1) * 0.025));
-      const grad = ctx.createLinearGradient(cx, bottom, cx, top);
-      grad.addColorStop(0, hexWithAlpha(roles.primary, 0.05 * beamOp));
-      grad.addColorStop(0.5, hexWithAlpha(roles.accent, (0.35 + shimmer) * beamOp * glowMul));
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(cx - lineW / 2, top, lineW, bottom - top);
+      const lineW = Math.max(1.5, bw * (0.06 + (glowReach - 1) * 0.02));
+      drawSoftFilamentColumn(ctx, cx, top, bottom, lineW, roles, beamOp * 0.78, glowMul, shimmer);
       break;
     }
     case "column":
     default: {
-      const rx = bw * (0.45 + (glowReach - 1) * 0.08);
-      const ry = bh * (0.42 + (glowReach - 1) * 0.1);
+      const rx = bw * (0.38 + (glowReach - 1) * 0.06);
+      const ry = bh * (0.36 + (glowReach - 1) * 0.08);
       ctx.save();
       ctx.translate(cx, cy);
       ctx.scale(rx, ry);
       const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      core.addColorStop(0, hexWithAlpha(roles.accent, (0.28 + shimmer) * beamOp * glowMul));
-      core.addColorStop(0.42, hexWithAlpha(roles.primary, 0.16 * beamOp * glowMul));
+      core.addColorStop(0, hexWithAlpha(roles.accent, (0.18 + shimmer) * beamOp * glowMul));
+      core.addColorStop(0.45, hexWithAlpha(roles.primary, 0.09 * beamOp * glowMul));
       core.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = core;
       ctx.beginPath();
       ctx.arc(0, 0, 1, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-      const grad = ctx.createLinearGradient(cx, bottom, cx, top);
-      grad.addColorStop(0, hexWithAlpha(roles.primary, 0.06 * beamOp));
-      grad.addColorStop(0.55, hexWithAlpha(roles.accent, (0.22 + shimmer) * beamOp));
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(cx - bw * 0.22, top, bw * 0.44, bottom - top);
+      drawSoftFilamentColumn(
+        ctx,
+        cx,
+        top,
+        bottom,
+        bw * 0.34,
+        roles,
+        beamOp * 0.72,
+        glowMul,
+        shimmer,
+      );
       break;
     }
+  }
+}
+
+/** Soft broken gradient filaments — enveloping field, not a solid column. */
+function drawSoftFilamentColumn(ctx, cx, top, bottom, baseWidth, roles, beamOp, glowMul, shimmer) {
+  const span = bottom - top;
+  if (span <= 1) {
+    return;
+  }
+  const filaments = 3;
+  for (let i = 0; i < filaments; i += 1) {
+    const offset = (i - (filaments - 1) / 2) * baseWidth * 0.22;
+    const lineW = Math.max(1, baseWidth * (0.28 + i * 0.08));
+    const grad = ctx.createLinearGradient(cx + offset, bottom, cx + offset, top);
+    const peak = (0.14 + shimmer * (i === 1 ? 1 : 0.55)) * beamOp * glowMul;
+    grad.addColorStop(0, hexWithAlpha(roles.primary, 0.02 * beamOp));
+    grad.addColorStop(0.35, hexWithAlpha(roles.accent, peak * 0.55));
+    grad.addColorStop(0.62, hexWithAlpha(roles.accent, peak));
+    grad.addColorStop(0.88, hexWithAlpha(roles.primary, peak * 0.25));
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx + offset - lineW / 2, top, lineW, span);
   }
 }
 
@@ -547,6 +654,7 @@ function drawParticles(
   exitDematT,
   budgetSize,
   budgetEffect,
+  layout,
 ) {
   const count = particleCountForBudget(
     budgetSize,
@@ -572,11 +680,10 @@ function drawParticles(
   );
   const densityRestraint =
     params.particleDensity > 62 && travelEnv > 1.35 ? 0.82 : 1;
-  const bh = h * params.beamHeight;
-  const beamSpan = (bh * 0.55 + bh * 0.35) * travelEnv;
-  const top = cy - beamSpan * 0.61;
-  const bottom = cy + beamSpan * 0.39;
-  const bw = w * params.beamWidth * Math.sqrt(travelEnv);
+  const beam = resolveBeamBounds(layout, w, h, params, travelEnv);
+  const top = beam.top;
+  const bottom = beam.bottom;
+  const bw = beam.bw * travelEnv;
 
   for (let i = 0; i < count; i += 1) {
     const seed = rand();
@@ -656,6 +763,7 @@ function drawParticles(
       }
     }
 
+    alpha *= safeZoneEdgeAlpha(x, y, layout);
     if (alpha <= 0.01 || radius <= 0.05) {
       continue;
     }
@@ -771,6 +879,7 @@ export function createOverlayAnimator(
       groupBackgroundEnabled,
       hailSizeTier: opts && opts.hailSizeTier,
       effectId: opts && opts.effectId,
+      layoutRegions: opts && opts.layoutRegions,
     };
 
     if (lifecycleRef.phase !== "hidden") {

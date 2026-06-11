@@ -1,4 +1,4 @@
-import { resolvePaintBox } from "./effect-config.js";
+import { computeHailLayoutRegions, resolvePaintBox } from "./effect-config.js";
 
 export function edgePadding(placementId, screenW, screenH, insets) {
   const horizontal = screenW * insets.horizontalFraction;
@@ -157,8 +157,8 @@ export function resolveContentRect(payload, screenW, screenH, contract, layoutOp
 }
 
 /**
- * Composition bounds — single Paint Box serves as both content and effect envelope.
- * placementPresence is ignored for bounds (reserved for L4/L5 effect metadata).
+ * Composition bounds — Paint Box (hard max), Safe Effect Zone (normal effects),
+ * Glyph Focus Region (primary anchor). placementPresence ignored for bounds.
  */
 export function resolveCompositionBounds(
   payload,
@@ -168,8 +168,26 @@ export function resolveCompositionBounds(
   layoutOpts,
   _placementPresence,
 ) {
+  const tierLayout = resolveTierLayoutOpts(payload, contract, layoutOpts);
   const paintBox = toPaintBoxBounds(
     resolvePaintBoxRect(payload, screenW, screenH, contract, layoutOpts),
   );
-  return { content: paintBox, effect: paintBox, paintBox: paintBox };
+  const paintBoxMeta = resolvePaintBox(
+    contract,
+    tierLayout.tierId,
+    tierLayout.manualPercent,
+  );
+  const layoutRegions = computeHailLayoutRegions(
+    paintBox.width,
+    paintBox.height,
+    paintBoxMeta,
+  );
+  return {
+    content: paintBox,
+    paintBox: paintBox,
+    safeZone: layoutRegions.safeZone,
+    glyphFocus: layoutRegions.glyphFocus,
+    layoutRegions: layoutRegions,
+    effect: layoutRegions.safeZone,
+  };
 }

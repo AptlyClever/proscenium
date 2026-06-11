@@ -124,6 +124,31 @@ async function main() {
   assert(dom.payloadLen > 20, "#payload-out should receive JSON (len " + dom.payloadLen + ")");
   assert(dom.payloadParses, "#payload-out should be valid JSON");
 
+  const layoutPayload = await page.evaluate(function () {
+    try {
+      return JSON.parse(document.getElementById("payload-out").textContent || "{}");
+    } catch (e) {
+      return {};
+    }
+  });
+  const layoutRegions =
+    (layoutPayload.preview_visual && layoutPayload.preview_visual.layout_regions) ||
+    layoutPayload.layout_regions ||
+    {};
+  assert(
+    layoutRegions.transporter_beam_height_vs_paint_box != null &&
+      layoutRegions.transporter_beam_height_vs_paint_box < 1,
+    "payload layout_regions: transporter beam height should be less than Paint Box",
+  );
+  assert(
+    layoutRegions.transporter_beam_inside_safe_zone === true,
+    "payload layout_regions: transporter beam should fit inside Safe Effect Zone",
+  );
+  assert(
+    typeof layoutRegions.safe_zone_inset_fraction === "number",
+    "payload layout_regions should include safe_zone_inset_fraction",
+  );
+
   await page.click("#preview-btn");
   await page.waitForFunction(
     function () {

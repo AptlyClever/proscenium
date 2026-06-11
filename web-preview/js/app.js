@@ -97,6 +97,8 @@ function cacheElements() {
     namedEffectPills: document.getElementById("named-effect-pills"),
     showPaintBox: document.getElementById("show-paint-box"),
     paintBoxOutline: document.getElementById("paint-box-outline"),
+    safeZoneOutline: document.getElementById("safe-zone-outline"),
+    glyphFocusOutline: document.getElementById("glyph-focus-outline"),
     beamEnabledBtns: document.querySelectorAll("[data-beam-enabled]"),
     beamShapePills: document.getElementById("beam-shape-pills"),
     hailScaleTierBtns: document.querySelectorAll("[data-hail-scale-tier]"),
@@ -435,7 +437,7 @@ function layoutCompositionBounds(composition) {
   els.overlayCanvas.style.width = "100%";
   els.overlayCanvas.style.height = "100%";
 
-  syncPaintBoxOutline(composition.content);
+  syncLayoutDebugOutlines(composition);
 
   return {
     width: Math.max(1, Math.floor(box.width)),
@@ -445,20 +447,37 @@ function layoutCompositionBounds(composition) {
   };
 }
 
-function syncPaintBoxOutline(contentBounds) {
-  if (!els.paintBoxOutline) {
-    return;
-  }
+function syncLayoutDebugOutlines(composition) {
   const show = state.showPaintBox === true;
-  els.paintBoxOutline.hidden = !show;
-  els.paintBoxOutline.setAttribute("aria-hidden", show ? "false" : "true");
-  if (!show || !contentBounds) {
-    return;
-  }
-  els.paintBoxOutline.style.left = "0";
-  els.paintBoxOutline.style.top = "0";
-  els.paintBoxOutline.style.width = "100%";
-  els.paintBoxOutline.style.height = "100%";
+  const box = composition.paintBox || composition.content;
+  const regions = composition.layoutRegions;
+  const outlines = [
+    { el: els.paintBoxOutline, rect: box, className: "paint-box-outline" },
+    { el: els.safeZoneOutline, rect: regions && regions.safeZone, className: "safe-zone-outline" },
+    {
+      el: els.glyphFocusOutline,
+      rect: regions && regions.glyphFocus,
+      className: "glyph-focus-outline",
+    },
+  ];
+  outlines.forEach(function (item) {
+    if (!item.el) {
+      return;
+    }
+    item.el.hidden = !show;
+    item.el.setAttribute("aria-hidden", show ? "false" : "true");
+    if (!show || !item.rect || !box) {
+      return;
+    }
+    const leftPct = (item.rect.left / box.width) * 100;
+    const topPct = (item.rect.top / box.height) * 100;
+    const widthPct = (item.rect.width / box.width) * 100;
+    const heightPct = (item.rect.height / box.height) * 100;
+    item.el.style.left = leftPct + "%";
+    item.el.style.top = topPct + "%";
+    item.el.style.width = widthPct + "%";
+    item.el.style.height = heightPct + "%";
+  });
 }
 
 function syncPaintBoxToggleUi() {
@@ -966,11 +985,24 @@ function renderStaticOverlay(renderOpts) {
   });
   els.overlayGroup.style.setProperty("--anchor-weight", String(hierarchy.anchorWeight));
   els.overlayGroup.style.setProperty(
+    "--message-weight",
+    String(hierarchy.messageWeight != null ? hierarchy.messageWeight : 0.36),
+  );
+  els.overlayGroup.style.setProperty(
+    "--glyph-focus-weight",
+    String(hierarchy.glyphFocusWeight != null ? hierarchy.glyphFocusWeight : 0.8),
+  );
+  els.overlayGroup.style.setProperty(
     "--anchor-message-gap",
     Math.round(
       size.height * hierarchy.anchorGapFraction * hierarchy.messagePaddingMul,
     ) + "px",
   );
+  if (composition.layoutRegions && composition.layoutRegions.glyphFocus && layout.contentHeight) {
+    const gf = composition.layoutRegions.glyphFocus;
+    const topPct = (gf.top / layout.contentHeight) * 100;
+    els.overlayGroup.style.setProperty("--glyph-focus-top", topPct + "%");
+  }
   els.overlayGroup.style.setProperty(
     "--overlay-glow",
     hexWithAlpha(roles.glow, anchorGlowAlpha),
@@ -1001,8 +1033,8 @@ function renderStaticOverlay(renderOpts) {
     ? roles.messageBackingOpacity
     : typography.messageBackingAlpha;
   const msgAlpha = Math.min(
-    0.72,
-    baseMsgAlpha * hierarchy.messageBackingEmphasis,
+    0.62,
+    baseMsgAlpha * hierarchy.messageBackingEmphasis * (0.82 + hierarchy.messageWeight * 0.12),
   );
   els.overlayMessage.textContent = validation.value;
   els.overlayMessage.style.color = roles.text;
@@ -1052,10 +1084,14 @@ function renderStaticOverlay(renderOpts) {
         glyphResidual: state.scaledEffectParams.shimmerIntensity,
       };
 
+  const effectParamsWithLayout = Object.assign({}, state.scaledEffectParams, {
+    _layoutRegions: composition.layoutRegions,
+  });
+
   state.stopAnimation = createOverlayAnimator(
     canvas,
     roles,
-    state.scaledEffectParams,
+    effectParamsWithLayout,
     state.contract,
     state.lifecycleRef,
     animProfile,
@@ -1116,6 +1152,7 @@ function renderStaticOverlay(renderOpts) {
       staticFrame: staticFrame,
       hailSizeTier: state.hailScaleTier,
       effectId: state.namedEffectId,
+      layoutRegions: composition.layoutRegions,
     },
   );
 }

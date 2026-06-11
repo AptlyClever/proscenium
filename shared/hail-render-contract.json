@@ -1,6 +1,6 @@
 {
-  "version": "v001-axiom-paint-box-named-effects",
-  "description": "Axiom-owned Hails render contract — payload fields, Paint Box semantics, named effects, and budget rules. LCARD preview workbench consumes this file as a test surface only; LCARD does not own Hails. Future Control Alt apps may consume the same contract.",
+  "version": "v001-safe-zone-glyph-focus",
+  "description": "Axiom-owned Hails render contract — Paint Box, Safe Effect Zone, Glyph Focus Region, named effects, and budget rules. LCARD preview workbench consumes this file as a test surface only; LCARD does not own Hails.",
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
@@ -144,7 +144,8 @@
     "defaultEffectPreset": "transporter_soft",
     "defaultHailScaleTier": "medium",
     "paintBox": {
-      "note": "Paint Box is the maximum visual drawing area for a single Hail (glyph, message, backing, entrance/stable/exit effects). Effects must clip to or constrain within this box — no screen-level Hail effects by default.",
+      "note": "Paint Box = absolute maximum layout container. Safe Effect Zone = normal effect maximum (inset). Glyph Focus Region = primary effect anchor. Message Region = secondary readable support. Hierarchy: Paint Box -> Safe Effect Zone -> Glyph Focus Region -> Effect Envelope -> Message Support.",
+      "canon": "Effects render inside Safe Effect Zone and anchor to Glyph Focus Region — not the full Paint Box. Visible hard-edged cutoff at Paint Box boundary is a bug; scale/fade down inside Safe Effect Zone first.",
       "debugOutlineWorkbenchOption": true,
       "sizeAliases": {
         "S": "small",
@@ -160,7 +161,11 @@
           "glyphScale": 0.9,
           "messageScale": 0.92,
           "messageBackingGapFraction": 0.014,
-          "maxEffectFootprintFraction": 1
+          "maxEffectFootprintFraction": 1,
+          "safeZoneInsetFraction": 0.12,
+          "glyphFocusFraction": 0.62,
+          "messageWeight": 0.38,
+          "transporterBeamHeightMultiplier": 1.35
         },
         "medium": {
           "sizeCode": "M",
@@ -170,7 +175,11 @@
           "glyphScale": 1,
           "messageScale": 1,
           "messageBackingGapFraction": 0.016,
-          "maxEffectFootprintFraction": 1
+          "maxEffectFootprintFraction": 1,
+          "safeZoneInsetFraction": 0.11,
+          "glyphFocusFraction": 0.64,
+          "messageWeight": 0.36,
+          "transporterBeamHeightMultiplier": 1.5
         },
         "large": {
           "sizeCode": "L",
@@ -180,7 +189,11 @@
           "glyphScale": 1.15,
           "messageScale": 1.08,
           "messageBackingGapFraction": 0.018,
-          "maxEffectFootprintFraction": 1
+          "maxEffectFootprintFraction": 1,
+          "safeZoneInsetFraction": 0.1,
+          "glyphFocusFraction": 0.66,
+          "messageWeight": 0.34,
+          "transporterBeamHeightMultiplier": 1.65
         }
       }
     },

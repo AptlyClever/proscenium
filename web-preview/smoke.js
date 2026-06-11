@@ -41,8 +41,8 @@ function assert(cond, msg) {
 }
 
 assert(
-  contract.version === "v001-axiom-paint-box-named-effects",
-  "contract version should be v001-axiom-paint-box-named-effects",
+  contract.version === "v001-safe-zone-glyph-focus",
+  "contract version should be v001-safe-zone-glyph-focus",
 );
 assert(contract.placement.presetIds.length === 7, "expected 7 placement presets");
 assert(contract.message.maxLength === 120, "message max length should be 120");
@@ -389,9 +389,26 @@ NAMED_EFFECT_IDS.forEach(function (effectId) {
 });
 
 assert(pv.paintBox && pv.paintBox.tiers, "previewVisual.paintBox.tiers required");
+assert(
+  pv.paintBox.canon && pv.paintBox.canon.includes("Safe Effect Zone"),
+  "paintBox canon should document Safe Effect Zone hierarchy",
+);
 PAINT_BOX_TIER_IDS.forEach(function (tierId) {
   const tier = pv.paintBox.tiers[tierId];
   assert(tier, "paintBox tier required: " + tierId);
+  assert(
+    typeof tier.safeZoneInsetFraction === "number",
+    tierId + " paintBox safeZoneInsetFraction required",
+  );
+  assert(
+    typeof tier.glyphFocusFraction === "number",
+    tierId + " paintBox glyphFocusFraction required",
+  );
+  assert(typeof tier.messageWeight === "number", tierId + " paintBox messageWeight required");
+  assert(
+    typeof tier.transporterBeamHeightMultiplier === "number",
+    tierId + " paintBox transporterBeamHeightMultiplier required",
+  );
   const width =
     tier.widthFraction != null
       ? tier.widthFraction
@@ -459,6 +476,30 @@ assert(
   placementSrc.includes("resolvePaintBoxRect"),
   "placement.js should resolve Paint Box rect for composition bounds",
 );
+assert(
+  placementSrc.includes("computeHailLayoutRegions") && placementSrc.includes("safeZone"),
+  "placement.js should compute Safe Effect Zone layout regions",
+);
+assert(
+  effectConfigSrc.includes("computeHailLayoutRegions"),
+  "effect-config.js should export computeHailLayoutRegions",
+);
+
+function assertLayoutRegionMath() {
+  const refW = 480;
+  ["small", "medium", "large"].forEach(function (tierId) {
+    const tier = pv.paintBox.tiers[tierId];
+    const refH = Math.round(refW * (tier.heightFraction / tier.widthFraction));
+    const insetX = refW * tier.safeZoneInsetFraction;
+    const insetY = refH * tier.safeZoneInsetFraction;
+    const safeH = refH - insetY * 2;
+    const glyphH = safeH * tier.glyphFocusFraction;
+    const beamH = Math.min(safeH, glyphH * tier.transporterBeamHeightMultiplier);
+    assert(beamH < refH, tierId + " transporter beam height must be less than Paint Box height");
+    assert(beamH <= safeH, tierId + " transporter beam must fit inside Safe Effect Zone");
+  });
+}
+assertLayoutRegionMath();
 
 assert(
   rendererSrc.includes("particleCountForBudget") ||
@@ -480,6 +521,14 @@ assert(
 assert(
   /Show Paint Box|show-paint-box|paint-box-outline/i.test(indexHtml),
   "index.html should expose Show Paint Box debug toggle",
+);
+assert(
+  /safe-zone-outline|glyph-focus-outline/i.test(indexHtml),
+  "index.html should expose safe zone and glyph focus debug outlines",
+);
+assert(
+  rendererSrc.includes("beginEffectClip") || rendererSrc.includes("safeZone"),
+  "renderer.js should clip/fade effects to Safe Effect Zone",
 );
 
 console.log("smoke: control-alt-hails web preview OK");
