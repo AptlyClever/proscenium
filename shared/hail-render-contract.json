@@ -1,6 +1,6 @@
 {
-  "version": "v001-scale-color-grammar",
-  "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color grammar is preview-only until Axiom owns the visual contract.",
+  "version": "v001-animation-impact",
+  "description": "Shared Control Alt Hails render payload and layout constants. Preview harness reads this file; Android mirrors after preview acceptance. Scale/color/animation grammar is preview-only until Axiom owns the visual contract.",
   "payloadFields": [
     "hail_id",
     "effect_id",
@@ -117,7 +117,7 @@
     "glyphGlowAlpha": 0.22
   },
   "previewVisual": {
-    "note": "Preview harness only — future Axiom-owned candidates: scaleGrammar, palette role catalog, effectPresets, defaults.",
+    "note": "Preview harness only — future Axiom-owned candidates: scaleGrammar, palette role catalog, effectPresets, animationProfiles, defaults.",
     "defaultEffectPreset": "transporter_soft",
     "defaultHailScaleTier": "medium",
     "scaleGrammar": {
@@ -127,16 +127,18 @@
         "small": {
           "label": "Ambient",
           "intent": "Corner passive notices — compact footprint, reduced beam and particles",
-          "layoutScale": 0.76,
-          "glyphScale": 0.86,
-          "messageScale": 0.9,
-          "beamWidthMul": 0.82,
-          "beamHeightMul": 0.68,
-          "particleDensityMul": 0.58,
-          "particleSpreadMul": 0.75,
-          "glowIntensityMul": 0.62,
-          "effectIntensityMul": 0.82,
-          "messagePaddingMul": 0.88
+          "layoutScale": 0.85,
+          "glyphScale": 0.9,
+          "messageScale": 0.92,
+          "beamWidthMul": 0.86,
+          "beamHeightMul": 0.78,
+          "particleDensityMul": 0.68,
+          "particleSpreadMul": 0.82,
+          "glowIntensityMul": 0.72,
+          "effectIntensityMul": 0.88,
+          "entranceIntensityMul": 0.88,
+          "exitIntensityMul": 0.9,
+          "messagePaddingMul": 0.9
         },
         "medium": {
           "label": "Default",
@@ -150,21 +152,25 @@
           "particleSpreadMul": 1,
           "glowIntensityMul": 1,
           "effectIntensityMul": 1,
+          "entranceIntensityMul": 1,
+          "exitIntensityMul": 1,
           "messagePaddingMul": 1
         },
         "large": {
           "label": "Attention",
-          "intent": "Upper-center and center-soft — larger effect field without ghost column",
-          "layoutScale": 1.14,
-          "glyphScale": 1.1,
-          "messageScale": 1.05,
-          "beamWidthMul": 1.1,
-          "beamHeightMul": 1.18,
-          "particleDensityMul": 1.2,
-          "particleSpreadMul": 1.05,
-          "glowIntensityMul": 1.15,
-          "effectIntensityMul": 1.06,
-          "messagePaddingMul": 1.08
+          "intent": "Upper-center and center-soft — larger effect field and stronger animation without ghost column",
+          "layoutScale": 1.35,
+          "glyphScale": 1.18,
+          "messageScale": 1.08,
+          "beamWidthMul": 1.14,
+          "beamHeightMul": 1.32,
+          "particleDensityMul": 1.42,
+          "particleSpreadMul": 1.08,
+          "glowIntensityMul": 1.22,
+          "effectIntensityMul": 1.1,
+          "entranceIntensityMul": 1.32,
+          "exitIntensityMul": 1.25,
+          "messagePaddingMul": 1.1
         }
       }
     },
@@ -251,6 +257,78 @@
       "shapes": ["rounded_rect", "soft_panel", "circle_orb"],
       "sizePercentMin": 50,
       "sizePercentMax": 140
+    },
+    "animationProfiles": {
+      "clean_hail": {
+        "entrance_style": "fade",
+        "entrance_ms": 380,
+        "entrance_intensity": 0.85,
+        "hold_motion": "drift",
+        "exit_style": "fade",
+        "exit_ms": 340,
+        "exit_intensity": 0.85,
+        "particle_mode_enter": "drift",
+        "particle_mode_hold": "drift",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "fade",
+        "glyph_overshoot": 0
+      },
+      "transporter_soft": {
+        "entrance_style": "beam_materialize",
+        "entrance_ms": 620,
+        "entrance_intensity": 1,
+        "hold_motion": "drift",
+        "exit_style": "beam_dematerialize",
+        "exit_ms": 520,
+        "exit_intensity": 1,
+        "particle_mode_enter": "materialize",
+        "particle_mode_hold": "drift",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "resolve",
+        "glyph_overshoot": 0.04
+      },
+      "transporter_dense": {
+        "entrance_style": "scan_resolve",
+        "entrance_ms": 580,
+        "entrance_intensity": 1.12,
+        "hold_motion": "scanfall",
+        "exit_style": "collapse_to_scan",
+        "exit_ms": 560,
+        "exit_intensity": 1.08,
+        "particle_mode_enter": "materialize",
+        "particle_mode_hold": "scanfall",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "resolve",
+        "glyph_overshoot": 0.02
+      },
+      "subtle_ping": {
+        "entrance_style": "pop_ping",
+        "entrance_ms": 420,
+        "entrance_intensity": 1.05,
+        "hold_motion": "pulse",
+        "exit_style": "snap_out",
+        "exit_ms": 280,
+        "exit_intensity": 1,
+        "particle_mode_enter": "spark_burst",
+        "particle_mode_hold": "drift",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "snap",
+        "glyph_overshoot": 0.12
+      },
+      "high_attention": {
+        "entrance_style": "scan_resolve",
+        "entrance_ms": 520,
+        "entrance_intensity": 1.18,
+        "hold_motion": "pulse",
+        "exit_style": "beam_dematerialize",
+        "exit_ms": 480,
+        "exit_intensity": 1.15,
+        "particle_mode_enter": "scanfall",
+        "particle_mode_hold": "scanfall",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "resolve",
+        "glyph_overshoot": 0.06
+      }
     },
     "previewTiming": {
       "note": "Workbench-only — controls preview display duration and hold mode; not production payloadFields.",

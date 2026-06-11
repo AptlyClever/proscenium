@@ -1,4 +1,6 @@
-/** Preview-only effect preset, scale grammar, and palette role resolution. */
+/** Preview-only effect preset, scale grammar, palette roles, and animation metadata. */
+
+import { animationProfilePayload, getAnimationProfile } from "./animation-profile.js";
 
 const PRESET_LABELS = {
   clean_hail: "Clean",
@@ -34,6 +36,8 @@ const DEFAULT_GRAMMAR = {
   particleSpreadMul: 1,
   glowIntensityMul: 1,
   effectIntensityMul: 1,
+  entranceIntensityMul: 1,
+  exitIntensityMul: 1,
   messagePaddingMul: 1,
 };
 
@@ -54,6 +58,9 @@ export function resolveScaleGrammar(contract, tierId, manualPercent) {
     particleSpreadMul: tier.particleSpreadMul != null ? tier.particleSpreadMul : 1,
     glowIntensityMul: tier.glowIntensityMul != null ? tier.glowIntensityMul : 1,
     effectIntensityMul: tier.effectIntensityMul != null ? tier.effectIntensityMul : 1,
+    entranceIntensityMul:
+      tier.entranceIntensityMul != null ? tier.entranceIntensityMul : 1,
+    exitIntensityMul: tier.exitIntensityMul != null ? tier.exitIntensityMul : 1,
     messagePaddingMul: tier.messagePaddingMul != null ? tier.messagePaddingMul : 1,
     manualPercent: Math.round(manual * 100),
   };
@@ -226,6 +233,9 @@ export function previewVisualPayload(state, contract) {
     background_size_percent: state.groupBgSizePercent,
     background_opacity: state.groupBgOpacityPercent / 100,
     preview_timing: previewTimingPayload(state, contract),
+    animation_profile: animationProfilePayload(
+      getAnimationProfile(contract, state.effectPreset),
+    ),
   };
 }
 

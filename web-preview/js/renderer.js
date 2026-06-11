@@ -1,3 +1,8 @@
+import {
+  advanceLifecycle,
+  resetLifecycle,
+} from "./animation-profile.js";
+
 const PARTICLE_SEED = 42;
 
 function mulberry32(seed) {
@@ -31,31 +36,42 @@ export function glyphMarkup(glyphId, contract) {
 }
 
 /**
- * Parameterized hail effect — beam shapes + particles, bounded inside overlay group.
+ * Parameterized hail effect — beam shapes + lifecycle-aware particles.
  */
-export function drawHailEffect(ctx, width, height, phase, roles, effectParams, intensity, opts) {
-  const presence = Math.max(0, Math.min(1, intensity * effectParams.effectIntensity));
+export function drawHailEffect(ctx, width, height, phase, roles, effectParams, frame, opts) {
+  const beamIntensity = frame && frame.beamIntensity != null ? frame.beamIntensity : 1;
+  const presence = Math.max(0, Math.min(1, beamIntensity * effectParams.effectIntensity));
   if (presence <= 0.01) {
     ctx.clearRect(0, 0, width, height);
     return;
   }
 
+  const beamScale = frame && frame.beamScale != null ? frame.beamScale : 1;
+  const entering = frame && frame.phase === "enter";
+  const beamWidthMul = entering
+    ? 0.76 + beamScale * 0.24
+    : 0.88 + beamScale * 0.12;
+  const scaledParams = Object.assign({}, effectParams, {
+    beamHeight: effectParams.beamHeight * beamScale,
+    beamWidth: effectParams.beamWidth * beamWidthMul,
+  });
+
   const groupBgOn = opts && opts.groupBackgroundEnabled;
   const centerX = width / 2;
-  const podCenterY = height * (0.32 + effectParams.beamHeight * 0.08);
+  const podCenterY = height * (0.32 + scaledParams.beamHeight * 0.08);
   const rand = mulberry32(PARTICLE_SEED);
-  const glowMul = effectParams.glowIntensity / 100;
-  const beamOp = effectParams.beamOpacity * presence;
+  const glowMul = scaledParams.glowIntensity / 100;
+  const beamOp = scaledParams.beamOpacity * presence;
 
   ctx.clearRect(0, 0, width, height);
-  ctx.filter = effectParams.beamBlur > 0 ? "blur(" + effectParams.beamBlur + "px)" : "none";
+  ctx.filter = scaledParams.beamBlur > 0 ? "blur(" + scaledParams.beamBlur + "px)" : "none";
 
   if (groupBgOn) {
     ctx.fillStyle = hexWithAlpha(roles.primary, 0.04 * presence);
     ctx.fillRect(0, 0, width, height);
   }
 
-  if (effectParams.beamEnabled && effectParams.beamShape !== "none") {
+  if (scaledParams.beamEnabled && scaledParams.beamShape !== "none") {
     drawBeamShape(
       ctx,
       width,
@@ -64,7 +80,7 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, i
       podCenterY,
       phase,
       roles,
-      effectParams,
+      scaledParams,
       beamOp,
       glowMul,
     );
@@ -78,13 +94,17 @@ export function drawHailEffect(ctx, width, height, phase, roles, effectParams, i
     podCenterY,
     phase,
     roles,
-    effectParams,
+    scaledParams,
     presence,
     rand,
+    (frame && frame.particleMode) || "drift",
+    frame && frame.phaseProgress != null ? frame.phaseProgress : 0,
+    frame && frame.phase,
+    frame && frame.particleStageT != null ? frame.particleStageT : null,
   );
 
   ctx.filter = "none";
-  applyPodEdgeMask(ctx, width, height, presence, effectParams);
+  applyPodEdgeMask(ctx, width, height, presence, scaledParams);
 }
 
 function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul) {
@@ -159,32 +179,141 @@ function drawBeamShape(ctx, w, h, cx, cy, phase, roles, params, beamOp, glowMul)
   }
 }
 
-function drawParticles(ctx, w, h, cx, cy, phase, roles, params, presence, rand) {
-  const count = Math.round(2 + (params.particleDensity / 100) * 14);
+function particleCountForMode(mode, params) {
+  const density = params.particleDensity / 100;
+  let count = Math.round(2 + density * 11);
+  if (mode === "spark_burst") {
+    count = Math.round(count * 0.65);
+  }
+  return Math.min(13, Math.max(2, count));
+}
+
+function drawParticles(
+  ctx,
+  w,
+  h,
+  cx,
+  cy,
+  phase,
+  roles,
+  params,
+  presence,
+  rand,
+  mode,
+  phaseProgress,
+  lifecyclePhase,
+  particleStageT,
+) {
+  const count = particleCountForMode(mode, params);
   if (count <= 0) {
     return;
   }
   const spread = params.particleSpread / 100;
-  const speed = 0.15 + (params.particleSpeed / 100) * 0.65;
-  const sizeMul = 0.5 + (params.particleSize / 100) * 1.2;
+  const speed = 0.12 + (params.particleSpeed / 100) * 0.48;
+  const sizeMul = 0.45 + (params.particleSize / 100) * 1.05;
+  const glowNorm = params.glowIntensity / 80;
   const bh = h * params.beamHeight;
   const top = cy - bh * 0.55;
   const bottom = cy + bh * 0.35;
   const bw = w * params.beamWidth;
 
   for (let i = 0; i < count; i += 1) {
-    const travel = ((i / count) + phase * speed) % 1;
-    const baseY = bottom - (bottom - top) * travel;
-    const wobble = Math.sin((i + phase * 4) * 0.5) * bw * 0.32 * spread;
-    const x = cx + wobble;
-    const radius = (0.8 + rand() * 1.6) * sizeMul;
+    const seed = rand();
+    let x;
+    let y;
+    let alpha;
+    let radius;
+
+    switch (mode) {
+      case "materialize": {
+        const stageT =
+          particleStageT != null ? particleStageT : phaseProgress;
+        const gather = easeOutCubic(stageT);
+        const angle = (i / count) * Math.PI * 2 + seed * 0.4;
+        const dist = (1 - gather) * bw * (0.38 + seed * 0.55);
+        x = cx + Math.cos(angle) * dist;
+        y = cy + Math.sin(angle) * dist * 0.5 - bh * 0.06 * (1 - gather);
+        alpha =
+          stageT <= 0
+            ? 0
+            : (0.04 + gather * 0.11) * presence * glowNorm;
+        radius = (0.5 + seed * 0.85) * sizeMul * (0.5 + gather * 0.5);
+        break;
+      }
+      case "spark_burst": {
+        const burstPeak = 0.32;
+        const burstT = phaseProgress < burstPeak
+          ? easeOutCubic(phaseProgress / burstPeak)
+          : 1 - easeInCubic((phaseProgress - burstPeak) / (1 - burstPeak));
+        const angle = (i / count) * Math.PI * 2 + seed * 0.25;
+        const dist = burstT * bw * (0.06 + seed * 0.22);
+        x = cx + Math.cos(angle) * dist;
+        y = cy + Math.sin(angle) * dist * 0.4;
+        alpha = burstT * 0.55 * presence * glowNorm;
+        radius = (0.55 + seed * 1.1) * sizeMul * burstT;
+        break;
+      }
+      case "scanfall": {
+        const travel = ((i / count) + phase * speed * 0.95) % 1;
+        const baseY = bottom - (bottom - top) * travel;
+        const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.1 * spread;
+        x = cx + wobble;
+        y = baseY;
+        alpha = (0.06 + seed * 0.08) * presence * glowNorm;
+        radius = (0.7 + seed * 1.2) * sizeMul;
+        break;
+      }
+      case "collapse": {
+        const collapse = easeInCubic(phaseProgress);
+        const travel = ((i / count) + phase * speed * 0.28) % 1;
+        const baseY = bottom - (bottom - top) * travel;
+        const wobble = Math.sin((i + phase * 3.5) * 0.45) * bw * 0.18 * spread;
+        const startX = cx + wobble;
+        const startY = baseY;
+        const pull = easeInCubic(Math.min(1, collapse * 1.08));
+        x = startX + (cx - startX) * pull;
+        y = startY + (cy - startY) * pull * 0.6;
+        const fade = 1 - easeInCubic(Math.min(1, collapse * 1.15));
+        alpha = fade * presence * (0.06 + seed * 0.09) * glowNorm;
+        radius = (0.65 + seed * 1.1) * sizeMul * (1 - pull * 0.75);
+        break;
+      }
+      case "drift":
+      default: {
+        const travel = ((i / count) + phase * speed * 0.82) % 1;
+        const baseY = bottom - (bottom - top) * travel;
+        const wobble = Math.sin((i + phase * 3.2) * 0.42) * bw * 0.18 * spread;
+        x = cx + wobble;
+        y = baseY;
+        alpha = (0.06 + seed * 0.1) * presence * glowNorm;
+        radius = (0.7 + seed * 1.3) * sizeMul;
+        break;
+      }
+    }
+
+    if (alpha <= 0.01 || radius <= 0.05) {
+      continue;
+    }
     ctx.beginPath();
-    ctx.fillStyle = hexWithAlpha(
-      roles.particle,
-      (0.08 + rand() * 0.14) * presence * (params.glowIntensity / 70),
-    );
-    ctx.arc(x, baseY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = hexWithAlpha(roles.particle, alpha);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  const scanStageT =
+    particleStageT != null ? particleStageT : phaseProgress / 0.28;
+  if (
+    lifecyclePhase === "enter" &&
+    scanStageT > 0 &&
+    scanStageT < 1 &&
+    (mode === "scanfall" || mode === "materialize")
+  ) {
+    const scanY = top + (bottom - top) * easeOutCubic(scanStageT);
+    ctx.fillStyle = hexWithAlpha(
+      roles.accent,
+      0.07 * presence * (1 - scanStageT) * (mode === "scanfall" ? 1 : 0.6),
+    );
+    ctx.fillRect(cx - bw * 0.035, scanY - 0.5, bw * 0.07, 1.5);
   }
 }
 
@@ -219,45 +348,53 @@ function hexWithAlpha(hex, alpha) {
   return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
 }
 
-export function createOverlayAnimator(canvas, roles, effectParams, contract, onFrame, opts) {
+export function createOverlayAnimator(
+  canvas,
+  roles,
+  effectParams,
+  contract,
+  lifecycleRef,
+  animProfile,
+  grammar,
+  holdDurationMs,
+  onFrame,
+  onExitComplete,
+  opts,
+) {
   let frameId = 0;
-  let start = 0;
   const beamMs = contract.animation.beamPhaseMs;
   const glyphMs = contract.animation.glyphAlphaMs;
-  const enterMs = contract.animation.enterMs || 480;
-  const exitMs = contract.animation.exitMs || 360;
-  const durationMs = opts && opts.durationMs ? opts.durationMs : 0;
-  const useLifecycle = Boolean(opts && opts.useLifecycle);
+  const autoTimedExit = Boolean(opts && opts.autoTimedExit);
   const groupBackgroundEnabled = Boolean(opts && opts.groupBackgroundEnabled);
+  const staticFrame = opts && opts.staticFrame;
 
-  function lifecycleIntensity(elapsed) {
-    if (!useLifecycle) {
-      return 1;
-    }
-    if (elapsed < enterMs) {
-      return easeOutCubic(elapsed / enterMs);
-    }
-    if (durationMs > 0 && elapsed > durationMs - exitMs) {
-      const t = Math.max(0, durationMs - elapsed) / exitMs;
-      return easeInCubic(t);
-    }
-    return 1;
+  if (!lifecycleRef.phase) {
+    resetLifecycle(lifecycleRef);
   }
 
   function tick(ts) {
-    if (!start) {
-      start = ts;
+    let frame;
+    let done = false;
+
+    if (staticFrame && lifecycleRef.phase !== "exit") {
+      frame = staticFrame;
+    } else {
+      const adv = advanceLifecycle(
+        lifecycleRef,
+        animProfile,
+        grammar,
+        ts,
+        holdDurationMs,
+        autoTimedExit,
+      );
+      frame = adv.frame;
+      done = adv.done;
     }
-    const elapsed = ts - start;
-    const phase = (elapsed % beamMs) / beamMs;
-    const glyphPhase = (elapsed % glyphMs) / glyphMs;
+
+    const phase = ((ts || performance.now()) % beamMs) / beamMs;
+    const glyphPhase = ((ts || performance.now()) % glyphMs) / glyphMs;
     const shimmer = 0.9 + Math.sin(glyphPhase * Math.PI * 2) * 0.07 * effectParams.shimmerIntensity;
-    let intensity = lifecycleIntensity(elapsed);
-    if (useLifecycle && intensity >= 0.99 && elapsed > enterMs) {
-      const breath = 1 + Math.sin((elapsed / 2800) * Math.PI * 2) * 0.035 * effectParams.shimmerIntensity;
-      intensity *= breath;
-    }
-    const glyphAlpha = (0.91 + shimmer * 0.09) * Math.min(1, intensity);
+    const glyphAlpha = frame.glyphAlpha * shimmer;
 
     drawHailEffect(
       canvas.getContext("2d"),
@@ -266,10 +403,24 @@ export function createOverlayAnimator(canvas, roles, effectParams, contract, onF
       phase,
       roles,
       effectParams,
-      intensity,
+      frame,
       { groupBackgroundEnabled },
     );
-    onFrame({ glyphAlpha, intensity });
+
+    onFrame({
+      glyphAlpha,
+      glyphScale: frame.glyphScale,
+      messageAlpha: frame.messageAlpha,
+      intensity: frame.overallIntensity,
+      phase: frame.phase,
+    });
+
+    if (done) {
+      if (onExitComplete) {
+        onExitComplete();
+      }
+      return;
+    }
     frameId = requestAnimationFrame(tick);
   }
 
@@ -279,4 +430,4 @@ export function createOverlayAnimator(canvas, roles, effectParams, contract, onF
   };
 }
 
-export { hexWithAlpha };
+export { hexWithAlpha, resetLifecycle };

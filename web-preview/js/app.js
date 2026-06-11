@@ -1,4 +1,8 @@
 import {
+  getAnimationProfile,
+  requestLifecycleExit,
+} from "./animation-profile.js";
+import {
   applyScaleGrammarToEffectParams,
   BEAM_SHAPE_LABELS,
   PRESET_LABELS,
@@ -13,7 +17,12 @@ import {
 } from "./effect-config.js";
 import { validateMessage } from "./message.js";
 import { resolveGroupRect } from "./placement.js";
-import { createOverlayAnimator, glyphMarkup, hexWithAlpha } from "./renderer.js";
+import {
+  createOverlayAnimator,
+  glyphMarkup,
+  hexWithAlpha,
+  resetLifecycle,
+} from "./renderer.js";
 
 const PLACEMENT_LABELS = {
   center_soft: "Center",
@@ -34,15 +43,15 @@ const PALETTE_LABELS = {
 const state = {
   contract: null,
   stopAnimation: null,
-  hideTimer: null,
-  exitTimer: null,
   customBackgroundUrl: null,
   placementMode: "preset",
   placementPreset: "top_right",
   paletteId: "axiom_dark_cyan",
   screenPreset: "1920x1080",
   useLifecycle: false,
-  lifecycleDurationMs: 0,
+  holdDurationMs: null,
+  lifecycleRef: { phase: "hidden" },
+  pendingLifecycleReset: false,
   effectPreset: "transporter_soft",
   effectParams: null,
   scaledEffectParams: null,
@@ -431,6 +440,10 @@ function bindEvents() {
     const btn = event.target.closest("[data-effect-preset]");
     if (!btn) return;
     applyPresetToState(btn.dataset.effectPreset);
+    if (!els.overlayGroup.hidden) {
+      showPreview();
+      return;
+    }
     onControlChange();
   });
 
@@ -594,7 +607,7 @@ function bindEvents() {
   els.backgroundFile.addEventListener("change", onBackgroundFile);
   els.previewBtn.addEventListener("click", showPreview);
   els.hideBtn.addEventListener("click", function () {
-    hideOverlay(true);
+    hideOverlay(false);
   });
   els.copyPayloadBtn.addEventListener("click", copyPayload);
   window.addEventListener("resize", resizeStage);
@@ -755,7 +768,10 @@ function applyBackground() {
   }
 }
 
-function renderStaticOverlay() {
+function renderStaticOverlay(renderOpts) {
+  const ro = renderOpts || {};
+  const skipVisualReset = ro.skipVisualReset === true;
+
   applyBackground();
   readEffectParamsFromControls();
   refreshScaledEffectParams();
@@ -786,10 +802,12 @@ function renderStaticOverlay() {
     "--overlay-glow",
     hexWithAlpha(roles.glow, glowAlpha * glowStrength),
   );
-  els.overlayGroup.classList.remove("is-exiting");
-  els.overlayGroup.hidden = false;
-  els.overlayGroup.style.opacity = "1";
-  els.overlayGroup.style.transform = "scale(1)";
+  if (!skipVisualReset) {
+    els.overlayGroup.classList.remove("is-exiting");
+    els.overlayGroup.hidden = false;
+    els.overlayGroup.style.opacity = "1";
+    els.overlayGroup.style.transform = "scale(1)";
+  }
 
   const canvas = els.overlayCanvas;
   canvas.width = Math.max(1, Math.floor(rect.width));
@@ -822,21 +840,70 @@ function renderStaticOverlay() {
     state.stopAnimation();
     state.stopAnimation = null;
   }
+
+  if (state.pendingLifecycleReset) {
+    resetLifecycle(state.lifecycleRef);
+    state.pendingLifecycleReset = false;
+  }
+
+  const animProfile = getAnimationProfile(state.contract, state.effectPreset);
+  const holdDurationMs = state.useLifecycle ? state.holdDurationMs : null;
+  const staticFrame = state.useLifecycle
+    ? null
+    : {
+        phase: "hold",
+        particleMode: animProfile.particle_mode_hold,
+        phaseProgress: 0.5,
+        beamScale: 1,
+        beamIntensity: 1,
+        glyphAlpha: 1,
+        glyphScale: 1,
+        messageAlpha: 1,
+        overallIntensity: 1,
+        holdPulse: 1,
+      };
+
   state.stopAnimation = createOverlayAnimator(
     canvas,
     roles,
     state.scaledEffectParams,
     state.contract,
+    state.lifecycleRef,
+    animProfile,
+    grammar,
+    holdDurationMs,
     function (frame) {
+      const entering = frame.phase === "enter";
+      const exiting = frame.phase === "exit";
+      const stageGlyph = entering || exiting;
+
       els.overlayGlyph.style.opacity = String(frame.glyphAlpha);
-      if (state.useLifecycle) {
-        els.overlayGroup.style.opacity = String(Math.max(0.08, frame.intensity));
+      els.overlayMessage.style.opacity = String(frame.messageAlpha);
+      els.overlayGlyph.style.transition = stageGlyph ? "none" : "";
+      els.overlayMessage.style.transition = stageGlyph ? "none" : "";
+
+      if (entering) {
+        els.overlayGlyph.style.transformOrigin = "center center";
+        els.overlayGlyph.style.transform = "scale(" + frame.glyphScale + ")";
+      } else if (exiting) {
+        els.overlayGlyph.style.transform = "scale(" + frame.glyphScale + ")";
+      } else {
+        els.overlayGlyph.style.transform = "scale(1)";
+      }
+
+      if (state.useLifecycle && entering) {
+        els.overlayGroup.style.opacity = String(Math.max(0.12, frame.intensity));
+      } else {
+        els.overlayGroup.style.opacity = "1";
       }
     },
+    function () {
+      clearOverlayImmediate();
+    },
     {
-      durationMs: state.useLifecycle ? state.lifecycleDurationMs : 0,
-      useLifecycle: state.useLifecycle,
+      autoTimedExit: state.useLifecycle,
       groupBackgroundEnabled: state.groupBgEnabled,
+      staticFrame: staticFrame,
     },
   );
 }
@@ -844,18 +911,9 @@ function renderStaticOverlay() {
 function showPreview() {
   const timing = resolvePreviewTiming(state, state.contract);
   state.useLifecycle = true;
-  state.lifecycleDurationMs = timing.hold ? 0 : timing.duration_ms_for_payload;
+  state.holdDurationMs = timing.hold ? null : timing.display_duration_ms;
+  state.pendingLifecycleReset = true;
   renderStaticOverlay();
-  if (state.hideTimer) clearTimeout(state.hideTimer);
-  if (state.exitTimer) {
-    clearTimeout(state.exitTimer);
-    state.exitTimer = null;
-  }
-  if (!timing.hold) {
-    state.hideTimer = setTimeout(function () {
-      hideOverlay(false);
-    }, timing.duration_ms_for_payload);
-  }
 }
 
 function hideOverlay(instant) {
@@ -863,37 +921,41 @@ function hideOverlay(instant) {
     clearOverlayImmediate();
     return;
   }
-  const exitMs = state.contract.animation.exitMs || 360;
-  els.overlayGroup.classList.add("is-exiting");
-  if (state.stopAnimation) {
-    state.stopAnimation();
-    state.stopAnimation = null;
+  if (els.overlayGroup.hidden || state.lifecycleRef.phase === "exit") {
+    return;
   }
-  if (state.hideTimer) {
-    clearTimeout(state.hideTimer);
-    state.hideTimer = null;
+  const wasStatic = !state.useLifecycle;
+  state.useLifecycle = true;
+  state.holdDurationMs = null;
+  requestLifecycleExit(state.lifecycleRef);
+  if (wasStatic) {
+    renderStaticOverlay({ skipVisualReset: true });
   }
-  state.useLifecycle = false;
-  if (state.exitTimer) clearTimeout(state.exitTimer);
-  state.exitTimer = setTimeout(clearOverlayImmediate, exitMs);
 }
 
 function clearOverlayImmediate() {
-  els.overlayGroup.hidden = true;
-  els.overlayGroup.classList.remove("is-exiting");
   if (state.stopAnimation) {
     state.stopAnimation();
     state.stopAnimation = null;
   }
-  if (state.hideTimer) {
-    clearTimeout(state.hideTimer);
-    state.hideTimer = null;
+  const canvas = els.overlayCanvas;
+  if (canvas && canvas.width > 0 && canvas.height > 0) {
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
   }
-  if (state.exitTimer) {
-    clearTimeout(state.exitTimer);
-    state.exitTimer = null;
-  }
+  els.overlayGroup.hidden = true;
+  els.overlayGroup.classList.remove("is-exiting");
+  els.overlayGroup.style.opacity = "1";
+  els.overlayGlyph.style.transform = "scale(1)";
+  els.overlayGlyph.style.opacity = "1";
+  els.overlayMessage.style.opacity = "1";
   state.useLifecycle = false;
+  state.holdDurationMs = null;
+  state.lifecycleRef.phase = "hidden";
+  state.lifecycleRef.holdStart = null;
+  state.lifecycleRef.exitStart = null;
 }
 
 function clampInt(value, min, max, fallback) {
