@@ -1,0 +1,11 @@
+/.gradle/
+/build/
+/app/build/
+/local.properties
+/.tools/
+/.idea/
+*.iml
+.DS_Store
+captures/
+*.apk
+!app/build/outputs/apk/release/app-release-unsigned.apk
