@@ -131,6 +131,7 @@ npm run smoke:dev      # dev HTTP (:8197)
 | Dev + stable both running | OK — different ports (8197 vs 8196) |
 | Blank page | Use LAN URL not `file://` |
 | Wrong machine IP | Homelab host is usually `192.168.68.93` |
+| `/shared/hail-render-contract.json` 404 in **dev** | Recreate dev container after compose changes: `npm run dev:stop && npm run dev:start`. Dev compose bind-mounts `hail-overlay-poc/` as one tree so `../shared` is visible inside the container. |
 
 ## Scope
 
