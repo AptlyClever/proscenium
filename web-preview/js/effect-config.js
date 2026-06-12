@@ -66,17 +66,17 @@ const DEFAULT_PAINT_BOX_TIERS = {
   small: {
     sizeCode: "S",
     label: "Ambient",
-    widthFraction: 0.18,
-    heightFraction: 0.2,
-    glyphScale: 0.9,
+    widthFraction: 0.24,
+    heightFraction: 0.26,
+    glyphScale: 0.94,
     messageScale: 0.92,
     messageBackingGapFraction: 0.014,
     maxEffectFootprintFraction: 1,
-    contentScale: 0.88,
+    contentScale: 0.92,
     safeZoneInsetFraction: 0.12,
     glyphFocusFraction: 0.62,
-    glyphVisualSizeFloorPx: 60,
-    glyphVisualFraction: 0.28,
+    glyphVisualSizeFloorPx: 108,
+    glyphVisualFraction: 0.46,
     glyphWeight: 0.68,
     messageWeight: 0.32,
     transporterBeamHeightMultiplier: 1.35,
@@ -84,8 +84,8 @@ const DEFAULT_PAINT_BOX_TIERS = {
   medium: {
     sizeCode: "M",
     label: "Default",
-    widthFraction: 0.24,
-    heightFraction: 0.26,
+    widthFraction: 0.32,
+    heightFraction: 0.34,
     glyphScale: 1,
     messageScale: 1,
     messageBackingGapFraction: 0.016,
@@ -93,8 +93,8 @@ const DEFAULT_PAINT_BOX_TIERS = {
     contentScale: 1,
     safeZoneInsetFraction: 0.11,
     glyphFocusFraction: 0.64,
-    glyphVisualSizeFloorPx: 85,
-    glyphVisualFraction: 0.32,
+    glyphVisualSizeFloorPx: 152,
+    glyphVisualFraction: 0.5,
     glyphWeight: 0.72,
     messageWeight: 0.28,
     transporterBeamHeightMultiplier: 1.5,
@@ -102,17 +102,17 @@ const DEFAULT_PAINT_BOX_TIERS = {
   large: {
     sizeCode: "L",
     label: "Impact",
-    widthFraction: 0.32,
-    heightFraction: 0.34,
-    glyphScale: 1.15,
+    widthFraction: 0.42,
+    heightFraction: 0.44,
+    glyphScale: 1.06,
     messageScale: 1.08,
     messageBackingGapFraction: 0.018,
     maxEffectFootprintFraction: 1,
-    contentScale: 1.2,
+    contentScale: 1.22,
     safeZoneInsetFraction: 0.1,
     glyphFocusFraction: 0.66,
-    glyphVisualSizeFloorPx: 124,
-    glyphVisualFraction: 0.36,
+    glyphVisualSizeFloorPx: 208,
+    glyphVisualFraction: 0.54,
     glyphWeight: 0.76,
     messageWeight: 0.24,
     transporterBeamHeightMultiplier: 1.65,
@@ -153,8 +153,8 @@ export function resolvePaintBox(contract, tierId, manualPercent) {
     tierId: tierId || "medium",
     sizeCode: tier.sizeCode || (tierId === "small" ? "S" : tierId === "large" ? "L" : "M"),
     label: tier.label || tierId || "M",
-    widthFraction: tier.widthFraction * manual,
-    heightFraction: tier.heightFraction * manual,
+    widthFraction: tier.widthFraction * manual * contentScale,
+    heightFraction: tier.heightFraction * manual * contentScale,
     glyphScale: tier.glyphScale != null ? tier.glyphScale : 1,
     messageScale: tier.messageScale != null ? tier.messageScale : 1,
     contentScale: contentScale,
@@ -187,8 +187,9 @@ export function resolveGlyphVisualSize(contract, tierId, manualPercent, paintBox
   const pb = resolvePaintBox(contract, tierId, manualPercent);
   const floor = pb.glyphVisualSizeFloorPx != null ? pb.glyphVisualSizeFloorPx : 85;
   const frac = pb.glyphVisualFraction != null ? pb.glyphVisualFraction : 0.32;
+  const glyphScale = pb.glyphScale != null ? pb.glyphScale : 1;
   const boxH = Math.max(1, paintBoxHeightPx || 0);
-  return Math.round(Math.max(floor, boxH * frac));
+  return Math.round(Math.max(floor, boxH * frac) * glyphScale);
 }
 
 /** Lane 4 — minimum perceptual impact multiplier per named effect. */
@@ -1064,9 +1065,11 @@ export function previewVisualPayload(state, contract) {
       : null,
     layout_regions: (function () {
       const pb = resolvePaintBox(contract, state.hailScaleTier, state.hailScaleManualPercent);
-      const refW = 480;
-      const refH = Math.round(refW * (pb.heightFraction / pb.widthFraction));
-      const regions = computeHailLayoutRegions(refW, refH, pb);
+      const refW = 1920;
+      const refH = 1080;
+      const boxW = refW * pb.widthFraction;
+      const boxH = refH * pb.heightFraction;
+      const regions = computeHailLayoutRegions(boxW, boxH, pb);
       return {
         safe_zone_inset_fraction: regions.safeZoneInsetFraction,
         glyph_focus_fraction: regions.glyphFocusFraction,
@@ -1076,8 +1079,11 @@ export function previewVisualPayload(state, contract) {
           contract,
           state.hailScaleTier,
           state.hailScaleManualPercent,
-          refH,
+          boxH,
         ),
+        paint_box_width_px: Math.round(boxW),
+        paint_box_height_px: Math.round(boxH),
+        stage_reference: refW + "x" + refH,
         effect_impact_floor: resolveEffectImpactFloor(contract, state.namedEffectId),
         transporter_beam_height_multiplier: regions.transporterBeamHeightMultiplier,
         transporter_beam_height_vs_paint_box:

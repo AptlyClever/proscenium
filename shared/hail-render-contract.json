@@ -18,8 +18,14 @@
   "ownership": {
     "hails": "axiom",
     "contractOwner": "axiom",
-    "consumers": ["lcard-preview", "lcard"],
-    "futureConsumers": ["lcard", "control-alt-apps"],
+    "consumers": [
+      "lcard-preview",
+      "lcard"
+    ],
+    "futureConsumers": [
+      "lcard",
+      "control-alt-apps"
+    ],
     "note": "Axiom owns Hails and this shared contract. LCARD hosts/consumes the preview harness only — not the Hail visual model, Paint Box, named effects, or budget canon."
   },
   "runtimeModel": {
@@ -28,7 +34,11 @@
       "size": "M",
       "effect_id": "burst"
     },
-    "sizeCodes": ["S", "M", "L"],
+    "sizeCodes": [
+      "S",
+      "M",
+      "L"
+    ],
     "sizeTierMap": {
       "S": "small",
       "M": "medium",
@@ -86,14 +96,22 @@
     }
   },
   "glyphs": {
-    "allowlist": ["hail-sniffer", "default"],
+    "allowlist": [
+      "hail-sniffer",
+      "default"
+    ],
     "emojiFallback": {
       "hail-sniffer": "👃",
       "default": "✦"
     }
   },
   "effects": {
-    "allowlist": ["none", "pop", "burst", "transporter"],
+    "allowlist": [
+      "none",
+      "pop",
+      "burst",
+      "transporter"
+    ],
     "legacyAliases": {
       "transporter_beam": "transporter"
     },
@@ -183,16 +201,16 @@
         "small": {
           "sizeCode": "S",
           "label": "Ambient",
-          "widthFraction": 0.18,
-          "heightFraction": 0.2,
-          "glyphScale": 0.9,
+          "widthFraction": 0.24,
+          "heightFraction": 0.26,
+          "glyphScale": 0.94,
           "messageScale": 0.92,
           "messageBackingGapFraction": 0.014,
           "maxEffectFootprintFraction": 1,
           "safeZoneInsetFraction": 0.12,
           "glyphFocusFraction": 0.62,
-          "glyphVisualSizeFloorPx": 60,
-          "glyphVisualFraction": 0.28,
+          "glyphVisualSizeFloorPx": 108,
+          "glyphVisualFraction": 0.46,
           "glyphWeight": 0.68,
           "messageWeight": 0.32,
           "transporterBeamHeightMultiplier": 1.35
@@ -200,16 +218,16 @@
         "medium": {
           "sizeCode": "M",
           "label": "Default",
-          "widthFraction": 0.24,
-          "heightFraction": 0.26,
+          "widthFraction": 0.32,
+          "heightFraction": 0.34,
           "glyphScale": 1,
           "messageScale": 1,
           "messageBackingGapFraction": 0.016,
           "maxEffectFootprintFraction": 1,
           "safeZoneInsetFraction": 0.11,
           "glyphFocusFraction": 0.64,
-          "glyphVisualSizeFloorPx": 85,
-          "glyphVisualFraction": 0.32,
+          "glyphVisualSizeFloorPx": 152,
+          "glyphVisualFraction": 0.5,
           "glyphWeight": 0.72,
           "messageWeight": 0.28,
           "transporterBeamHeightMultiplier": 1.5
@@ -217,16 +235,16 @@
         "large": {
           "sizeCode": "L",
           "label": "Impact",
-          "widthFraction": 0.32,
-          "heightFraction": 0.34,
-          "glyphScale": 1.15,
+          "widthFraction": 0.42,
+          "heightFraction": 0.44,
+          "glyphScale": 1.06,
           "messageScale": 1.08,
           "messageBackingGapFraction": 0.018,
           "maxEffectFootprintFraction": 1,
           "safeZoneInsetFraction": 0.1,
           "glyphFocusFraction": 0.66,
-          "glyphVisualSizeFloorPx": 124,
-          "glyphVisualFraction": 0.36,
+          "glyphVisualSizeFloorPx": 208,
+          "glyphVisualFraction": 0.54,
           "glyphWeight": 0.76,
           "messageWeight": 0.24,
           "transporterBeamHeightMultiplier": 1.65
@@ -236,8 +254,15 @@
     "namedEffects": {
       "note": "Recallable named effect presets selected by id at runtime. Workbench may expose advanced tuning; end-user contract is effect id only.",
       "defaultEffectId": "transporter",
-      "allowlist": ["none", "pop", "burst", "transporter"],
-      "futureAllowlist": ["scan"],
+      "allowlist": [
+        "none",
+        "pop",
+        "burst",
+        "transporter"
+      ],
+      "futureAllowlist": [
+        "scan"
+      ],
       "identityModel": {
         "note": "Named effects define how the glyph resolves, not just the surrounding field.",
         "fields": {
@@ -279,11 +304,23 @@
             "exit_animation_ms": 200
           },
           "timingMs": {
-            "entrance": { "min": 0, "max": 300, "default": 250 },
-            "exit": { "min": 0, "max": 250, "default": 200 },
+            "entrance": {
+              "min": 0,
+              "max": 300,
+              "default": 250
+            },
+            "exit": {
+              "min": 0,
+              "max": 250,
+              "default": 200
+            },
             "stable": "static"
           },
-          "particles": { "entranceMax": 0, "exitMax": 0, "stableMax": 0 },
+          "particles": {
+            "entranceMax": 0,
+            "exitMax": 0,
+            "stableMax": 0
+          },
           "stableResidual": "none"
         },
         "pop": {
@@ -307,11 +344,23 @@
           },
           "intent": "Quick punchy entrance/exit — obvious glyph-local pop moment",
           "timingMs": {
-            "entrance": { "min": 300, "max": 450, "default": 400 },
-            "exit": { "min": 260, "max": 360, "default": 300 },
+            "entrance": {
+              "min": 300,
+              "max": 450,
+              "default": 400
+            },
+            "exit": {
+              "min": 260,
+              "max": 360,
+              "default": 300
+            },
             "stable": "static"
           },
-          "particles": { "entranceMax": 8, "exitMax": 8, "stableMax": 0 },
+          "particles": {
+            "entranceMax": 8,
+            "exitMax": 8,
+            "stableMax": 0
+          },
           "stableResidual": "none"
         },
         "burst": {
@@ -335,11 +384,23 @@
           },
           "intent": "Size-aware burst entrance/exit — visible contained flare/spark at glyph",
           "timingMs": {
-            "entrance": { "min": 650, "max": 850, "default": 780 },
-            "exit": { "min": 450, "max": 650, "default": 560 },
+            "entrance": {
+              "min": 650,
+              "max": 850,
+              "default": 780
+            },
+            "exit": {
+              "min": 450,
+              "max": 650,
+              "default": 560
+            },
             "stable": "optional_glyph_local"
           },
-          "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": "size_capped" },
+          "particles": {
+            "entranceMax": "size_capped",
+            "exitMax": "size_capped",
+            "stableMax": "size_capped"
+          },
           "stableResidual": "optional_glyph_local"
         },
         "transporter": {
@@ -363,11 +424,23 @@
           },
           "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
           "timingMs": {
-            "entrance": { "min": 1600, "max": 2200, "default": 1900 },
-            "exit": { "min": 1200, "max": 1600, "default": 1400 },
+            "entrance": {
+              "min": 1600,
+              "max": 2200,
+              "default": 1900
+            },
+            "exit": {
+              "min": 1200,
+              "max": 1600,
+              "default": 1400
+            },
             "stable": "beam_fully_gone"
           },
-          "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": 0 },
+          "particles": {
+            "entranceMax": "size_capped",
+            "exitMax": "size_capped",
+            "stableMax": 0
+          },
           "stableResidual": "none",
           "sequence": "empty -> contained transport field in Paint Box -> glyph/message materialize -> field clears -> stable object -> exit field -> dematerialize -> clear"
         }
@@ -389,20 +462,38 @@
         "S": {
           "sizeCode": "S",
           "tier": "small",
-          "stableResidualParticles": { "min": 0, "max": 4 },
-          "entranceExitActiveParticles": { "min": 12, "max": 20 }
+          "stableResidualParticles": {
+            "min": 0,
+            "max": 4
+          },
+          "entranceExitActiveParticles": {
+            "min": 12,
+            "max": 20
+          }
         },
         "M": {
           "sizeCode": "M",
           "tier": "medium",
-          "stableResidualParticles": { "min": 0, "max": 8 },
-          "entranceExitActiveParticles": { "min": 20, "max": 36 }
+          "stableResidualParticles": {
+            "min": 0,
+            "max": 8
+          },
+          "entranceExitActiveParticles": {
+            "min": 20,
+            "max": 36
+          }
         },
         "L": {
           "sizeCode": "L",
           "tier": "large",
-          "stableResidualParticles": { "min": 0, "max": 12 },
-          "entranceExitActiveParticles": { "min": 28, "max": 48 }
+          "stableResidualParticles": {
+            "min": 0,
+            "max": 12
+          },
+          "entranceExitActiveParticles": {
+            "min": 28,
+            "max": 48
+          }
         }
       },
       "hardNo": [
@@ -442,7 +533,11 @@
     },
     "scaleGrammar": {
       "defaultTier": "medium",
-      "manualPercent": { "min": 50, "max": 150, "default": 100 },
+      "manualPercent": {
+        "min": 50,
+        "max": 150,
+        "default": 100
+      },
       "tiers": {
         "small": {
           "label": "Ambient",
@@ -459,8 +554,8 @@
           "entranceIntensityMul": 0.88,
           "exitIntensityMul": 0.9,
           "messagePaddingMul": 0.9,
-          "content_scale": 0.88,
-          "object_scale": 0.88,
+          "content_scale": 0.92,
+          "object_scale": 0.92,
           "message_scale": 0.92,
           "transport_event_scale": 0.7,
           "effect_field_scale": 1,
@@ -511,8 +606,8 @@
           "entranceIntensityMul": 1.32,
           "exitIntensityMul": 1.25,
           "messagePaddingMul": 1.06,
-          "content_scale": 1.2,
-          "object_scale": 1.2,
+          "content_scale": 1.22,
+          "object_scale": 1.22,
           "message_scale": 1.08,
           "transport_event_scale": 2.1,
           "effect_field_scale": 1,
@@ -599,7 +694,13 @@
         "message_backing_emphasis": 1.12
       }
     },
-    "beamShapes": ["column", "cone", "orb", "shimmer", "none"],
+    "beamShapes": [
+      "column",
+      "cone",
+      "orb",
+      "shimmer",
+      "none"
+    ],
     "effectPresets": {
       "clean_hail": {
         "beamEnabled": false,
@@ -672,7 +773,11 @@
       "defaultShape": "rounded_rect",
       "defaultSizePercent": 100,
       "defaultOpacityPercent": 24,
-      "shapes": ["rounded_rect", "soft_panel", "circle_orb"],
+      "shapes": [
+        "rounded_rect",
+        "soft_panel",
+        "circle_orb"
+      ],
       "sizePercentMin": 50,
       "sizePercentMax": 140
     },
@@ -768,7 +873,12 @@
         "beamFieldCapMul": 0.95,
         "particleTravelCapMul": 0.92,
         "maxOverflowFraction": 0.32,
-        "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        "safeOffsetFraction": {
+          "top": 0,
+          "bottom": 0,
+          "start": 0,
+          "end": 0
+        }
       },
       "placements": {
         "top_right": {
@@ -778,7 +888,12 @@
           "beamFieldCapMul": 0.9,
           "particleTravelCapMul": 0.84,
           "maxOverflowFraction": 0.24,
-          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0,
+            "start": 0,
+            "end": 0
+          }
         },
         "top_left": {
           "label": "Top left",
@@ -787,7 +902,12 @@
           "beamFieldCapMul": 0.9,
           "particleTravelCapMul": 0.84,
           "maxOverflowFraction": 0.24,
-          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0,
+            "start": 0,
+            "end": 0
+          }
         },
         "bottom_right": {
           "label": "Bottom right",
@@ -796,7 +916,12 @@
           "beamFieldCapMul": 0.8,
           "particleTravelCapMul": 0.72,
           "maxOverflowFraction": 0.18,
-          "safeOffsetFraction": { "top": 0, "bottom": 0.01, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0.01,
+            "start": 0,
+            "end": 0
+          }
         },
         "bottom_left": {
           "label": "Bottom left",
@@ -805,7 +930,12 @@
           "beamFieldCapMul": 0.8,
           "particleTravelCapMul": 0.72,
           "maxOverflowFraction": 0.18,
-          "safeOffsetFraction": { "top": 0, "bottom": 0.01, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0.01,
+            "start": 0,
+            "end": 0
+          }
         },
         "upper_center": {
           "label": "Upper center",
@@ -814,7 +944,12 @@
           "beamFieldCapMul": 1.36,
           "particleTravelCapMul": 1.38,
           "maxOverflowFraction": 0.58,
-          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0,
+            "start": 0,
+            "end": 0
+          }
         },
         "center_soft": {
           "label": "Center soft",
@@ -823,7 +958,12 @@
           "beamFieldCapMul": 1.52,
           "particleTravelCapMul": 1.55,
           "maxOverflowFraction": 0.72,
-          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0,
+            "start": 0,
+            "end": 0
+          }
         },
         "lower_center": {
           "label": "Lower center",
@@ -832,7 +972,12 @@
           "beamFieldCapMul": 0.74,
           "particleTravelCapMul": 0.68,
           "maxOverflowFraction": 0.14,
-          "safeOffsetFraction": { "top": 0, "bottom": 0.045, "start": 0, "end": 0 }
+          "safeOffsetFraction": {
+            "top": 0,
+            "bottom": 0.045,
+            "start": 0,
+            "end": 0
+          }
         }
       }
     },
@@ -851,7 +996,10 @@
         "30s": 30000,
         "60s": 60000
       },
-      "customMs": { "min": 1000, "max": 120000 }
+      "customMs": {
+        "min": 1000,
+        "max": 120000
+      }
     }
   },
   "animation": {

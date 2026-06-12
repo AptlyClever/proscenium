@@ -623,20 +623,20 @@ const mediumH =
 const largeH =
   largeBox.heightFraction != null ? largeBox.heightFraction : largeBox.height;
 assert(
-  largeW > smallW,
-  "large paintBox width should exceed small (S/M/L footprint ladder)",
+  largeW > mediumW && mediumW > smallW,
+  "paintBox width fractions should increase S → M → L",
 );
 assert(
-  smallW === 0.18 && smallH === 0.2,
-  "small paintBox dimensions unchanged (0.18 × 0.2)",
+  largeH > mediumH && mediumH > smallH,
+  "paintBox height fractions should increase S → M → L",
 );
 assert(
-  mediumW === 0.24 && mediumH === 0.26,
-  "medium paintBox dimensions unchanged (0.24 × 0.26)",
+  smallW >= 0.22 && mediumW >= 0.3 && largeW >= 0.4,
+  "paintBox width fractions should be couch-readable (S/M/L ≥ 0.22 / 0.30 / 0.40)",
 );
 assert(
-  largeW === 0.32 && largeH === 0.34,
-  "large paintBox dimensions unchanged (0.32 × 0.34)",
+  smallH >= 0.24 && mediumH >= 0.32 && largeH >= 0.42,
+  "paintBox height fractions should be couch-readable (S/M/L ≥ 0.24 / 0.32 / 0.42)",
 );
 assert(
   smallBox.glyphVisualSizeFloorPx < mediumBox.glyphVisualSizeFloorPx &&
@@ -644,8 +644,16 @@ assert(
   "glyphVisualSizeFloorPx should increase S → M → L",
 );
 assert(
-  largeBox.glyphVisualSizeFloorPx >= 124,
-  "large tier glyphVisualSizeFloorPx should be >= 124",
+  largeBox.glyphVisualSizeFloorPx >= 200,
+  "large tier glyphVisualSizeFloorPx should be >= 200 for couch-readable L",
+);
+assert(
+  mediumBox.glyphVisualSizeFloorPx >= 140,
+  "medium tier glyphVisualSizeFloorPx should be >= 140",
+);
+assert(
+  smallBox.glyphVisualSizeFloorPx >= 100,
+  "small tier glyphVisualSizeFloorPx should be >= 100",
 );
 assert(
   pv.paintBox.glyphPresenceRule && /glyphVisualSizeFloorPx/.test(pv.paintBox.glyphPresenceRule),
