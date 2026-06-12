@@ -135,6 +135,18 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.endpoint-context-readout {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  border-radius: 6px;
+  border: 1px solid rgba(90, 140, 230, 0.28);
+  background: rgba(20, 36, 64, 0.35);
+  color: #c5d8f5;
+  font-variant-numeric: tabular-nums;
+}
+
 .contract-source-readout.contract-source--axiom {
   border-color: rgba(50, 181, 160, 0.35);
   color: #b8ebe3;

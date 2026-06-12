@@ -2,6 +2,8 @@
 
 Browser harness for tuning overlay placement, scale, palettes, and message readability before building APKs.
 
+**Endpoint model (v001):** This harness is **not a room**. It is `workbench:visual_workbench` → `preview_surface:lcard_hail_visual_harness` with `delivery_mode: visual_preview`, `safety_mode: test`, and **`allows_live_delivery: false`**. See `../../docs/hails-visual-harness-endpoint-model-v001.md` and `ctrl-alt-standards/docs/hails/hail-endpoint-model-v001.md` §5.
+
 **dev-ubuntu is headless.** Run the preview service on dev-ubuntu and open it from a desktop browser on the LAN (Aurora, etc.).
 
 ## Fast dev vs stable preview
@@ -132,4 +134,4 @@ npm run smoke:dev      # dev HTTP (:8197)
 
 ## Scope
 
-Desktop browser preview only. Does not contact Google TV devices. Not integrated into production Axiom.
+Desktop browser preview only. Does not contact Google TV devices. Not integrated into production Axiom. **Not a production room launcher** — preview surface only (`allows_live_delivery: false`).

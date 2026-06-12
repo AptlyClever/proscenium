@@ -852,5 +852,21 @@ assert(
   rendererSrc.includes("const bh = beam.bh"),
   "renderer drawParticles must define bh from resolveBeamBounds",
 );
+assert(
+  /endpoint-context-readout/i.test(indexHtml),
+  "index.html should expose visual harness endpoint context readout",
+);
+assert(
+  contractLoaderSrc.includes("formatVisualHarnessEndpointReadout") &&
+    contractLoaderSrc.includes("visual_workbench") &&
+    contractLoaderSrc.includes("lcard_hail_visual_harness"),
+  "contract-loader.js should define endpoint model v001 readout",
+);
+assert(
+  /preview_surface|visual_workbench|allows_live_delivery: false|live delivery: no/i.test(
+    fs.readFileSync(path.join(__dirname, "README.md"), "utf8"),
+  ),
+  "web-preview README should document workbench -> preview_surface preview-only posture",
+);
 
 console.log("smoke: control-alt-hails web preview OK");

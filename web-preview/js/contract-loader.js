@@ -136,6 +136,36 @@ export function formatContractSourceDiagnostics(metadata) {
   return parts.join(" · ");
 }
 
+/** Hail Endpoint Model v001 — visual harness preview context (not a room). */
+export const VISUAL_HARNESS_ENDPOINT_V001 = Object.freeze({
+  originKind: "workbench",
+  originId: "visual_workbench",
+  destinationKind: "preview_surface",
+  destinationId: "lcard_hail_visual_harness",
+  deliveryMode: "visual_preview",
+  safetyMode: "test",
+  allowsLiveDelivery: false,
+});
+
+export function formatVisualHarnessEndpointReadout() {
+  const e = VISUAL_HARNESS_ENDPOINT_V001;
+  return (
+    "Endpoint: " +
+    e.originKind +
+    ":" +
+    e.originId +
+    " → " +
+    e.destinationKind +
+    ":" +
+    e.destinationId +
+    " · " +
+    e.deliveryMode +
+    " · " +
+    e.safetyMode +
+    " · live delivery: no"
+  );
+}
+
 /**
  * Load Hails render contract — Axiom API primary, local mirror fallback only.
  *

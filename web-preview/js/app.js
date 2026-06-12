@@ -40,6 +40,7 @@ import {
 } from "./renderer.js";
 import {
   formatContractSourceDiagnostics,
+  formatVisualHarnessEndpointReadout,
   loadAxiomRenderPayload,
   loadHailRenderContract,
 } from "./contract-loader.js";
@@ -177,14 +178,23 @@ function cacheElements() {
     replayExitBtn: document.getElementById("replay-exit-btn"),
     reviewSlowMotionBtn: document.getElementById("review-slow-motion-btn"),
     contractSourceReadout: document.getElementById("contract-source-readout"),
+    endpointContextReadout: document.getElementById("endpoint-context-readout"),
     axiomHailId: document.getElementById("axiom-hail-id"),
     loadAxiomHailBtn: document.getElementById("load-axiom-hail-btn"),
   });
 }
 
+function syncEndpointContextReadout() {
+  if (!els.endpointContextReadout) {
+    return;
+  }
+  els.endpointContextReadout.textContent = formatVisualHarnessEndpointReadout();
+}
+
 async function init() {
   try {
     cacheElements();
+    syncEndpointContextReadout();
     const loaded = await loadHailRenderContract({
       proxyContractUrl: "/api/hails/render-contract",
       mirrorUrl: "/shared/hail-render-contract.json",
