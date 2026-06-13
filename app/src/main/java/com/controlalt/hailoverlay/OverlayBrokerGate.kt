@@ -24,6 +24,7 @@ object OverlayBrokerGate {
         val placementMode: String,
         val xPercent: Float?,
         val yPercent: Float?,
+        val sizeTier: String,
     )
 
     fun validateHailId(hailId: String): Result<String> {
@@ -94,6 +95,7 @@ object OverlayBrokerGate {
             payload.placementMode,
             xPercent,
             yPercent,
+            payload.sizeTier,
         ).joinToString("|")
     }
 
@@ -114,6 +116,7 @@ object OverlayBrokerGate {
         message: String,
         durationMs: Long,
         placement: Placement.Resolved,
+        sizeTier: String? = null,
     ): BrokerProofPayload {
         return BrokerProofPayload(
             hailId = hailId,
@@ -126,6 +129,7 @@ object OverlayBrokerGate {
             placementMode = placement.placementMode,
             xPercent = placement.xPercent,
             yPercent = placement.yPercent,
+            sizeTier = PaintBoxTier.resolve(sizeTier).tierId,
         )
     }
 

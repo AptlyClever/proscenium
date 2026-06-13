@@ -107,6 +107,19 @@ class PaintBoxLayoutTest {
     }
 
     @Test
+    fun medium_glyph_visual_size_matches_axiom_contract() {
+        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
+        val tier = PaintBoxTier.MEDIUM
+        val screenH = 1080f
+        val boxH = screenH * tier.heightFraction
+        val expectedGlyphVisual = maxOf(tier.glyphVisualSizeFloorPx, boxH * tier.glyphVisualFraction)
+
+        val regions = PaintBoxLayout.resolve(1920f, screenH, placement, tier)
+        assertEquals(expectedGlyphVisual, regions.glyphVisualSizePx, 0.01f)
+        assertEquals(183.6f, regions.glyphVisualSizePx, 0.01f)
+    }
+
+    @Test
     fun top_right_paint_box_is_in_upper_right_quadrant() {
         val placement = Placement.resolve("top_right", Placement.MODE_PRESET, null, null).getOrThrow()
         val regions = PaintBoxLayout.resolve(1920f, 1080f, placement)

@@ -16,6 +16,7 @@ class OverlayBrokerGateTest {
         placementMode: String = Placement.MODE_PRESET,
         xPercent: Float? = null,
         yPercent: Float? = null,
+        sizeTier: String = "medium",
     ): OverlayBrokerGate.BrokerProofPayload {
         val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent).getOrThrow()
         return OverlayBrokerGate.brokerProofPayloadFromValidated(
@@ -26,6 +27,7 @@ class OverlayBrokerGateTest {
             message = message,
             durationMs = 5000L,
             placement = placement,
+            sizeTier = sizeTier,
         )
     }
 
@@ -46,7 +48,7 @@ class OverlayBrokerGateTest {
         val payload = samplePayload()
         val canonical = OverlayBrokerGate.canonicalProofInput(payload)
         assertEquals(
-            "hail.dynamic.test.001|transporter_beam|hail-sniffer|axiom_dark_cyan|Dynamic hail broker test|5000|upper_center|preset||",
+            "hail.dynamic.test.001|transporter_beam|hail-sniffer|axiom_dark_cyan|Dynamic hail broker test|5000|upper_center|preset|||medium",
             canonical,
         )
     }
@@ -105,6 +107,16 @@ class OverlayBrokerGateTest {
         )
         val proof = OverlayBrokerGate.computeProof(TEST_SECRET, payload)
         val tampered = payload.copy(yPercent = 24f)
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret(proof, tampered, TEST_SECRET)
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun validateBrokerProofWithSecret_rejects_tampered_size_tier() {
+        val payload = samplePayload(sizeTier = "medium")
+        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, payload)
+        val tampered = payload.copy(sizeTier = "large")
         val result = OverlayBrokerGate.validateBrokerProofWithSecret(proof, tampered, TEST_SECRET)
         assertTrue(result.isFailure)
         assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)

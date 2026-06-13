@@ -58,6 +58,8 @@ object HailRegistry {
         val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent)
             .getOrElse { return Result.failure(it) }
 
+        val resolvedSizeTier = PaintBoxTier.resolve(sizeTier)
+
         val proofPayload = OverlayBrokerGate.brokerProofPayloadFromValidated(
             hailId = normalizedHailId,
             effectId = effectId,
@@ -66,6 +68,7 @@ object HailRegistry {
             message = validatedMessage,
             durationMs = durationMs,
             placement = placement,
+            sizeTier = resolvedSizeTier.tierId,
         )
 
         OverlayBrokerGate.validateBrokerProof(
@@ -82,7 +85,7 @@ object HailRegistry {
                 message = validatedMessage,
                 durationMs = durationMs,
                 placement = placement,
-                sizeTier = PaintBoxTier.resolve(sizeTier),
+                sizeTier = resolvedSizeTier,
             ),
         )
     }

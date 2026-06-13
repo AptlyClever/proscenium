@@ -21,6 +21,7 @@ class HailRegistryTest {
         placementMode: String = Placement.MODE_PRESET,
         xPercent: Float? = null,
         yPercent: Float? = null,
+        sizeTier: String = "medium",
     ): OverlayBrokerGate.BrokerProofPayload {
         val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent).getOrThrow()
         return OverlayBrokerGate.brokerProofPayloadFromValidated(
@@ -31,6 +32,7 @@ class HailRegistryTest {
             message = message,
             durationMs = durationMs,
             placement = placement,
+            sizeTier = sizeTier,
         )
     }
 
@@ -46,6 +48,7 @@ class HailRegistryTest {
         placementId: String = "upper_center",
         hailId: String = "hail.sniffer.001",
         durationMs: Long = 5500L,
+        sizeTier: String? = null,
     ): Result<HailRegistry.ValidatedHail> {
         val payload = proofPayload(
             hailId = hailId,
@@ -55,6 +58,7 @@ class HailRegistryTest {
             message = message,
             durationMs = durationMs,
             placementId = placementId,
+            sizeTier = PaintBoxTier.resolve(sizeTier).tierId,
         )
         return HailRegistry.validate(
             hailId = hailId,
@@ -67,6 +71,7 @@ class HailRegistryTest {
             placementMode = Placement.MODE_PRESET,
             xPercent = null,
             yPercent = null,
+            sizeTier = sizeTier,
             brokerProof = brokerProof(payload),
         )
     }
@@ -193,6 +198,27 @@ class HailRegistryTest {
             placementMode = payload.placementMode,
             xPercent = null,
             yPercent = null,
+            brokerProof = brokerProof(payload),
+        )
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun rejects_tampered_size_tier_with_valid_broker_proof() {
+        val payload = proofPayload(sizeTier = "medium")
+        val result = HailRegistry.validate(
+            hailId = payload.hailId,
+            effectId = payload.effectId,
+            glyphId = payload.glyphId,
+            paletteId = payload.paletteId,
+            message = payload.message,
+            durationMs = payload.durationMs,
+            placementId = payload.placementId,
+            placementMode = payload.placementMode,
+            xPercent = null,
+            yPercent = null,
+            sizeTier = "large",
             brokerProof = brokerProof(payload),
         )
         assertTrue(result.isFailure)
