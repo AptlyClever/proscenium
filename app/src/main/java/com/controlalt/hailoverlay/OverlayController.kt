@@ -81,6 +81,8 @@ class OverlayController(
                             message = state.message,
                             paletteId = state.paletteId,
                             placement = state.placement,
+                            stableHoldMs = state.durationMs,
+                            onLifecycleComplete = { dismissInternal(removeOnly = true) },
                         )
                     }
                 }
@@ -105,7 +107,8 @@ class OverlayController(
             lifecycleRegistry.currentState = Lifecycle.State.RESUMED
 
             dismissRunnable = Runnable { dismissInternal(removeOnly = true) }
-            mainHandler.postDelayed(dismissRunnable!!, hail.durationMs)
+            val safetyMs = TransporterContract.totalLifecycleMs(hail.durationMs) + 500L
+            mainHandler.postDelayed(dismissRunnable!!, safetyMs)
         }
     }
 

@@ -1,10 +1,7 @@
 package com.controlalt.hailoverlay
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
@@ -15,9 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,11 +29,19 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
+
+enum class TransporterPhase {
+    ENTRANCE,
+    STABLE,
+    EXIT,
+    CLEARED,
+}
 
 data class HailPalette(
     val beamCyan: Color,
@@ -73,137 +83,188 @@ fun TransporterOverlay(
     message: String,
     paletteId: String,
     placement: Placement.Resolved,
+    stableHoldMs: Long,
+    onLifecycleComplete: () -> Unit,
 ) {
     val palette = paletteFor(paletteId)
-    val transition = rememberInfiniteTransition(label = "transporter")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "beamPhase",
-    )
-    val glyphAlpha by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "glyphAlpha",
-    )
+    var phase by remember { mutableStateOf(TransporterPhase.ENTRANCE) }
+    val entranceProgress = remember { Animatable(0f) }
+    val exitProgress = remember { Animatable(1f) }
+    var stablePulse by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(glyphId, message, stableHoldMs) {
+        phase = TransporterPhase.ENTRANCE
+        entranceProgress.snapTo(0f)
+        entranceProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = TransporterContract.ENTRANCE_MS.toInt(),
+                easing = LinearEasing,
+            ),
+        )
+        phase = TransporterPhase.STABLE
+        val stableEnd = System.currentTimeMillis() + stableHoldMs
+        while (System.currentTimeMillis() < stableEnd) {
+            stablePulse = ((System.currentTimeMillis() % 2400L) / 2400f)
+            kotlinx.coroutines.delay(32)
+        }
+        phase = TransporterPhase.EXIT
+        exitProgress.snapTo(1f)
+        exitProgress.animateTo(
+            targetValue = 0f,
+            animationSpec = tween(
+                durationMillis = TransporterContract.EXIT_MS.toInt(),
+                easing = LinearEasing,
+            ),
+        )
+        phase = TransporterPhase.CLEARED
+        onLifecycleComplete()
+    }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val density = LocalDensity.current
-        val customOffset = if (placement.placementMode == Placement.MODE_CUSTOM) {
-            val x = (placement.xPercent ?: 50f) / 100f
-            val y = (placement.yPercent ?: 50f) / 100f
-            with(density) {
-                Modifier.offset(
-                    x = (maxWidth * x) - 96.dp,
-                    y = (maxHeight * y) - 72.dp,
-                )
-            }
-        } else {
-            Modifier
+        val screenW = with(density) { maxWidth.toPx() }
+        val screenH = with(density) { maxHeight.toPx() }
+        val regions = remember(screenW, screenH, placement) {
+            PaintBoxLayout.resolve(screenW, screenH, placement)
         }
+
+        val entrance = entranceProgress.value
+        val exit = exitProgress.value
+        val glyphAlpha = when (phase) {
+            TransporterPhase.ENTRANCE -> 0.15f + entrance * 0.85f
+            TransporterPhase.STABLE -> 0.92f + sin(stablePulse * Math.PI.toFloat() * 2f) * 0.08f
+            TransporterPhase.EXIT -> exit.coerceIn(0f, 1f)
+            TransporterPhase.CLEARED -> 0f
+        }
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            when (phase) {
+                TransporterPhase.ENTRANCE -> drawLocalizedTransporterBeam(
+                    regions = regions,
+                    palette = palette,
+                    intensity = entrance,
+                    dematerializing = false,
+                )
+                TransporterPhase.STABLE -> drawStableResidual(
+                    regions = regions,
+                    palette = palette,
+                    pulse = stablePulse,
+                )
+                TransporterPhase.EXIT -> drawLocalizedTransporterBeam(
+                    regions = regions,
+                    palette = palette,
+                    intensity = exit,
+                    dematerializing = true,
+                )
+                TransporterPhase.CLEARED -> Unit
+            }
+        }
+
+        val glyphSizePx = regions.safeZoneWidth * TransporterContract.GLYPH_VISUAL_FRACTION
+        val glyphSizeDp = with(density) { glyphSizePx.toDp() }
+        val boxWidthDp = with(density) { regions.paintBoxWidth.toDp() }
+        val safePadH = with(density) { (regions.safeZoneLeft - regions.paintBoxLeft).toDp() }
+        val safePadV = with(density) { (regions.safeZoneTop - regions.paintBoxTop).toDp() }
 
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = if (placement.placementMode == Placement.MODE_CUSTOM) {
-                Alignment.TopStart
-            } else {
-                placement.alignment
-            },
+            modifier = Modifier
+                .offset {
+                    IntOffset(
+                        regions.paintBoxLeft.roundToInt(),
+                        regions.paintBoxTop.roundToInt(),
+                    )
+                }
+                .width(boxWidthDp)
+                .padding(horizontal = safePadH, vertical = safePadV),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawTransporterBeam(phase, palette)
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = customOffset
-                    .padding(horizontal = 48.dp)
-                    .padding(vertical = placementPadding(placement.placementId)),
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 GlyphDisplay(
                     glyphId = glyphId,
-                    tint = palette.beamWhite.copy(alpha = glyphAlpha),
-                    size = 96.dp,
+                    tint = palette.beamWhite.copy(alpha = glyphAlpha.coerceIn(0f, 1f)),
+                    size = glyphSizeDp.coerceAtLeast(48.dp),
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = message,
-                    fontSize = 32.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = palette.messageColor,
+                    color = palette.messageColor.copy(alpha = glyphAlpha.coerceIn(0f, 1f)),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 12.dp),
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
             }
         }
     }
 }
 
-private fun placementPadding(placementId: String): Dp {
-    return when (placementId) {
-        "top_right", "top_left" -> 48.dp
-        "bottom_right", "bottom_left", "lower_center" -> 72.dp
-        "center_soft" -> 0.dp
-        else -> 32.dp
+private fun DrawScope.drawLocalizedTransporterBeam(
+    regions: PaintBoxLayout.Regions,
+    palette: HailPalette,
+    intensity: Float,
+    dematerializing: Boolean,
+) {
+    if (intensity <= 0.01f) {
+        return
     }
-}
 
-private fun DrawScope.drawTransporterBeam(phase: Float, palette: HailPalette) {
-    val centerX = size.width / 2f
-    val beamTop = size.height * 0.02f
-    val beamBottom = size.height * 0.72f
-    val beamWidth = size.width * 0.18f
-
-    drawRect(color = palette.backdropTint, size = size)
+    val cx = regions.glyphCenterX
+    val beamW = regions.beamWidth
+    val beamH = regions.beamHeight
+    val beamTop = regions.glyphCenterY - beamH * (if (dematerializing) 0.35f else 0.85f)
+    val beamBottom = regions.glyphCenterY + beamH * 0.25f
+    val alphaScale = intensity.coerceIn(0f, 1f)
 
     drawRect(
         brush = Brush.verticalGradient(
             colors = listOf(
-                palette.beamWhite.copy(alpha = 0.85f),
-                palette.beamCyan.copy(alpha = 0.55f),
-                palette.beamBase.copy(alpha = 0.15f),
+                palette.beamWhite.copy(alpha = 0.75f * alphaScale),
+                palette.beamCyan.copy(alpha = 0.45f * alphaScale),
+                palette.beamBase.copy(alpha = 0.12f * alphaScale),
                 Color.Transparent,
             ),
             startY = beamTop,
             endY = beamBottom,
         ),
-        topLeft = Offset(centerX - beamWidth / 2f, beamTop),
-        size = androidx.compose.ui.geometry.Size(beamWidth, beamBottom - beamTop),
+        topLeft = Offset(cx - beamW / 2f, beamTop),
+        size = androidx.compose.ui.geometry.Size(beamW, beamBottom - beamTop),
     )
 
-    val particleCount = 28
-    val random = Random(42)
+    val particleCount = 12
+    val random = Random(if (dematerializing) 7 else 3)
     repeat(particleCount) { index ->
-        val baseY = beamTop + (beamBottom - beamTop) * ((index / particleCount.toFloat()) + phase) % 1f
-        val wobble = sin((index + phase * 10f) * 0.7f) * beamWidth * 0.25f
-        val x = centerX + wobble
-        val radius = 4f + random.nextFloat() * 5f
+        val travel = if (dematerializing) 1f - intensity else intensity
+        val baseY = beamTop + (beamBottom - beamTop) * ((index / particleCount.toFloat()) + travel * 0.35f) % 1f
+        val wobble = sin((index + travel * 8f) * 0.9f) * beamW * 0.18f
         drawCircle(
-            color = palette.beamWhite.copy(alpha = 0.35f + random.nextFloat() * 0.4f),
-            radius = radius,
-            center = Offset(x, baseY),
+            color = palette.beamWhite.copy(alpha = (0.25f + random.nextFloat() * 0.35f) * alphaScale),
+            radius = 2.5f + random.nextFloat() * 3f,
+            center = Offset(cx + wobble, baseY),
         )
     }
+}
 
+private fun DrawScope.drawStableResidual(
+    regions: PaintBoxLayout.Regions,
+    palette: HailPalette,
+    pulse: Float,
+) {
+    val cx = regions.glyphCenterX
+    val cy = regions.glyphCenterY
+    val r = regions.beamWidth * 0.55f
+    val pulseAlpha = 0.08f + sin(pulse * Math.PI.toFloat() * 2f) * 0.04f
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                palette.beamWhite.copy(alpha = 0.55f),
-                palette.beamCyan.copy(alpha = 0.25f),
+                palette.beamWhite.copy(alpha = pulseAlpha),
+                palette.beamCyan.copy(alpha = pulseAlpha * 0.45f),
                 Color.Transparent,
             ),
-            center = Offset(centerX, size.height * 0.28f),
-            radius = beamWidth * 0.9f,
+            center = Offset(cx, cy),
+            radius = r,
         ),
-        radius = beamWidth * 0.9f,
-        center = Offset(centerX, size.height * 0.28f),
+        radius = r,
+        center = Offset(cx, cy),
     )
 }
