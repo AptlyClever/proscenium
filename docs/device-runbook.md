@@ -19,7 +19,7 @@ adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay
 | Room | TV IP | Overlay URL |
 |------|-------|-------------|
 | Arcade | `192.168.68.105` | `http://192.168.68.105:8765/hail/show` |
-| Master Bedroom | `192.168.68.102` | `http://192.168.68.102:8765/hail/show` |
+| Master Bedroom | `192.168.68.91` | `http://192.168.68.91:8765/hail/show` |
 
 ## First boot
 
@@ -61,7 +61,7 @@ curl -sS -X POST "http://<tv-ip>:8765/hail/show" \
 
 ## LCARD send path (after adapter merge)
 
-LCARD brokers `POST /api/hails/:id/send` → hail overlay HTTP on target room TV → TvOverlay HA script fallback on failure.
+LCARD brokers `POST /api/hails/:id/send` → Hail overlay HTTP on target room Google TV.
 
 ## Troubleshooting
 
@@ -70,7 +70,7 @@ LCARD brokers `POST /api/hails/:id/send` → hail overlay HTTP on target room TV
 | No overlay | `adb shell appops get com.controlalt.hailoverlay SYSTEM_ALERT_WINDOW` → must be `allow` |
 | curl connection refused | Open app and start listener service |
 | App returns to launcher on hail | Check logcat for Compose crash; ensure v1.0.0-v001+ |
-| Overlay missing on DRM app only | Expected on some secure-surface apps; LCARD falls back to TvOverlay toast |
+| Overlay missing on DRM app only | Expected on some secure-surface apps; verify Hail listener health |
 
 ## Explicit non-actions
 
