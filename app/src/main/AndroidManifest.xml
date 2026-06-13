@@ -23,15 +23,33 @@
         android:theme="@style/Theme.HailOverlayPoc">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".LauncherStartActivity"
             android:exported="true"
             android:banner="@drawable/tv_banner"
-            android:label="@string/app_name">
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.HailOverlayLauncher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".DiagnosticsActivity"
+            android:exported="true"
+            android:label="Control Alt Hails Diagnostics"
+            android:theme="@style/Theme.HailOverlayPoc">
+            <intent-filter>
+                <action android:name="com.controlalt.hailoverlay.action.OPEN_DIAGNOSTICS" />
+
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

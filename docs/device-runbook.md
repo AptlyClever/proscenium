@@ -1,7 +1,7 @@
 # Control Alt Hails — Google TV device runbook v001
 
 **Package:** `com.controlalt.hailoverlay`  
-**Launcher name:** Control Alt Hails  
+**Launcher name:** Hail  
 **HTTP port:** `8765`  
 **Platform:** Google TV / Android TV streamer boxes only
 
@@ -23,7 +23,7 @@ adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay
 
 ## First boot
 
-1. Launch **Control Alt Hails** once after install — the app starts the hail listener and exits immediately (no launcher screen left on the TV).
+1. Launch **Hail** once after install — the launcher trampoline starts the hail listener and exits immediately (no UI left on the TV).
 2. Confirm health:
 
 ```bash
@@ -32,13 +32,15 @@ curl -sS http://<tv-ip>:8765/health
 
 ### Diagnostics screen (optional)
 
-Open the full operator diagnostics UI when needed:
+Open the explicit diagnostics UI when needed:
 
 ```bash
-adb shell am start -n com.controlalt.hailoverlay/.MainActivity --ez show_diagnostics true
+adb shell am start -n com.controlalt.hailoverlay/.DiagnosticsActivity
+# or
+adb shell am start -a com.controlalt.hailoverlay.action.OPEN_DIAGNOSTICS -n com.controlalt.hailoverlay/.DiagnosticsActivity
 ```
 
-Boot receiver also attempts auto-start when overlay permission is already granted.
+Normal launcher entry is `com.controlalt.hailoverlay/.LauncherStartActivity` (via app icon).
 
 ## Manual hail test
 

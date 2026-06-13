@@ -1,5 +1,6 @@
 package com.controlalt.hailoverlay
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -29,35 +30,28 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-class MainActivity : ComponentActivity() {
+class DiagnosticsActivity : ComponentActivity() {
 
     private var overlayGranted by mutableStateOf(false)
-    private var serviceRunning by mutableStateOf(false)
+    private var readiness by mutableStateOf(HailOverlayServiceHolder.snapshot())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.setBackgroundDrawableResource(android.R.color.black)
         super.onCreate(savedInstanceState)
-
-        if (!shouldShowDiagnostics(intent)) {
-            HailOverlayService.start(this)
-            finish()
-            return
-        }
-
         refreshState()
         setContent {
             MaterialTheme {
                 DiagnosticsScreen(
                     overlayGranted = overlayGranted,
-                    serviceRunning = serviceRunning,
+                    readiness = readiness,
                     onRefresh = { refreshState() },
                     onOpenOverlaySettings = { openOverlaySettings() },
                     onStartService = {
-                        HailOverlayService.start(this)
+                        HailOverlayService.start(applicationContext)
                         refreshState()
                     },
                     onStopService = {
-                        HailOverlayService.stop(this)
+                        HailOverlayService.stop(applicationContext)
                         refreshState()
                     },
                     onPreviewOverlay = { previewOverlay() },
@@ -66,33 +60,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        if (!shouldShowDiagnostics(intent)) {
-            HailOverlayService.start(this)
-            finish()
-        }
-    }
-
     override fun onResume() {
         super.onResume()
-        if (shouldShowDiagnostics(intent)) {
-            refreshState()
-        }
+        refreshState()
     }
 
     private fun refreshState() {
         overlayGranted = Settings.canDrawOverlays(this)
-        serviceRunning = HailOverlayServiceHolder.isRunning
+        readiness = HailOverlayServiceHolder.snapshot()
     }
 
     private fun openOverlaySettings() {
-        val settingsIntent = Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:$packageName"),
+        startActivity(
+            Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName"),
+            ),
         )
-        startActivity(settingsIntent)
     }
 
     private fun previewOverlay() {
@@ -100,8 +84,8 @@ class MainActivity : ComponentActivity() {
             return
         }
         val hail = buildPreviewHail() ?: return
-        if (!serviceRunning) {
-            HailOverlayService.start(this)
+        if (!readiness.serviceRunning) {
+            HailOverlayService.start(applicationContext)
             refreshState()
         }
         PreviewOverlayTrigger.show(this, hail)
@@ -145,37 +129,18 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_SHOW_DIAGNOSTICS = "show_diagnostics"
-
-        fun diagnosticsIntent(context: android.content.Context): Intent {
-            return Intent(context, MainActivity::class.java).putExtra(EXTRA_SHOW_DIAGNOSTICS, true)
+        fun openIntent(context: Context): Intent {
+            return Intent(context, DiagnosticsActivity::class.java).apply {
+                action = OverlayAppRouting.ACTION_OPEN_DIAGNOSTICS
+            }
         }
-
-        private fun shouldShowDiagnostics(intent: Intent?): Boolean {
-            return intent?.getBooleanExtra(EXTRA_SHOW_DIAGNOSTICS, false) == true
-        }
-    }
-}
-
-object HailOverlayServiceHolder {
-    var isRunning: Boolean = false
-}
-
-object PreviewOverlayTrigger {
-    private var controller: OverlayController? = null
-
-    fun show(context: android.content.Context, hail: HailRegistry.ValidatedHail) {
-        if (controller == null) {
-            controller = OverlayController(context.applicationContext)
-        }
-        controller?.show(hail)
     }
 }
 
 @Composable
 private fun DiagnosticsScreen(
     overlayGranted: Boolean,
-    serviceRunning: Boolean,
+    readiness: HailOverlayServiceHolder.Readiness,
     onRefresh: () -> Unit,
     onOpenOverlaySettings: () -> Unit,
     onStartService: () -> Unit,
@@ -206,10 +171,19 @@ private fun DiagnosticsScreen(
         )
         Spacer(modifier = Modifier.height(32.dp))
         StatusLine("Overlay permission", if (overlayGranted) "granted" else "missing (use ADB on Google TV)")
-        StatusLine("Listener service", if (serviceRunning) "running" else "stopped")
+        StatusLine("Service", if (readiness.serviceRunning) "running" else "stopped")
+        StatusLine(
+            "Listener",
+            when {
+                readiness.listenerListening -> "listening on port ${readiness.port}"
+                readiness.lastStartupError != null -> "not ready — ${readiness.lastStartupError}"
+                readiness.serviceRunning -> "starting"
+                else -> "stopped"
+            },
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onStartService, modifier = Modifier.widthIn(min = 280.dp)) {
-            Text("Start hail listener service")
+            Text(if (readiness.listenerListening) "Restart hail listener" else "Start / retry hail listener")
         }
         Spacer(modifier = Modifier.height(12.dp))
         Button(onClick = onStopService, modifier = Modifier.widthIn(min = 280.dp)) {

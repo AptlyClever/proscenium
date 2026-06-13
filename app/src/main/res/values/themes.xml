@@ -3,4 +3,6 @@
     <style name="Theme.HailOverlayPoc" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
     </style>
+
+    <style name="Theme.HailOverlayLauncher" parent="@android:style/Theme.NoDisplay" />
 </resources>

@@ -19,38 +19,48 @@ class HailOverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        HailOverlayServiceHolder.isRunning = true
+        HailOverlayServiceHolder.markServiceStarting()
         overlayController = OverlayController(applicationContext)
         startForeground(NOTIFICATION_ID, buildNotification())
-        startHttpServer()
+        ensureHttpServer()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        ensureHttpServer()
+        updateNotification()
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        HailOverlayServiceHolder.isRunning = false
+        HailOverlayServiceHolder.markStopped()
         stopHttpServer()
         overlayController.dismiss()
         super.onDestroy()
     }
 
-    private fun startHttpServer() {
-        if (httpServer != null) {
+    private fun ensureHttpServer() {
+        if (httpServer != null && HailOverlayServiceHolder.snapshot().listenerListening) {
             return
+        }
+        if (httpServer != null) {
+            stopHttpServer()
         }
         httpServer = HailHttpServer { hail ->
             overlayController.show(hail)
         }.also { server ->
             runCatching { server.start() }
                 .onSuccess {
+                    HailOverlayServiceHolder.markListenerListening()
                     Log.i(TAG, "Hail HTTP server listening on port ${HailRegistry.HTTP_PORT}")
+                    updateNotification()
                 }
                 .onFailure { error ->
+                    val message = error.message ?: "listener startup failed"
+                    HailOverlayServiceHolder.markListenerFailed(message)
                     Log.e(TAG, "Failed to start hail HTTP server", error)
+                    updateNotification()
                 }
         }
     }
@@ -68,18 +78,30 @@ class HailOverlayService : Service() {
         val launchIntent = PendingIntent.getActivity(
             this,
             0,
-            MainActivity.diagnosticsIntent(this),
+            DiagnosticsActivity.openIntent(this),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        val readiness = HailOverlayServiceHolder.snapshot()
+        val body = when {
+            readiness.listenerListening -> getString(R.string.service_notification_body)
+            readiness.lastStartupError != null -> getString(R.string.service_notification_listener_error)
+            else -> getString(R.string.service_notification_starting)
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.service_notification_title))
-            .setContentText(getString(R.string.service_notification_body))
+            .setContentText(body)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentIntent(launchIntent)
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
             .build()
+    }
+
+    private fun updateNotification() {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(NOTIFICATION_ID, buildNotification())
     }
 
     private fun createNotificationChannel() {

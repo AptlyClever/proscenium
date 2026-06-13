@@ -14,7 +14,7 @@ class HailHttpServer(
         if (uri == "/health" && method == Method.GET) {
             return jsonResponse(
                 status = Response.Status.OK,
-                body = """{"status":"ok","port":${HailRegistry.HTTP_PORT},"app":"control-alt-hails","version":"1.0.0-v001"}""",
+                body = """{"status":"ok","port":${HailRegistry.HTTP_PORT},"app":"control-alt-hails","version":"${BuildConfig.VERSION_NAME}"}""",
             )
         }
 

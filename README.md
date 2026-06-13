@@ -39,7 +39,7 @@ adb shell appops set com.controlalt.hailoverlay SYSTEM_ALERT_WINDOW allow
 adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay   # optional
 ```
 
-Launch **Hail Overlay PoC** on the TV and tap **Start hail listener service**.
+Launch **Hail** on the TV from the app icon — the launcher trampoline starts the hail listener and exits immediately.
 
 ## Trigger hail
 
