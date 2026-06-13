@@ -45,12 +45,17 @@ object PaintBoxLayout {
         val safeLeft = left + boxW * inset
         val safeTop = top + boxH * inset
 
-        val glyphH = safeH * TransporterContract.GLYPH_FOCUS_FRACTION * 0.35f
+        val glyphH = safeH * TransporterContract.GLYPH_FOCUS_FRACTION
+        val glyphW = minOf(safeW, glyphH * TransporterContract.GLYPH_WIDTH_ASPECT)
+        val glyphTop = safeTop + safeH * TransporterContract.GLYPH_FOCUS_TOP_FRACTION
         val glyphCenterX = safeLeft + safeW / 2f
-        val glyphCenterY = safeTop + safeH * 0.22f + glyphH / 2f
+        val glyphCenterY = glyphTop + glyphH / 2f
 
         val beamH = minOf(safeH, glyphH * TransporterContract.TRANSPORTER_BEAM_HEIGHT_MULTIPLIER)
-        val beamW = minOf(safeW * 0.72f, boxW * 0.22f)
+        val beamW = minOf(
+            safeW * TransporterContract.BEAM_WIDTH_SAFE_ZONE_FRACTION,
+            glyphW * TransporterContract.BEAM_WIDTH_GLYPH_FRACTION,
+        )
 
         return Regions(
             paintBoxLeft = left,

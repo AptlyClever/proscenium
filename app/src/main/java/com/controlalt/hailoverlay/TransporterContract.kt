@@ -11,9 +11,13 @@ object TransporterContract {
     const val GROUP_WIDTH_FRACTION = 0.32f
     const val GROUP_HEIGHT_FRACTION = 0.34f
     const val SAFE_ZONE_INSET_FRACTION = 0.11f
-    const val GLYPH_FOCUS_FRACTION = 0.62f
-    const val GLYPH_VISUAL_FRACTION = 0.46f
-    const val TRANSPORTER_BEAM_HEIGHT_MULTIPLIER = 1.55f
+    const val GLYPH_FOCUS_FRACTION = 0.64f
+    const val GLYPH_FOCUS_TOP_FRACTION = 0.06f
+    const val GLYPH_WIDTH_ASPECT = 1.05f
+    const val GLYPH_VISUAL_FRACTION = 0.5f
+    const val TRANSPORTER_BEAM_HEIGHT_MULTIPLIER = 1.5f
+    const val BEAM_WIDTH_SAFE_ZONE_FRACTION = 0.72f
+    const val BEAM_WIDTH_GLYPH_FRACTION = 0.62f
 
     const val HORIZONTAL_INSET_FRACTION = 0.065f
     const val TOP_INSET_FRACTION = 0.085f
