@@ -297,6 +297,16 @@ export function glyphMarkup(glyphId, contract) {
       "</svg>"
     );
   }
+  if (glyphId === "hail-eye-check") {
+    return (
+      '<svg class="hail-glyph-svg" viewBox="0 0 96 96" aria-hidden="true">' +
+      '<ellipse cx="48" cy="42" rx="24" ry="16" fill="none" stroke="currentColor" stroke-width="4.5"/>' +
+      '<circle cx="48" cy="42" r="8" fill="currentColor" opacity="0.85"/>' +
+      '<circle cx="51" cy="39" r="2.5" fill="currentColor" opacity="0.85"/>' +
+      '<path fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M34,66 L42,74 L62,50"/>' +
+      "</svg>"
+    );
+  }
   const emoji = contract.glyphs.emojiFallback[glyphId] || contract.glyphs.emojiFallback.default;
   return '<span class="hail-glyph-emoji" aria-hidden="true">' + emoji + "</span>";
 }

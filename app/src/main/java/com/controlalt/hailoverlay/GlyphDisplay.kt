@@ -40,6 +40,7 @@ fun GlyphDisplay(
 private fun glyphDrawableId(glyphId: String): Int? {
     return when (glyphId) {
         "hail-sniffer" -> R.drawable.glyph_hail_sniffer
+        "hail-eye-check" -> R.drawable.glyph_hail_eye_check
         "default" -> R.drawable.glyph_default
         else -> null
     }
@@ -48,6 +49,7 @@ private fun glyphDrawableId(glyphId: String): Int? {
 private fun glyphEmojiFallback(glyphId: String): String {
     return when (glyphId) {
         "hail-sniffer" -> "👃"
+        "hail-eye-check" -> "◎"
         else -> "✦"
     }
 }

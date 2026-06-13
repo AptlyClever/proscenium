@@ -6,7 +6,7 @@ object HailRegistry {
     const val MAX_DURATION_MS = 30_000L
 
     private val allowedEffectIds = setOf("transporter_beam")
-    private val allowedGlyphIds = setOf("hail-sniffer", "default")
+    private val allowedGlyphIds = setOf("hail-sniffer", "hail-eye-check", "default")
     private val allowedPaletteIds = setOf("axiom_dark_cyan", "transporter_white", "cute_purple")
 
     data class ValidatedHail(

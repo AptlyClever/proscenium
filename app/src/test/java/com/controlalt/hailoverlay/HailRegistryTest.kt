@@ -205,6 +205,17 @@ class HailRegistryTest {
     }
 
     @Test
+    fun accepts_hail_eye_check_glyph() {
+        val result = validBase(
+            hailId = "hail.can_i_see_this.001",
+            glyphId = "hail-eye-check",
+            message = "Can I see this?",
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("hail-eye-check", result.getOrNull()?.glyphId)
+    }
+
+    @Test
     fun rejects_invalid_glyph() {
         assertTrue(validBase(glyphId = "unknown-glyph").isFailure)
     }
