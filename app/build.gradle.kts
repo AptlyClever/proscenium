@@ -6,8 +6,17 @@ plugins {
 val overlayBrokerSecret = (
     project.findProperty("overlayBrokerSecret") as String?
         ?: System.getenv("LCARD_OVERLAY_BROKER_SECRET")
-        ?: "test-broker-secret-001"
+        ?: ""
     ).trim()
+
+fun requireOverlayBrokerSecret(taskLabel: String) {
+    if (overlayBrokerSecret.length < 16) {
+        throw GradleException(
+            "Missing overlay broker secret for $taskLabel. " +
+                "Set LCARD_OVERLAY_BROKER_SECRET (min 16 chars) or -PoverlayBrokerSecret=... before building the APK.",
+        )
+    }
+}
 
 android {
     namespace = "com.controlalt.hailoverlay"
@@ -17,9 +26,13 @@ android {
         applicationId = "com.controlalt.hailoverlay"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "1.0.5-v001"
-        buildConfigField("String", "OVERLAY_BROKER_SECRET", "\"${overlayBrokerSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+        versionCode = 11
+        versionName = "1.0.6-v001"
+        buildConfigField(
+            "String",
+            "OVERLAY_BROKER_SECRET",
+            "\"${overlayBrokerSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\"",
+        )
     }
 
     buildTypes {
@@ -56,6 +69,14 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+listOf("assembleDebug", "assembleRelease").forEach { taskName ->
+    tasks.matching { it.name == taskName }.configureEach {
+        doFirst {
+            requireOverlayBrokerSecret(taskName)
         }
     }
 }

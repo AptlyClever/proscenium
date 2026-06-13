@@ -10,13 +10,32 @@ class HailRegistryTest {
         const val TEST_SECRET = "test-broker-secret-001"
     }
 
-    private fun brokerProof(
+    private fun proofPayload(
         hailId: String = "hail.sniffer.001",
         effectId: String = "transporter_beam",
         glyphId: String = "hail-sniffer",
+        paletteId: String = "axiom_dark_cyan",
+        message: String = "What's sniffing?",
         durationMs: Long = 5500L,
-    ): String {
-        return OverlayBrokerGate.computeProof(TEST_SECRET, hailId, effectId, glyphId, durationMs)
+        placementId: String = "upper_center",
+        placementMode: String = Placement.MODE_PRESET,
+        xPercent: Float? = null,
+        yPercent: Float? = null,
+    ): OverlayBrokerGate.BrokerProofPayload {
+        val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent).getOrThrow()
+        return OverlayBrokerGate.brokerProofPayloadFromValidated(
+            hailId = hailId,
+            effectId = effectId,
+            glyphId = glyphId,
+            paletteId = paletteId,
+            message = message,
+            durationMs = durationMs,
+            placement = placement,
+        )
+    }
+
+    private fun brokerProof(payload: OverlayBrokerGate.BrokerProofPayload): String {
+        return OverlayBrokerGate.computeProof(TEST_SECRET, payload)
     }
 
     private fun validBase(
@@ -27,19 +46,30 @@ class HailRegistryTest {
         placementId: String = "upper_center",
         hailId: String = "hail.sniffer.001",
         durationMs: Long = 5500L,
-    ) = HailRegistry.validate(
-        hailId = hailId,
-        effectId = effectId,
-        glyphId = glyphId,
-        paletteId = paletteId,
-        message = message,
-        durationMs = durationMs,
-        placementId = placementId,
-        placementMode = Placement.MODE_PRESET,
-        xPercent = null,
-        yPercent = null,
-        brokerProof = brokerProof(hailId = hailId, effectId = effectId, glyphId = glyphId, durationMs = durationMs),
-    )
+    ): Result<HailRegistry.ValidatedHail> {
+        val payload = proofPayload(
+            hailId = hailId,
+            effectId = effectId,
+            glyphId = glyphId,
+            paletteId = paletteId,
+            message = message,
+            durationMs = durationMs,
+            placementId = placementId,
+        )
+        return HailRegistry.validate(
+            hailId = hailId,
+            effectId = effectId,
+            glyphId = glyphId,
+            paletteId = paletteId,
+            message = message,
+            durationMs = durationMs,
+            placementId = placementId,
+            placementMode = Placement.MODE_PRESET,
+            xPercent = null,
+            yPercent = null,
+            brokerProof = brokerProof(payload),
+        )
+    }
 
     @Test
     fun accepts_valid_axiom_variant_message() {
@@ -89,22 +119,81 @@ class HailRegistryTest {
 
     @Test
     fun rejects_invalid_broker_proof() {
-        val hailId = "hail.sniffer.001"
-        val effectId = "transporter_beam"
-        val glyphId = "hail-sniffer"
-        val durationMs = 5500L
+        val result = validBase().let { _ ->
+            HailRegistry.validate(
+                hailId = "hail.sniffer.001",
+                effectId = "transporter_beam",
+                glyphId = "hail-sniffer",
+                paletteId = "axiom_dark_cyan",
+                message = "Bad proof",
+                durationMs = 5500L,
+                placementId = "upper_center",
+                placementMode = Placement.MODE_PRESET,
+                xPercent = null,
+                yPercent = null,
+                brokerProof = "deadbeef",
+            )
+        }
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun rejects_tampered_message_with_valid_broker_proof() {
+        val payload = proofPayload(message = "Original message")
+        val tamperedProof = brokerProof(payload)
         val result = HailRegistry.validate(
-            hailId = hailId,
-            effectId = effectId,
-            glyphId = glyphId,
-            paletteId = "axiom_dark_cyan",
-            message = "Bad proof",
-            durationMs = durationMs,
-            placementId = "upper_center",
-            placementMode = Placement.MODE_PRESET,
+            hailId = payload.hailId,
+            effectId = payload.effectId,
+            glyphId = payload.glyphId,
+            paletteId = payload.paletteId,
+            message = "Tampered message",
+            durationMs = payload.durationMs,
+            placementId = payload.placementId,
+            placementMode = payload.placementMode,
             xPercent = null,
             yPercent = null,
-            brokerProof = "deadbeef",
+            brokerProof = tamperedProof,
+        )
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun rejects_tampered_palette_with_valid_broker_proof() {
+        val payload = proofPayload(paletteId = "axiom_dark_cyan")
+        val result = HailRegistry.validate(
+            hailId = payload.hailId,
+            effectId = payload.effectId,
+            glyphId = payload.glyphId,
+            paletteId = "transporter_white",
+            message = payload.message,
+            durationMs = payload.durationMs,
+            placementId = payload.placementId,
+            placementMode = payload.placementMode,
+            xPercent = null,
+            yPercent = null,
+            brokerProof = brokerProof(payload),
+        )
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun rejects_tampered_placement_with_valid_broker_proof() {
+        val payload = proofPayload(placementId = "upper_center")
+        val result = HailRegistry.validate(
+            hailId = payload.hailId,
+            effectId = payload.effectId,
+            glyphId = payload.glyphId,
+            paletteId = payload.paletteId,
+            message = payload.message,
+            durationMs = payload.durationMs,
+            placementId = "lower_center",
+            placementMode = payload.placementMode,
+            xPercent = null,
+            yPercent = null,
+            brokerProof = brokerProof(payload),
         )
         assertTrue(result.isFailure)
         assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
@@ -127,7 +216,21 @@ class HailRegistryTest {
 
     @Test
     fun rejects_invalid_placement() {
-        assertTrue(validBase(placementId = "offscreen").isFailure)
+        val payload = proofPayload(placementId = "upper_center")
+        val result = HailRegistry.validate(
+            hailId = payload.hailId,
+            effectId = payload.effectId,
+            glyphId = payload.glyphId,
+            paletteId = payload.paletteId,
+            message = payload.message,
+            durationMs = payload.durationMs,
+            placementId = "offscreen",
+            placementMode = Placement.MODE_PRESET,
+            xPercent = null,
+            yPercent = null,
+            brokerProof = brokerProof(payload),
+        )
+        assertTrue(result.isFailure)
     }
 
     @Test

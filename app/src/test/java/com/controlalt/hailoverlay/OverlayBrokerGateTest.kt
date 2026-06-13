@@ -9,6 +9,26 @@ class OverlayBrokerGateTest {
         const val TEST_SECRET = "test-broker-secret-001"
     }
 
+    private fun samplePayload(
+        hailId: String = "hail.dynamic.test.001",
+        message: String = "Dynamic hail broker test",
+        placementId: String = "upper_center",
+        placementMode: String = Placement.MODE_PRESET,
+        xPercent: Float? = null,
+        yPercent: Float? = null,
+    ): OverlayBrokerGate.BrokerProofPayload {
+        val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent).getOrThrow()
+        return OverlayBrokerGate.brokerProofPayloadFromValidated(
+            hailId = hailId,
+            effectId = "transporter_beam",
+            glyphId = "hail-sniffer",
+            paletteId = "axiom_dark_cyan",
+            message = message,
+            durationMs = 5000L,
+            placement = placement,
+        )
+    }
+
     @Test
     fun validateHailId_accepts_dynamic_id() {
         val result = OverlayBrokerGate.validateHailId("hail.dynamic.test.001")
@@ -22,38 +42,70 @@ class OverlayBrokerGateTest {
     }
 
     @Test
-    fun validateBrokerProof_accepts_matching_proof() {
-        val hailId = "hail.dynamic.test.001"
-        val effectId = "transporter_beam"
-        val glyphId = "hail-sniffer"
-        val durationMs = 5000L
-        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, hailId, effectId, glyphId, durationMs)
-        val result = OverlayBrokerGate.validateBrokerProof(proof, hailId, effectId, glyphId, durationMs)
+    fun canonicalProofInput_includes_full_render_payload() {
+        val payload = samplePayload()
+        val canonical = OverlayBrokerGate.canonicalProofInput(payload)
+        assertEquals(
+            "hail.dynamic.test.001|transporter_beam|hail-sniffer|axiom_dark_cyan|Dynamic hail broker test|5000|upper_center|preset||",
+            canonical,
+        )
+    }
+
+    @Test
+    fun validateBrokerProofWithSecret_accepts_matching_proof() {
+        val payload = samplePayload()
+        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, payload)
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret(proof, payload, TEST_SECRET)
         assertTrue(result.isSuccess)
     }
 
     @Test
-    fun validateBrokerProof_rejects_missing_proof() {
-        val result = OverlayBrokerGate.validateBrokerProof(
-            brokerProof = null,
-            hailId = "hail.dynamic.test.001",
-            effectId = "transporter_beam",
-            glyphId = "hail-sniffer",
-            durationMs = 5000L,
-        )
+    fun validateBrokerProofWithSecret_rejects_missing_proof() {
+        val payload = samplePayload()
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret(null, payload, TEST_SECRET)
         assertTrue(result.isFailure)
         assertEquals(OverlayBrokerGate.ERROR_REQUIRED, result.exceptionOrNull()?.message)
     }
 
     @Test
-    fun validateBrokerProof_rejects_wrong_proof() {
-        val result = OverlayBrokerGate.validateBrokerProof(
-            brokerProof = "deadbeef",
-            hailId = "hail.dynamic.test.001",
-            effectId = "transporter_beam",
-            glyphId = "hail-sniffer",
-            durationMs = 5000L,
+    fun validateBrokerProofWithSecret_rejects_wrong_proof() {
+        val payload = samplePayload()
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret("deadbeef", payload, TEST_SECRET)
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun validateBrokerProofWithSecret_rejects_tampered_message() {
+        val payload = samplePayload(message = "Signed message")
+        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, payload)
+        val tampered = payload.copy(message = "Changed message")
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret(proof, tampered, TEST_SECRET)
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun validateBrokerProofWithSecret_rejects_tampered_palette() {
+        val payload = samplePayload()
+        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, payload)
+        val tampered = payload.copy(paletteId = "transporter_white")
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret(proof, tampered, TEST_SECRET)
+        assertTrue(result.isFailure)
+        assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun validateBrokerProofWithSecret_rejects_tampered_custom_placement() {
+        val payload = samplePayload(
+            placementId = "custom",
+            placementMode = Placement.MODE_CUSTOM,
+            xPercent = 72f,
+            yPercent = 18f,
         )
+        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, payload)
+        val tampered = payload.copy(yPercent = 24f)
+        val result = OverlayBrokerGate.validateBrokerProofWithSecret(proof, tampered, TEST_SECRET)
         assertTrue(result.isFailure)
         assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
     }

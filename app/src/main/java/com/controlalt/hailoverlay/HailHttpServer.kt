@@ -48,9 +48,14 @@ class HailHttpServer(
                     OverlayBrokerGate.ERROR_INVALID -> OverlayBrokerGate.ERROR_INVALID
                     else -> "not_allowlisted"
                 }
+                val responseDetail = when (detail) {
+                    OverlayBrokerGate.ERROR_REQUIRED -> OverlayBrokerGate.DETAIL_REQUIRED
+                    OverlayBrokerGate.ERROR_INVALID -> OverlayBrokerGate.DETAIL_INVALID
+                    else -> detail
+                }
                 return jsonResponse(
                     status = Response.Status.BAD_REQUEST,
-                    body = """{"error":"$errorCode","detail":"$detail"}""",
+                    body = """{"error":"$errorCode","detail":"$responseDetail"}""",
                 )
             }
 

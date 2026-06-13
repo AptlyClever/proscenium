@@ -53,16 +53,23 @@ object HailRegistry {
         val normalizedHailId = OverlayBrokerGate.validateHailId(hailId.orEmpty())
             .getOrElse { return Result.failure(it) }
 
-        OverlayBrokerGate.validateBrokerProof(
-            brokerProof = brokerProof,
+        val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent)
+            .getOrElse { return Result.failure(it) }
+
+        val proofPayload = OverlayBrokerGate.brokerProofPayloadFromValidated(
             hailId = normalizedHailId,
             effectId = effectId,
             glyphId = glyphId,
+            paletteId = palette,
+            message = validatedMessage,
             durationMs = durationMs,
-        ).getOrElse { return Result.failure(it) }
+            placement = placement,
+        )
 
-        val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent)
-            .getOrElse { return Result.failure(it) }
+        OverlayBrokerGate.validateBrokerProof(
+            brokerProof = brokerProof,
+            payload = proofPayload,
+        ).getOrElse { return Result.failure(it) }
 
         return Result.success(
             ValidatedHail(
