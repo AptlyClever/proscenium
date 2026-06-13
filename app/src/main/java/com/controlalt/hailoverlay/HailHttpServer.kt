@@ -42,9 +42,15 @@ class HailHttpServer(
             }
 
             val validated = parsed.validate().getOrElse { error ->
+                val detail = error.message.orEmpty()
+                val errorCode = when (detail) {
+                    OverlayBrokerGate.ERROR_REQUIRED -> OverlayBrokerGate.ERROR_REQUIRED
+                    OverlayBrokerGate.ERROR_INVALID -> OverlayBrokerGate.ERROR_INVALID
+                    else -> "not_allowlisted"
+                }
                 return jsonResponse(
                     status = Response.Status.BAD_REQUEST,
-                    body = """{"error":"not_allowlisted","detail":"${error.message}"}""",
+                    body = """{"error":"$errorCode","detail":"$detail"}""",
                 )
             }
 

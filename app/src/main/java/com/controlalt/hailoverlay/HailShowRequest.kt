@@ -13,6 +13,7 @@ data class HailShowRequest(
     val placementMode: String?,
     val xPercent: Float?,
     val yPercent: Float?,
+    val brokerProof: String?,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
@@ -29,6 +30,7 @@ data class HailShowRequest(
                     placementMode = json.optString("placement_mode").ifBlank { null },
                     xPercent = if (json.has("x_percent")) json.getDouble("x_percent").toFloat() else null,
                     yPercent = if (json.has("y_percent")) json.getDouble("y_percent").toFloat() else null,
+                    brokerProof = json.optString("broker_proof").ifBlank { null },
                 )
             }
         }
@@ -46,6 +48,7 @@ data class HailShowRequest(
             placementMode = placementMode,
             xPercent = xPercent,
             yPercent = yPercent,
+            brokerProof = brokerProof,
         )
     }
 }

@@ -8,7 +8,6 @@ object HailRegistry {
     private val allowedEffectIds = setOf("transporter_beam")
     private val allowedGlyphIds = setOf("hail-sniffer", "default")
     private val allowedPaletteIds = setOf("axiom_dark_cyan", "transporter_white", "cute_purple")
-    private val allowedHailIds = setOf("hail.sniffer.001", "hail.can_i_see_this.001")
 
     data class ValidatedHail(
         val hailId: String,
@@ -31,11 +30,8 @@ object HailRegistry {
         placementMode: String?,
         xPercent: Float?,
         yPercent: Float?,
+        brokerProof: String? = null,
     ): Result<ValidatedHail> {
-        val normalizedHailId = hailId?.trim().orEmpty()
-        if (normalizedHailId !in allowedHailIds) {
-            return Result.failure(IllegalArgumentException("hail_id not allowlisted"))
-        }
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
             return Result.failure(IllegalArgumentException("effect_id not allowlisted"))
         }
@@ -53,6 +49,17 @@ object HailRegistry {
                 IllegalArgumentException("duration_ms must be between $MIN_DURATION_MS and $MAX_DURATION_MS"),
             )
         }
+
+        val normalizedHailId = OverlayBrokerGate.validateHailId(hailId.orEmpty())
+            .getOrElse { return Result.failure(it) }
+
+        OverlayBrokerGate.validateBrokerProof(
+            brokerProof = brokerProof,
+            hailId = normalizedHailId,
+            effectId = effectId,
+            glyphId = glyphId,
+            durationMs = durationMs,
+        ).getOrElse { return Result.failure(it) }
 
         val placement = Placement.resolve(placementId, placementMode, xPercent, yPercent)
             .getOrElse { return Result.failure(it) }

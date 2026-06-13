@@ -3,6 +3,12 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val overlayBrokerSecret = (
+    project.findProperty("overlayBrokerSecret") as String?
+        ?: System.getenv("LCARD_OVERLAY_BROKER_SECRET")
+        ?: "test-broker-secret-001"
+    ).trim()
+
 android {
     namespace = "com.controlalt.hailoverlay"
     compileSdk = 34
@@ -11,8 +17,9 @@ android {
         applicationId = "com.controlalt.hailoverlay"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.0.3-v001"
+        versionCode = 10
+        versionName = "1.0.5-v001"
+        buildConfigField("String", "OVERLAY_BROKER_SECRET", "\"${overlayBrokerSecret.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     buildTypes {
@@ -39,6 +46,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
