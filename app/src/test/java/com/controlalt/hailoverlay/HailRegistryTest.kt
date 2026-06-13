@@ -33,6 +33,24 @@ class HailRegistryTest {
     }
 
     @Test
+    fun accepts_can_i_see_this_hail_id() {
+        val result = HailRegistry.validate(
+            hailId = "hail.can_i_see_this.001",
+            effectId = "transporter_beam",
+            glyphId = "hail-sniffer",
+            paletteId = "axiom_dark_cyan",
+            message = "Can I see this?",
+            durationMs = 5000L,
+            placementId = "upper_center",
+            placementMode = Placement.MODE_PRESET,
+            xPercent = null,
+            yPercent = null,
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("hail.can_i_see_this.001", result.getOrNull()?.hailId)
+    }
+
+    @Test
     fun rejects_invalid_effect() {
         assertTrue(validBase(effectId = "laser_show").isFailure)
     }

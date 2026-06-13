@@ -11,8 +11,8 @@ android {
         applicationId = "com.controlalt.hailoverlay"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.0.1-v001"
+        versionCode = 8
+        versionName = "1.0.3-v001"
     }
 
     buildTypes {

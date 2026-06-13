@@ -8,7 +8,7 @@ object HailRegistry {
     private val allowedEffectIds = setOf("transporter_beam")
     private val allowedGlyphIds = setOf("hail-sniffer", "default")
     private val allowedPaletteIds = setOf("axiom_dark_cyan", "transporter_white", "cute_purple")
-    private val allowedHailIds = setOf("hail.sniffer.001")
+    private val allowedHailIds = setOf("hail.sniffer.001", "hail.can_i_see_this.001")
 
     data class ValidatedHail(
         val hailId: String,
