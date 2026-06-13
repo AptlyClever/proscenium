@@ -35,11 +35,19 @@ class MainActivity : ComponentActivity() {
     private var serviceRunning by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        window.setBackgroundDrawableResource(android.R.color.black)
         super.onCreate(savedInstanceState)
+
+        if (!shouldShowDiagnostics(intent)) {
+            HailOverlayService.start(this)
+            finish()
+            return
+        }
+
         refreshState()
         setContent {
             MaterialTheme {
-                PocScreen(
+                DiagnosticsScreen(
                     overlayGranted = overlayGranted,
                     serviceRunning = serviceRunning,
                     onRefresh = { refreshState() },
@@ -58,9 +66,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (!shouldShowDiagnostics(intent)) {
+            HailOverlayService.start(this)
+            finish()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        refreshState()
+        if (shouldShowDiagnostics(intent)) {
+            refreshState()
+        }
     }
 
     private fun refreshState() {
@@ -69,34 +88,71 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openOverlaySettings() {
-        val intent = Intent(
+        val settingsIntent = Intent(
             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
             Uri.parse("package:$packageName"),
         )
-        startActivity(intent)
+        startActivity(settingsIntent)
     }
 
     private fun previewOverlay() {
         if (!Settings.canDrawOverlays(this)) {
             return
         }
-        HailRegistry.validate(
-            hailId = "hail.sniffer.001",
-            effectId = "transporter_beam",
-            glyphId = "hail-sniffer",
-            paletteId = "axiom_dark_cyan",
-            message = "What's sniffing?",
-            durationMs = 5_500L,
+        val hail = buildPreviewHail() ?: return
+        if (!serviceRunning) {
+            HailOverlayService.start(this)
+            refreshState()
+        }
+        PreviewOverlayTrigger.show(this, hail)
+    }
+
+    private fun buildPreviewHail(): HailRegistry.ValidatedHail? {
+        val hailId = "hail.sniffer.001"
+        val effectId = "transporter_beam"
+        val glyphId = "hail-sniffer"
+        val paletteId = "axiom_dark_cyan"
+        val message = "What's sniffing?"
+        val durationMs = 5_500L
+        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrNull()
+            ?: return null
+        val proofPayload = OverlayBrokerGate.brokerProofPayloadFromValidated(
+            hailId = hailId,
+            effectId = effectId,
+            glyphId = glyphId,
+            paletteId = paletteId,
+            message = message,
+            durationMs = durationMs,
+            placement = placement,
+        )
+        val brokerProof = OverlayBrokerGate.computeProof(
+            OverlayBrokerGate.resolveConfiguredSecret(),
+            proofPayload,
+        )
+        return HailRegistry.validate(
+            hailId = hailId,
+            effectId = effectId,
+            glyphId = glyphId,
+            paletteId = paletteId,
+            message = message,
+            durationMs = durationMs,
             placementId = "upper_center",
             placementMode = Placement.MODE_PRESET,
             xPercent = null,
             yPercent = null,
-        ).getOrNull()?.let { hail ->
-            if (!serviceRunning) {
-                HailOverlayService.start(this)
-                refreshState()
-            }
-            PreviewOverlayTrigger.show(this, hail)
+            brokerProof = brokerProof,
+        ).getOrNull()
+    }
+
+    companion object {
+        const val EXTRA_SHOW_DIAGNOSTICS = "show_diagnostics"
+
+        fun diagnosticsIntent(context: android.content.Context): Intent {
+            return Intent(context, MainActivity::class.java).putExtra(EXTRA_SHOW_DIAGNOSTICS, true)
+        }
+
+        private fun shouldShowDiagnostics(intent: Intent?): Boolean {
+            return intent?.getBooleanExtra(EXTRA_SHOW_DIAGNOSTICS, false) == true
         }
     }
 }
@@ -117,7 +173,7 @@ object PreviewOverlayTrigger {
 }
 
 @Composable
-private fun PocScreen(
+private fun DiagnosticsScreen(
     overlayGranted: Boolean,
     serviceRunning: Boolean,
     onRefresh: () -> Unit,
@@ -129,23 +185,23 @@ private fun PocScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B3D2E))
+            .background(Color.Black)
             .padding(48.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Control Alt Hails",
+            text = "Control Alt Hails — Diagnostics",
             fontSize = 36.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFFEAFBF4),
+            color = Color(0xFFE6E6E6),
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Package: com.controlalt.hailoverlay\nHTTP: POST /hail/show on port ${HailRegistry.HTTP_PORT}",
             fontSize = 20.sp,
-            color = Color(0xFFB8EAD8),
+            color = Color(0xFF9A9A9A),
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(32.dp))
@@ -179,7 +235,7 @@ private fun StatusLine(label: String, value: String) {
     Text(
         text = "$label: $value",
         fontSize = 22.sp,
-        color = Color(0xFFEAFBF4),
+        color = Color(0xFFE6E6E6),
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(vertical = 4.dp),
     )

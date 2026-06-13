@@ -23,13 +23,22 @@ adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay
 
 ## First boot
 
-1. Launch **Control Alt Hails** once after install.
-2. Tap **Start hail listener service** (boot receiver also attempts auto-start when overlay permission is already granted).
-3. Confirm health:
+1. Launch **Control Alt Hails** once after install — the app starts the hail listener and exits immediately (no launcher screen left on the TV).
+2. Confirm health:
 
 ```bash
 curl -sS http://<tv-ip>:8765/health
 ```
+
+### Diagnostics screen (optional)
+
+Open the full operator diagnostics UI when needed:
+
+```bash
+adb shell am start -n com.controlalt.hailoverlay/.MainActivity --ez show_diagnostics true
+```
+
+Boot receiver also attempts auto-start when overlay permission is already granted.
 
 ## Manual hail test
 

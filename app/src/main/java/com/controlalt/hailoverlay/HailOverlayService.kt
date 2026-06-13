@@ -68,7 +68,7 @@ class HailOverlayService : Service() {
         val launchIntent = PendingIntent.getActivity(
             this,
             0,
-            Intent(this, MainActivity::class.java),
+            MainActivity.diagnosticsIntent(this),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
