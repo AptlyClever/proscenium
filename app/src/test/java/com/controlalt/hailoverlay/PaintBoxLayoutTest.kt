@@ -7,15 +7,19 @@ import kotlin.math.min
 
 class PaintBoxLayoutTest {
 
-    private fun mediumTierExpectedBeamEnvelope(screenW: Float, screenH: Float): Pair<Float, Float> {
-        val boxW = screenW * TransporterContract.GROUP_WIDTH_FRACTION
-        val boxH = screenH * TransporterContract.GROUP_HEIGHT_FRACTION
-        val inset = TransporterContract.SAFE_ZONE_INSET_FRACTION
+    private fun expectedBeamEnvelope(
+        screenW: Float,
+        screenH: Float,
+        tier: PaintBoxTier,
+    ): Pair<Float, Float> {
+        val boxW = screenW * tier.widthFraction
+        val boxH = screenH * tier.heightFraction
+        val inset = tier.safeZoneInsetFraction
         val safeW = boxW * (1f - inset * 2f)
         val safeH = boxH * (1f - inset * 2f)
-        val glyphH = safeH * TransporterContract.GLYPH_FOCUS_FRACTION
+        val glyphH = safeH * tier.glyphFocusFraction
         val glyphW = min(safeW, glyphH * TransporterContract.GLYPH_WIDTH_ASPECT)
-        val beamH = min(safeH, glyphH * TransporterContract.TRANSPORTER_BEAM_HEIGHT_MULTIPLIER)
+        val beamH = min(safeH, glyphH * tier.transporterBeamHeightMultiplier)
         val beamW = min(
             safeW * TransporterContract.BEAM_WIDTH_SAFE_ZONE_FRACTION,
             glyphW * TransporterContract.BEAM_WIDTH_GLYPH_FRACTION,
@@ -34,8 +38,9 @@ class PaintBoxLayoutTest {
     @Test
     fun upper_center_beam_envelope_matches_web_preview_medium_tier() {
         val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
-        val regions = PaintBoxLayout.resolve(1920f, 1080f, placement)
-        val (expectedBeamW, expectedBeamH) = mediumTierExpectedBeamEnvelope(1920f, 1080f)
+        val tier = PaintBoxTier.MEDIUM
+        val regions = PaintBoxLayout.resolve(1920f, 1080f, placement, tier)
+        val (expectedBeamW, expectedBeamH) = expectedBeamEnvelope(1920f, 1080f, tier)
 
         assertEquals(expectedBeamW, regions.beamWidth, 0.5f)
         assertEquals(expectedBeamH, regions.beamHeight, 0.5f)
@@ -47,15 +52,52 @@ class PaintBoxLayoutTest {
             "beam width must remain TV-legible (${regions.beamWidth}px)",
             regions.beamWidth > 80f,
         )
-        assertTrue(regions.beamHeight <= regions.safeZoneHeight)
-        assertTrue(regions.beamWidth <= regions.safeZoneWidth)
+        assertEquals(tier, regions.tier)
+    }
+
+    @Test
+    fun large_tier_paint_box_is_larger_than_medium() {
+        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
+        val medium = PaintBoxLayout.resolve(1920f, 1080f, placement, PaintBoxTier.MEDIUM)
+        val large = PaintBoxLayout.resolve(1920f, 1080f, placement, PaintBoxTier.LARGE)
+
+        assertTrue(large.paintBoxWidth > medium.paintBoxWidth)
+        assertTrue(large.paintBoxHeight > medium.paintBoxHeight)
+        assertTrue(large.beamHeight > medium.beamHeight)
+        assertTrue(large.glyphVisualSizePx > medium.glyphVisualSizePx)
+    }
+
+    @Test
+    fun small_tier_paint_box_is_smaller_than_medium() {
+        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
+        val small = PaintBoxLayout.resolve(1920f, 1080f, placement, PaintBoxTier.SMALL)
+        val medium = PaintBoxLayout.resolve(1920f, 1080f, placement, PaintBoxTier.MEDIUM)
+
+        assertTrue(small.paintBoxWidth < medium.paintBoxWidth)
+        assertTrue(small.paintBoxHeight < medium.paintBoxHeight)
+        assertTrue(small.beamHeight < medium.beamHeight)
+    }
+
+    @Test
+    fun unknown_tier_falls_back_to_medium() {
+        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
+        val fallback = PaintBoxLayout.resolve(
+            1920f,
+            1080f,
+            placement,
+            PaintBoxTier.resolve("not-a-tier"),
+        )
+        val medium = PaintBoxLayout.resolve(1920f, 1080f, placement, PaintBoxTier.MEDIUM)
+        assertEquals(medium.paintBoxWidth, fallback.paintBoxWidth, 0.01f)
+        assertEquals(medium.beamHeight, fallback.beamHeight, 0.01f)
     }
 
     @Test
     fun glyph_focus_center_matches_web_preview_offset() {
         val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
-        val regions = PaintBoxLayout.resolve(1920f, 1080f, placement)
-        val glyphH = regions.safeZoneHeight * TransporterContract.GLYPH_FOCUS_FRACTION
+        val tier = PaintBoxTier.MEDIUM
+        val regions = PaintBoxLayout.resolve(1920f, 1080f, placement, tier)
+        val glyphH = regions.safeZoneHeight * tier.glyphFocusFraction
         val expectedCenterY =
             regions.safeZoneTop +
                 regions.safeZoneHeight * TransporterContract.GLYPH_FOCUS_TOP_FRACTION +

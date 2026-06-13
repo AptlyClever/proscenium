@@ -1,7 +1,7 @@
 package com.controlalt.hailoverlay
 
 /**
- * Resolves Paint Box + Safe Effect Zone rects on screen (medium tier defaults).
+ * Resolves Paint Box + Safe Effect Zone rects on screen for a hail size tier.
  * Mirrors LCARD web-preview placement.js + effect-config layout regions.
  */
 object PaintBoxLayout {
@@ -19,11 +19,18 @@ object PaintBoxLayout {
         val glyphCenterY: Float,
         val beamWidth: Float,
         val beamHeight: Float,
+        val glyphVisualSizePx: Float,
+        val tier: PaintBoxTier,
     )
 
-    fun resolve(screenWidthPx: Float, screenHeightPx: Float, placement: Placement.Resolved): Regions {
-        val boxW = screenWidthPx * TransporterContract.GROUP_WIDTH_FRACTION
-        val boxH = screenHeightPx * TransporterContract.GROUP_HEIGHT_FRACTION
+    fun resolve(
+        screenWidthPx: Float,
+        screenHeightPx: Float,
+        placement: Placement.Resolved,
+        tier: PaintBoxTier = PaintBoxTier.MEDIUM,
+    ): Regions {
+        val boxW = screenWidthPx * tier.widthFraction
+        val boxH = screenHeightPx * tier.heightFraction
 
         val (left, top) = if (placement.placementMode == Placement.MODE_CUSTOM) {
             val x = (placement.xPercent ?: 50f) / 100f
@@ -39,22 +46,26 @@ object PaintBoxLayout {
             )
         }
 
-        val inset = TransporterContract.SAFE_ZONE_INSET_FRACTION
+        val inset = tier.safeZoneInsetFraction
         val safeW = boxW * (1f - inset * 2f)
         val safeH = boxH * (1f - inset * 2f)
         val safeLeft = left + boxW * inset
         val safeTop = top + boxH * inset
 
-        val glyphH = safeH * TransporterContract.GLYPH_FOCUS_FRACTION
+        val glyphH = safeH * tier.glyphFocusFraction
         val glyphW = minOf(safeW, glyphH * TransporterContract.GLYPH_WIDTH_ASPECT)
         val glyphTop = safeTop + safeH * TransporterContract.GLYPH_FOCUS_TOP_FRACTION
         val glyphCenterX = safeLeft + safeW / 2f
         val glyphCenterY = glyphTop + glyphH / 2f
 
-        val beamH = minOf(safeH, glyphH * TransporterContract.TRANSPORTER_BEAM_HEIGHT_MULTIPLIER)
+        val beamH = minOf(safeH, glyphH * tier.transporterBeamHeightMultiplier)
         val beamW = minOf(
             safeW * TransporterContract.BEAM_WIDTH_SAFE_ZONE_FRACTION,
             glyphW * TransporterContract.BEAM_WIDTH_GLYPH_FRACTION,
+        )
+        val glyphVisualSizePx = maxOf(
+            tier.glyphVisualSizeFloorPx,
+            boxH * tier.glyphVisualFraction,
         )
 
         return Regions(
@@ -70,6 +81,8 @@ object PaintBoxLayout {
             glyphCenterY = glyphCenterY,
             beamWidth = beamW,
             beamHeight = beamH,
+            glyphVisualSizePx = glyphVisualSizePx,
+            tier = tier,
         )
     }
 

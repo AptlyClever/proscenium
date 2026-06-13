@@ -1,21 +1,15 @@
 package com.controlalt.hailoverlay
 
 /**
- * Axiom v001 transporter timing + medium-tier Paint Box fractions (canonical contract mirror).
- * Source: ctrl-alt-axiom config/hails/hail-render-contract.v001.json
+ * Axiom v001 transporter lifecycle timing + screen placement insets.
+ * Paint Box fractions live in [PaintBoxTier].
  */
 object TransporterContract {
     const val ENTRANCE_MS = 1900L
     const val EXIT_MS = 1400L
 
-    const val GROUP_WIDTH_FRACTION = 0.32f
-    const val GROUP_HEIGHT_FRACTION = 0.34f
-    const val SAFE_ZONE_INSET_FRACTION = 0.11f
-    const val GLYPH_FOCUS_FRACTION = 0.64f
     const val GLYPH_FOCUS_TOP_FRACTION = 0.06f
     const val GLYPH_WIDTH_ASPECT = 1.05f
-    const val GLYPH_VISUAL_FRACTION = 0.5f
-    const val TRANSPORTER_BEAM_HEIGHT_MULTIPLIER = 1.5f
     const val BEAM_WIDTH_SAFE_ZONE_FRACTION = 0.72f
     const val BEAM_WIDTH_GLYPH_FRACTION = 0.62f
 

@@ -17,6 +17,7 @@ object HailRegistry {
         val message: String,
         val durationMs: Long,
         val placement: Placement.Resolved,
+        val sizeTier: PaintBoxTier,
     )
 
     fun validate(
@@ -30,6 +31,7 @@ object HailRegistry {
         placementMode: String?,
         xPercent: Float?,
         yPercent: Float?,
+        sizeTier: String? = null,
         brokerProof: String? = null,
     ): Result<ValidatedHail> {
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
@@ -80,6 +82,7 @@ object HailRegistry {
                 message = validatedMessage,
                 durationMs = durationMs,
                 placement = placement,
+                sizeTier = PaintBoxTier.resolve(sizeTier),
             ),
         )
     }

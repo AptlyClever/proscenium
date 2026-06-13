@@ -83,6 +83,7 @@ fun TransporterOverlay(
     message: String,
     paletteId: String,
     placement: Placement.Resolved,
+    sizeTier: PaintBoxTier = PaintBoxTier.MEDIUM,
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
@@ -125,8 +126,8 @@ fun TransporterOverlay(
         val density = LocalDensity.current
         val screenW = with(density) { maxWidth.toPx() }
         val screenH = with(density) { maxHeight.toPx() }
-        val regions = remember(screenW, screenH, placement) {
-            PaintBoxLayout.resolve(screenW, screenH, placement)
+        val regions = remember(screenW, screenH, placement, sizeTier) {
+            PaintBoxLayout.resolve(screenW, screenH, placement, sizeTier)
         }
 
         val entrance = entranceProgress.value
@@ -161,8 +162,7 @@ fun TransporterOverlay(
             }
         }
 
-        val glyphSizePx = regions.safeZoneWidth * TransporterContract.GLYPH_VISUAL_FRACTION
-        val glyphSizeDp = with(density) { glyphSizePx.toDp() }
+        val glyphSizeDp = with(density) { regions.glyphVisualSizePx.toDp() }
         val boxWidthDp = with(density) { regions.paintBoxWidth.toDp() }
         val safePadH = with(density) { (regions.safeZoneLeft - regions.paintBoxLeft).toDp() }
         val safePadV = with(density) { (regions.safeZoneTop - regions.paintBoxTop).toDp() }
