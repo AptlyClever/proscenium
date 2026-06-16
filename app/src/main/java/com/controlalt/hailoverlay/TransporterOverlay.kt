@@ -45,6 +45,7 @@ fun TransporterOverlay(
         beamOpacity = 0.78f,
     ),
     choreography: EffectChoreography = EffectChoreography(),
+    proceduralGraph: ProceduralGraphSpec? = null,
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
@@ -156,6 +157,7 @@ fun TransporterOverlay(
                     glyphId = glyphId,
                     alpha = frame.glyphAlpha.coerceIn(0f, 1f),
                     size = glyphSizeDp.coerceAtLeast(48.dp),
+                    proceduralGraph = proceduralGraph,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(

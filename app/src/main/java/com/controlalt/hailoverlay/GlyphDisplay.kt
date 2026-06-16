@@ -17,8 +17,18 @@ fun GlyphDisplay(
     glyphId: String,
     alpha: Float,
     size: Dp,
+    proceduralGraph: ProceduralGraphSpec? = null,
 ) {
     val glyphAlpha = alpha.coerceIn(0f, 1f)
+    if (proceduralGraph != null) {
+        ProceduralGlyphDisplay(
+            graph = proceduralGraph,
+            alpha = glyphAlpha,
+            size = size,
+        )
+        return
+    }
+
     val drawableId = glyphDrawableId(glyphId)
     if (drawableId != null) {
         Image(

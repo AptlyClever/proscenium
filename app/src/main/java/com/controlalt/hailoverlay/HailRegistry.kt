@@ -35,6 +35,7 @@ object HailRegistry {
         val effectVariationId: String?,
         val transporterVariation: ResolvedTransporterVariation,
         val choreography: EffectChoreography,
+        val proceduralGraph: ProceduralGraphSpec? = null,
     )
 
     private fun resolveDeliveryPalette(palette: String, effectVariationId: String?): String {
@@ -63,11 +64,21 @@ object HailRegistry {
         beamScale: Float? = null,
         particleStyleHint: String? = null,
         choreography: EffectChoreography = EffectChoreography(),
+        proceduralGraph: ProceduralGraphSpec? = null,
     ): Result<ValidatedHail> {
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
             return Result.failure(IllegalArgumentException("effect_id not allowlisted"))
         }
-        if (glyphId.isNullOrBlank() || glyphId !in allowedGlyphIds) {
+        val normalizedGlyphId = glyphId?.trim().orEmpty()
+        val isCustomGlyph = normalizedGlyphId.startsWith("custom-")
+        if (normalizedGlyphId.isBlank()) {
+            return Result.failure(IllegalArgumentException("glyph_id not allowlisted"))
+        }
+        if (isCustomGlyph) {
+            if (proceduralGraph == null) {
+                return Result.failure(IllegalArgumentException("glyph_id not allowlisted"))
+            }
+        } else if (normalizedGlyphId !in allowedGlyphIds) {
             return Result.failure(IllegalArgumentException("glyph_id not allowlisted"))
         }
         val requestedPalette = paletteId?.trim().orEmpty().ifBlank { "axiom_dark_cyan" }
@@ -94,7 +105,7 @@ object HailRegistry {
         val proofPayload = OverlayBrokerGate.brokerProofPayloadFromValidated(
             hailId = normalizedHailId,
             effectId = effectId,
-            glyphId = glyphId,
+            glyphId = normalizedGlyphId,
             paletteId = palette,
             message = validatedMessage,
             durationMs = durationMs,
@@ -111,7 +122,7 @@ object HailRegistry {
             ValidatedHail(
                 hailId = normalizedHailId,
                 effectId = effectId,
-                glyphId = glyphId,
+                glyphId = normalizedGlyphId,
                 paletteId = palette,
                 message = validatedMessage,
                 durationMs = durationMs,
@@ -125,6 +136,7 @@ object HailRegistry {
                     particleStyleHint = particleStyleHint,
                 ),
                 choreography = choreography,
+                proceduralGraph = proceduralGraph,
             ),
         )
     }

@@ -54,6 +54,7 @@ class OverlayController(
         val sizeTier: PaintBoxTier,
         val transporterVariation: ResolvedTransporterVariation,
         val choreography: EffectChoreography,
+        val proceduralGraph: ProceduralGraphSpec? = null,
     )
 
     init {
@@ -73,6 +74,7 @@ class OverlayController(
                 sizeTier = hail.sizeTier,
                 transporterVariation = hail.transporterVariation,
                 choreography = hail.choreography,
+                proceduralGraph = hail.proceduralGraph,
             )
 
             val view = ComposeView(context).apply {
@@ -90,6 +92,7 @@ class OverlayController(
                             sizeTier = state.sizeTier,
                             transporterVariation = state.transporterVariation,
                             choreography = state.choreography,
+                            proceduralGraph = state.proceduralGraph,
                             stableHoldMs = state.durationMs,
                             onLifecycleComplete = { dismissInternal(removeOnly = true) },
                         )

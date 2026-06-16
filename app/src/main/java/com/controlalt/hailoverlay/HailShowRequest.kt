@@ -20,6 +20,7 @@ data class HailShowRequest(
     val beamScale: Float?,
     val particleStyleHint: String?,
     val choreography: EffectChoreography,
+    val proceduralGraph: ProceduralGraphSpec?,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
@@ -27,6 +28,7 @@ data class HailShowRequest(
                 val json = JSONObject(raw)
                 val androidTuning = json.optJSONObject("android_effect_tuning")
                 val effectIdentity = json.optJSONObject("effect_identity")
+                val proceduralGraph = ProceduralGlyphParser.parseGlyphRender(json.optJSONObject("glyph_render"))
                 HailShowRequest(
                     hailId = json.optString("hail_id", "hail.sniffer.001"),
                     effectId = json.getString("effect_id"),
@@ -45,6 +47,7 @@ data class HailShowRequest(
                     beamScale = androidTuning?.optDouble("beam_scale")?.toFloat(),
                     particleStyleHint = effectIdentity?.optString("particle_style")?.ifBlank { null },
                     choreography = EffectChoreography.fromJson(effectIdentity),
+                    proceduralGraph = proceduralGraph,
                 )
             }
         }
@@ -69,6 +72,7 @@ data class HailShowRequest(
             beamScale = beamScale,
             particleStyleHint = particleStyleHint,
             choreography = choreography,
+            proceduralGraph = proceduralGraph,
         )
     }
 }
