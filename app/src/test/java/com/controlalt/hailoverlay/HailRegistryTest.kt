@@ -6,9 +6,7 @@ import org.junit.Test
 
 class HailRegistryTest {
 
-    private companion object {
-        const val TEST_SECRET = "test-broker-secret-001"
-    }
+    private fun testSecret(): String = BuildConfig.OVERLAY_BROKER_SECRET
 
     private fun proofPayload(
         hailId: String = "hail.sniffer.001",
@@ -37,7 +35,7 @@ class HailRegistryTest {
     }
 
     private fun brokerProof(payload: OverlayBrokerGate.BrokerProofPayload): String {
-        return OverlayBrokerGate.computeProof(TEST_SECRET, payload)
+        return OverlayBrokerGate.computeProof(testSecret(), payload)
     }
 
     private fun validBase(

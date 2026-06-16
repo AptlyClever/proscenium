@@ -6,9 +6,7 @@ import org.junit.Test
 
 class HailShowRequestVariationTest {
 
-    private companion object {
-        const val TEST_SECRET = "test-broker-secret-001"
-    }
+    private fun testSecret(): String = BuildConfig.OVERLAY_BROKER_SECRET
 
     @Test
     fun fromJson_parses_variation_and_android_tuning() {
@@ -50,7 +48,7 @@ class HailShowRequestVariationTest {
             placement = placement,
             sizeTier = "large",
         )
-        val proof = OverlayBrokerGate.computeProof(TEST_SECRET, proofPayload)
+        val proof = OverlayBrokerGate.computeProof(testSecret(), proofPayload)
 
         val result = HailRegistry.validate(
             hailId = proofPayload.hailId,

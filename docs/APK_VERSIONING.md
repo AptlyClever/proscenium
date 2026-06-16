@@ -10,11 +10,11 @@
 | `versionName` | `hail-overlay-poc/app/build.gradle.kts` | Operator-facing semver string; echoed by `GET /health` |
 | `versionCode` | same | Monotonic Android install ordering (`adb install` downgrade guard) |
 
-Current G2 baseline (PR #173):
+Current G2 baseline:
 
 ```kotlin
-versionName = "2.0.0-alpha.1"
-versionCode = 2000001
+versionName = "2.0.0-alpha.2"
+versionCode = 2000002
 ```
 
 ## versionCode scheme (G2+)
