@@ -7,7 +7,13 @@ object HailRegistry {
 
     private val allowedEffectIds = setOf("transporter_beam")
     private val allowedGlyphIds = setOf("hail-sniffer", "hail-eye-check", "default")
-    private val allowedPaletteIds = setOf("axiom_dark_cyan", "transporter_white", "cute_purple")
+    private val allowedPaletteIds = setOf(
+        "axiom_dark_cyan",
+        "transporter_white",
+        "cute_purple",
+        "transporter_generation_next",
+        "transporter_spoon",
+    )
 
     data class ValidatedHail(
         val hailId: String,
@@ -18,6 +24,8 @@ object HailRegistry {
         val durationMs: Long,
         val placement: Placement.Resolved,
         val sizeTier: PaintBoxTier,
+        val effectVariationId: String?,
+        val transporterVariation: ResolvedTransporterVariation,
     )
 
     fun validate(
@@ -33,6 +41,10 @@ object HailRegistry {
         yPercent: Float?,
         sizeTier: String? = null,
         brokerProof: String? = null,
+        effectVariationId: String? = null,
+        beamIntensity: Float? = null,
+        beamScale: Float? = null,
+        particleStyleHint: String? = null,
     ): Result<ValidatedHail> {
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
             return Result.failure(IllegalArgumentException("effect_id not allowlisted"))
@@ -86,6 +98,13 @@ object HailRegistry {
                 durationMs = durationMs,
                 placement = placement,
                 sizeTier = resolvedSizeTier,
+                effectVariationId = effectVariationId?.trim()?.ifBlank { null },
+                transporterVariation = TransporterVariationProfile.resolve(
+                    variationId = effectVariationId,
+                    beamIntensity = beamIntensity,
+                    beamScale = beamScale,
+                    particleStyleHint = particleStyleHint,
+                ),
             ),
         )
     }

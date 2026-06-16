@@ -55,9 +55,14 @@ curl -sS -X POST "http://<tv-ip>:8765/hail/show" \
     "message": "What'\''s sniffing?",
     "duration_ms": 5500,
     "placement_id": "upper_center",
-    "placement_mode": "preset"
+    "placement_mode": "preset",
+    "effect_variation_id": "generation-next",
+    "android_effect_tuning": { "beam_intensity": 0.78, "beam_scale": 1.0 },
+    "effect_identity": { "particle_style": "sparkle_rise" }
   }'
 ```
+
+Variation profiles (`voyaging`, `generation-next`, `spoon`) require APK `2.0.0-alpha.2` or newer. Broker proof is required when posting through LCARD; direct device curl for dev may omit it only if the installed APK build allows local testing (production builds require `broker_proof` from LCARD send).
 
 ## LCARD send path (after adapter merge)
 

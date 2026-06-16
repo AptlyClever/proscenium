@@ -15,11 +15,17 @@ data class HailShowRequest(
     val yPercent: Float?,
     val sizeTier: String?,
     val brokerProof: String?,
+    val effectVariationId: String?,
+    val beamIntensity: Float?,
+    val beamScale: Float?,
+    val particleStyleHint: String?,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
             return runCatching {
                 val json = JSONObject(raw)
+                val androidTuning = json.optJSONObject("android_effect_tuning")
+                val effectIdentity = json.optJSONObject("effect_identity")
                 HailShowRequest(
                     hailId = json.optString("hail_id", "hail.sniffer.001"),
                     effectId = json.getString("effect_id"),
@@ -33,6 +39,10 @@ data class HailShowRequest(
                     yPercent = if (json.has("y_percent")) json.getDouble("y_percent").toFloat() else null,
                     sizeTier = json.optString("size_tier").ifBlank { null },
                     brokerProof = json.optString("broker_proof").ifBlank { null },
+                    effectVariationId = json.optString("effect_variation_id").ifBlank { null },
+                    beamIntensity = androidTuning?.optDouble("beam_intensity")?.toFloat(),
+                    beamScale = androidTuning?.optDouble("beam_scale")?.toFloat(),
+                    particleStyleHint = effectIdentity?.optString("particle_style")?.ifBlank { null },
                 )
             }
         }
@@ -52,6 +62,10 @@ data class HailShowRequest(
             yPercent = yPercent,
             sizeTier = sizeTier,
             brokerProof = brokerProof,
+            effectVariationId = effectVariationId,
+            beamIntensity = beamIntensity,
+            beamScale = beamScale,
+            particleStyleHint = particleStyleHint,
         )
     }
 }

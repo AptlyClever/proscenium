@@ -138,6 +138,22 @@ class PaintBoxLayoutTest {
     }
 
     @Test
+    fun generation_next_variation_widens_beam_envelope() {
+        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
+        val tier = PaintBoxTier.MEDIUM
+        val baseline = PaintBoxLayout.resolve(1920f, 1080f, placement, tier)
+        val generationNext = PaintBoxLayout.resolve(
+            1920f,
+            1080f,
+            placement,
+            tier,
+            TransporterVariationProfile.resolve("generation-next", 0.78f, 1f, "sparkle_rise"),
+        )
+        assertTrue(generationNext.beamWidth > baseline.beamWidth)
+        assertTrue(generationNext.beamHeight > baseline.beamHeight)
+    }
+
+    @Test
     fun safe_zone_is_inset_inside_paint_box() {
         val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
         val regions = PaintBoxLayout.resolve(1920f, 1080f, placement)

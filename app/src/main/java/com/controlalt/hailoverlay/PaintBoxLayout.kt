@@ -28,6 +28,7 @@ object PaintBoxLayout {
         screenHeightPx: Float,
         placement: Placement.Resolved,
         tier: PaintBoxTier = PaintBoxTier.MEDIUM,
+        transporterVariation: ResolvedTransporterVariation? = null,
     ): Regions {
         val boxW = screenWidthPx * tier.widthFraction
         val boxH = screenHeightPx * tier.heightFraction
@@ -63,6 +64,14 @@ object PaintBoxLayout {
             safeW * TransporterContract.BEAM_WIDTH_SAFE_ZONE_FRACTION,
             glyphW * TransporterContract.BEAM_WIDTH_GLYPH_FRACTION,
         )
+        val variation = transporterVariation ?: ResolvedTransporterVariation(
+            profile = TransporterVariationProfile.DEFAULT,
+            beamScale = 1f,
+            beamOpacity = 0.78f,
+        )
+        val profile = variation.profile
+        val scaledBeamW = beamW * profile.beamWidthMultiplier * variation.beamScale
+        val scaledBeamH = beamH * profile.beamHeightMultiplier * variation.beamScale
         val glyphVisualSizePx = maxOf(
             tier.glyphVisualSizeFloorPx,
             boxH * tier.glyphVisualFraction,
@@ -79,8 +88,8 @@ object PaintBoxLayout {
             safeZoneHeight = safeH,
             glyphCenterX = glyphCenterX,
             glyphCenterY = glyphCenterY,
-            beamWidth = beamW,
-            beamHeight = beamH,
+            beamWidth = scaledBeamW,
+            beamHeight = scaledBeamH,
             glyphVisualSizePx = glyphVisualSizePx,
             tier = tier,
         )

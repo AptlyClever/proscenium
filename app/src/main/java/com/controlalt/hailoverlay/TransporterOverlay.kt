@@ -67,6 +67,20 @@ fun paletteFor(paletteId: String): HailPalette {
             messageColor = Color(0xFFFFFFFF),
             backdropTint = Color(0x331F2937),
         )
+        "transporter_generation_next" -> HailPalette(
+            beamCyan = Color(0xFF4A8CC8),
+            beamWhite = Color(0xFFB8D8F8),
+            beamBase = Color(0xFF1A2A3D),
+            messageColor = Color(0xFFE8F4FF),
+            backdropTint = Color(0x331A2A3D),
+        )
+        "transporter_spoon" -> HailPalette(
+            beamCyan = Color(0xFFB8923A),
+            beamWhite = Color(0xFFF0D890),
+            beamBase = Color(0xFF3D2E14),
+            messageColor = Color(0xFFFFF4D8),
+            backdropTint = Color(0x333D2E14),
+        )
         else -> HailPalette(
             beamCyan = Color(0xFF4AF2C5),
             beamWhite = Color(0xFFE8FFFF),
@@ -84,6 +98,11 @@ fun TransporterOverlay(
     paletteId: String,
     placement: Placement.Resolved,
     sizeTier: PaintBoxTier = PaintBoxTier.MEDIUM,
+    transporterVariation: ResolvedTransporterVariation = ResolvedTransporterVariation(
+        profile = TransporterVariationProfile.DEFAULT,
+        beamScale = 1f,
+        beamOpacity = 0.78f,
+    ),
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
@@ -126,9 +145,11 @@ fun TransporterOverlay(
         val density = LocalDensity.current
         val screenW = with(density) { maxWidth.toPx() }
         val screenH = with(density) { maxHeight.toPx() }
-        val regions = remember(screenW, screenH, placement, sizeTier) {
-            PaintBoxLayout.resolve(screenW, screenH, placement, sizeTier)
+        val regions = remember(screenW, screenH, placement, sizeTier, transporterVariation) {
+            PaintBoxLayout.resolve(screenW, screenH, placement, sizeTier, transporterVariation)
         }
+        val profile = transporterVariation.profile
+        val beamOpacityScale = transporterVariation.beamOpacity
 
         val entrance = entranceProgress.value
         val exit = exitProgress.value
@@ -146,6 +167,8 @@ fun TransporterOverlay(
                     palette = palette,
                     intensity = entrance,
                     dematerializing = false,
+                    profile = profile,
+                    beamOpacityScale = beamOpacityScale,
                 )
                 TransporterPhase.STABLE -> drawStableResidual(
                     regions = regions,
@@ -157,6 +180,8 @@ fun TransporterOverlay(
                     palette = palette,
                     intensity = exit,
                     dematerializing = true,
+                    profile = profile,
+                    beamOpacityScale = beamOpacityScale,
                 )
                 TransporterPhase.CLEARED -> Unit
             }
@@ -204,6 +229,8 @@ private fun DrawScope.drawLocalizedTransporterBeam(
     palette: HailPalette,
     intensity: Float,
     dematerializing: Boolean,
+    profile: TransporterVariationProfile,
+    beamOpacityScale: Float,
 ) {
     if (intensity <= 0.01f) {
         return
@@ -214,16 +241,28 @@ private fun DrawScope.drawLocalizedTransporterBeam(
     val beamH = regions.beamHeight
     val beamTop = regions.glyphCenterY - beamH * (if (dematerializing) 0.35f else 0.85f)
     val beamBottom = regions.glyphCenterY + beamH * 0.25f
-    val alphaScale = intensity.coerceIn(0f, 1f)
+    val alphaScale = (intensity * beamOpacityScale).coerceIn(0f, 1f)
+
+    val beamColors = if (profile.shimmerBeam) {
+        listOf(
+            palette.beamWhite.copy(alpha = 0.55f * alphaScale),
+            palette.beamCyan.copy(alpha = 0.62f * alphaScale),
+            palette.beamWhite.copy(alpha = 0.48f * alphaScale),
+            palette.beamBase.copy(alpha = 0.1f * alphaScale),
+            Color.Transparent,
+        )
+    } else {
+        listOf(
+            palette.beamWhite.copy(alpha = 0.75f * alphaScale),
+            palette.beamCyan.copy(alpha = 0.45f * alphaScale),
+            palette.beamBase.copy(alpha = 0.12f * alphaScale),
+            Color.Transparent,
+        )
+    }
 
     drawRect(
         brush = Brush.verticalGradient(
-            colors = listOf(
-                palette.beamWhite.copy(alpha = 0.75f * alphaScale),
-                palette.beamCyan.copy(alpha = 0.45f * alphaScale),
-                palette.beamBase.copy(alpha = 0.12f * alphaScale),
-                Color.Transparent,
-            ),
+            colors = beamColors,
             startY = beamTop,
             endY = beamBottom,
         ),
@@ -231,15 +270,33 @@ private fun DrawScope.drawLocalizedTransporterBeam(
         size = androidx.compose.ui.geometry.Size(beamW, beamBottom - beamTop),
     )
 
-    val particleCount = 12
+    val particleBase = when (profile.particleStyle) {
+        TransporterParticleStyle.SCANFALL_DENSE -> 16
+        TransporterParticleStyle.SPARKLE_RISE -> 10
+        TransporterParticleStyle.SCANFALL -> 12
+    }
+    val particleCount = (particleBase * profile.particleDensityMultiplier).roundToInt().coerceIn(6, 22)
     val random = Random(if (dematerializing) 7 else 3)
     repeat(particleCount) { index ->
         val travel = if (dematerializing) 1f - intensity else intensity
-        val baseY = beamTop + (beamBottom - beamTop) * ((index / particleCount.toFloat()) + travel * 0.35f) % 1f
-        val wobble = sin((index + travel * 8f) * 0.9f) * beamW * 0.18f
+        val riseBias = if (profile.particleStyle == TransporterParticleStyle.SPARKLE_RISE) -0.22f else 0.35f
+        val baseY = beamTop + (beamBottom - beamTop) * (
+            (index / particleCount.toFloat()) + travel * riseBias
+            ) % 1f
+        val wobbleScale = if (profile.particleStyle == TransporterParticleStyle.SCANFALL_DENSE) 0.12f else 0.18f
+        val wobble = sin((index + travel * 8f) * 0.9f) * beamW * wobbleScale
+        val particleAlpha = when (profile.particleStyle) {
+            TransporterParticleStyle.SCANFALL_DENSE -> 0.35f + random.nextFloat() * 0.4f
+            TransporterParticleStyle.SPARKLE_RISE -> 0.2f + random.nextFloat() * 0.45f
+            TransporterParticleStyle.SCANFALL -> 0.25f + random.nextFloat() * 0.35f
+        }
         drawCircle(
-            color = palette.beamWhite.copy(alpha = (0.25f + random.nextFloat() * 0.35f) * alphaScale),
-            radius = 2.5f + random.nextFloat() * 3f,
+            color = palette.beamWhite.copy(alpha = particleAlpha * alphaScale),
+            radius = if (profile.particleStyle == TransporterParticleStyle.SCANFALL_DENSE) {
+                2f + random.nextFloat() * 2.5f
+            } else {
+                2.5f + random.nextFloat() * 3f
+            },
             center = Offset(cx + wobble, baseY),
         )
     }
