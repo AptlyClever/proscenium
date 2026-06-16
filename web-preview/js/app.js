@@ -44,6 +44,10 @@ import {
   loadAxiomRenderPayload,
   loadHailRenderContract,
 } from "./contract-loader.js";
+import {
+  applyVariationToEffectParams,
+  axiomPayloadWorkbenchHints,
+} from "./axiom-payload-bridge.js";
 
 const PLACEMENT_LABELS = {
   center_soft: "Center",
@@ -272,8 +276,16 @@ async function loadAxiomHailIntoWorkbench() {
       syncEffectUiFromState();
     }
     if (payload.palette_id) {
-      state.paletteId = payload.palette_id;
+      const hints = axiomPayloadWorkbenchHints(payload);
+      state.paletteId = hints.previewPaletteId || payload.palette_id;
       buildPalettePills();
+    }
+    if (payload.placement_id && state.contract.placement.presetIds.includes(payload.placement_id)) {
+      state.placementPreset = payload.placement_id;
+      state.placementMode = payload.placement_mode || "preset";
+      document.querySelectorAll("[data-placement-preset]").forEach(function (btn) {
+        btn.classList.toggle("active", btn.getAttribute("data-placement-preset") === payload.placement_id);
+      });
     }
     if (payload.size_tier) {
       state.hailScaleTier = payload.size_tier;
@@ -290,6 +302,15 @@ async function loadAxiomHailIntoWorkbench() {
       });
     }
     refreshScaledEffectParams();
+    if (payload.effect_variation_id || payload.effect_identity || payload.android_effect_tuning) {
+      state.effectParams = applyVariationToEffectParams(state.effectParams || {}, payload);
+      if (state.effectParams.beamShape && els.beamShapePills) {
+        document.querySelectorAll("[data-beam-shape]").forEach(function (btn) {
+          btn.classList.toggle("active", btn.getAttribute("data-beam-shape") === state.effectParams.beamShape);
+        });
+      }
+      refreshScaledEffectParams();
+    }
     updatePayloadPreview();
   } catch (err) {
     console.error("Axiom hail payload load failed:", err);
