@@ -10,6 +10,27 @@ enum class TransporterParticleStyle {
     SPARKLE_RISE,
 }
 
+/** Per-variation VFX layers — Slice 4 (VFX definitions v001). */
+data class TransporterVfxLayers(
+    val showerCurtain: Boolean = false,
+    val scanPulseCount: Int = 0,
+    val powerPellet: Boolean = false,
+    val swirlField: Boolean = false,
+) {
+    companion object {
+        val DEFAULT = TransporterVfxLayers()
+
+        fun forVariation(variationId: String?): TransporterVfxLayers {
+            return when (variationId?.trim().orEmpty()) {
+                "voyaging" -> TransporterVfxLayers(scanPulseCount = 3, powerPellet = true)
+                "generation-next" -> TransporterVfxLayers(showerCurtain = true, powerPellet = true)
+                "spoon" -> TransporterVfxLayers(showerCurtain = true, powerPellet = true, swirlField = true)
+                else -> DEFAULT
+            }
+        }
+    }
+}
+
 data class TransporterVariationProfile(
     val variationId: String,
     val beamWidthMultiplier: Float,
@@ -18,6 +39,7 @@ data class TransporterVariationProfile(
     val shimmerBeam: Boolean,
     val beamOpacityBias: Float,
     val particleDensityMultiplier: Float,
+    val vfxLayers: TransporterVfxLayers = TransporterVfxLayers.DEFAULT,
 ) {
     fun beamOpacity(beamIntensity: Float?): Float {
         val base = beamIntensity?.coerceIn(0.2f, 1f) ?: 0.78f
@@ -34,6 +56,7 @@ data class TransporterVariationProfile(
                 shimmerBeam = false,
                 beamOpacityBias = 0f,
                 particleDensityMultiplier = 1f,
+                vfxLayers = TransporterVfxLayers.forVariation("voyaging"),
             ),
             "generation-next" to TransporterVariationProfile(
                 variationId = "generation-next",
@@ -43,6 +66,7 @@ data class TransporterVariationProfile(
                 shimmerBeam = true,
                 beamOpacityBias = -0.08f,
                 particleDensityMultiplier = 1.15f,
+                vfxLayers = TransporterVfxLayers.forVariation("generation-next"),
             ),
             "spoon" to TransporterVariationProfile(
                 variationId = "spoon",
@@ -52,10 +76,21 @@ data class TransporterVariationProfile(
                 shimmerBeam = false,
                 beamOpacityBias = 0.12f,
                 particleDensityMultiplier = 1.35f,
+                vfxLayers = TransporterVfxLayers.forVariation("spoon"),
             ),
         )
 
         val DEFAULT: TransporterVariationProfile = PROFILES.getValue("voyaging")
+
+        /** Canonical on-device palette when operator loadout is still default cyan. */
+        fun canonicalPaletteId(variationId: String?): String? {
+            return when (variationId?.trim().orEmpty()) {
+                "voyaging" -> "transporter_white"
+                "generation-next" -> "transporter_generation_next"
+                "spoon" -> "transporter_spoon"
+                else -> null
+            }
+        }
 
         fun resolve(
             variationId: String?,

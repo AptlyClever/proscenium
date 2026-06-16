@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,7 +56,7 @@ class DiagnosticsActivity : ComponentActivity() {
                         HailOverlayService.stop(applicationContext)
                         refreshState()
                     },
-                    onPreviewOverlay = { previewOverlay() },
+                    onTriggerPreset = { preset -> triggerPreset(preset) },
                 )
             }
         }
@@ -79,53 +81,16 @@ class DiagnosticsActivity : ComponentActivity() {
         )
     }
 
-    private fun previewOverlay() {
+    private fun triggerPreset(preset: DiagnosticsTransporterPresets.Preset) {
         if (!Settings.canDrawOverlays(this)) {
             return
         }
-        val hail = buildPreviewHail() ?: return
+        val hail = DiagnosticsTransporterPresets.buildValidatedHail(preset) ?: return
         if (!readiness.serviceRunning) {
             HailOverlayService.start(applicationContext)
             refreshState()
         }
         PreviewOverlayTrigger.show(this, hail)
-    }
-
-    private fun buildPreviewHail(): HailRegistry.ValidatedHail? {
-        val hailId = "hail.sniffer.001"
-        val effectId = "transporter_beam"
-        val glyphId = "hail-sniffer"
-        val paletteId = "axiom_dark_cyan"
-        val message = "What's sniffing?"
-        val durationMs = 5_500L
-        val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrNull()
-            ?: return null
-        val proofPayload = OverlayBrokerGate.brokerProofPayloadFromValidated(
-            hailId = hailId,
-            effectId = effectId,
-            glyphId = glyphId,
-            paletteId = paletteId,
-            message = message,
-            durationMs = durationMs,
-            placement = placement,
-        )
-        val brokerProof = OverlayBrokerGate.computeProof(
-            OverlayBrokerGate.resolveConfiguredSecret(),
-            proofPayload,
-        )
-        return HailRegistry.validate(
-            hailId = hailId,
-            effectId = effectId,
-            glyphId = glyphId,
-            paletteId = paletteId,
-            message = message,
-            durationMs = durationMs,
-            placementId = "upper_center",
-            placementMode = Placement.MODE_PRESET,
-            xPercent = null,
-            yPercent = null,
-            brokerProof = brokerProof,
-        ).getOrNull()
     }
 
     companion object {
@@ -145,12 +110,14 @@ private fun DiagnosticsScreen(
     onOpenOverlaySettings: () -> Unit,
     onStartService: () -> Unit,
     onStopService: () -> Unit,
-    onPreviewOverlay: () -> Unit,
+    onTriggerPreset: (DiagnosticsTransporterPresets.Preset) -> Unit,
 ) {
+    val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .verticalScroll(scrollState)
             .padding(48.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -182,23 +149,43 @@ private fun DiagnosticsScreen(
             },
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onStartService, modifier = Modifier.widthIn(min = 280.dp)) {
+        Text(
+            text = "Trigger transporter (full lifecycle)\nNothing plays until you press a button below.",
+            fontSize = 22.sp,
+            color = Color(0xFFB8B8B8),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        DiagnosticsTransporterPresets.parityPresets.forEach { preset ->
+            Button(
+                onClick = { onTriggerPreset(preset) },
+                enabled = overlayGranted,
+                modifier = Modifier.widthIn(min = 360.dp),
+            ) {
+                Text(preset.buttonLabel)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+        Text(
+            text = "~8.8s total — entrance, 5.5s stable hold, exit",
+            fontSize = 18.sp,
+            color = Color(0xFF7A7A7A),
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = onStartService, modifier = Modifier.widthIn(min = 360.dp)) {
             Text(if (readiness.listenerListening) "Restart hail listener" else "Start / retry hail listener")
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onStopService, modifier = Modifier.widthIn(min = 280.dp)) {
+        Button(onClick = onStopService, modifier = Modifier.widthIn(min = 360.dp)) {
             Text("Stop hail listener service")
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onPreviewOverlay, modifier = Modifier.widthIn(min = 280.dp)) {
-            Text("Preview overlay on device")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onOpenOverlaySettings, modifier = Modifier.widthIn(min = 280.dp)) {
+        Button(onClick = onOpenOverlaySettings, modifier = Modifier.widthIn(min = 360.dp)) {
             Text("Open overlay permission settings")
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = onRefresh, modifier = Modifier.widthIn(min = 280.dp)) {
+        Button(onClick = onRefresh, modifier = Modifier.widthIn(min = 360.dp)) {
             Text("Refresh status")
         }
     }

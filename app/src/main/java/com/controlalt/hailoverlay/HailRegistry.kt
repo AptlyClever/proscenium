@@ -6,7 +6,15 @@ object HailRegistry {
     const val MAX_DURATION_MS = 30_000L
 
     private val allowedEffectIds = setOf("transporter_beam")
-    private val allowedGlyphIds = setOf("hail-sniffer", "hail-eye-check", "default")
+    private val allowedGlyphIds = setOf(
+        "hail-sniffer",
+        "hail-eye-check",
+        "hail-summons",
+        "hail-alert",
+        "hail-route",
+        "hail-beacon",
+        "default",
+    )
     private val allowedPaletteIds = setOf(
         "axiom_dark_cyan",
         "transporter_white",
@@ -26,7 +34,16 @@ object HailRegistry {
         val sizeTier: PaintBoxTier,
         val effectVariationId: String?,
         val transporterVariation: ResolvedTransporterVariation,
+        val choreography: EffectChoreography,
     )
+
+    private fun resolveDeliveryPalette(palette: String, effectVariationId: String?): String {
+        val canonical = TransporterVariationProfile.canonicalPaletteId(effectVariationId)
+        if (canonical != null && palette == "axiom_dark_cyan") {
+            return canonical
+        }
+        return palette
+    }
 
     fun validate(
         hailId: String?,
@@ -45,6 +62,7 @@ object HailRegistry {
         beamIntensity: Float? = null,
         beamScale: Float? = null,
         particleStyleHint: String? = null,
+        choreography: EffectChoreography = EffectChoreography(),
     ): Result<ValidatedHail> {
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
             return Result.failure(IllegalArgumentException("effect_id not allowlisted"))
@@ -52,7 +70,8 @@ object HailRegistry {
         if (glyphId.isNullOrBlank() || glyphId !in allowedGlyphIds) {
             return Result.failure(IllegalArgumentException("glyph_id not allowlisted"))
         }
-        val palette = paletteId?.trim().orEmpty().ifBlank { "axiom_dark_cyan" }
+        val requestedPalette = paletteId?.trim().orEmpty().ifBlank { "axiom_dark_cyan" }
+        val palette = resolveDeliveryPalette(requestedPalette, effectVariationId)
         if (palette !in allowedPaletteIds) {
             return Result.failure(IllegalArgumentException("palette_id not allowlisted"))
         }
@@ -105,6 +124,7 @@ object HailRegistry {
                     beamScale = beamScale,
                     particleStyleHint = particleStyleHint,
                 ),
+                choreography = choreography,
             ),
         )
     }

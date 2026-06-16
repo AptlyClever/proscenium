@@ -7,6 +7,8 @@ package com.controlalt.hailoverlay
 object TransporterContract {
     const val ENTRANCE_MS = 1900L
     const val EXIT_MS = 1400L
+    const val BEAM_IN_SEED_MS = 800L
+    const val BEAM_OUT_SEED_MS = 420L
 
     const val GLYPH_FOCUS_TOP_FRACTION = 0.06f
     const val GLYPH_WIDTH_ASPECT = 1.05f

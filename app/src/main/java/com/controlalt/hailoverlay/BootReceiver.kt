@@ -7,8 +7,10 @@ import android.provider.Settings
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != Intent.ACTION_BOOT_COMPLETED) {
-            return
+        when (intent?.action) {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED -> Unit
+            else -> return
         }
         if (!Settings.canDrawOverlays(context)) {
             return

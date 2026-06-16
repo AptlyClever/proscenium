@@ -422,7 +422,9 @@
           },
           "lifecycleTiming": {
             "entrance_animation_ms": 1900,
-            "exit_animation_ms": 1400
+            "exit_animation_ms": 1400,
+            "beam_in_seed_ms": 800,
+            "beam_out_seed_ms": 420
           },
           "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
           "timingMs": {
@@ -800,31 +802,35 @@
         "glyph_overshoot": 0
       },
       "transporter_soft": {
-        "entrance_style": "beam_materialize",
-        "entrance_ms": 620,
+        "entrance_style": "scan_resolve",
+        "entrance_ms": 1900,
         "entrance_intensity": 1,
+        "beam_in_seed_ms": 800,
         "hold_motion": "drift",
         "exit_style": "beam_dematerialize",
-        "exit_ms": 520,
+        "exit_ms": 1400,
         "exit_intensity": 1,
-        "particle_mode_enter": "materialize",
+        "beam_out_seed_ms": 420,
+        "particle_mode_enter": "scanfall",
         "particle_mode_hold": "drift",
-        "particle_mode_exit": "collapse",
-        "glyph_resolve_style": "resolve",
+        "particle_mode_exit": "scanfall",
+        "glyph_resolve_style": "scan_resolve",
         "glyph_overshoot": 0.04
       },
       "transporter_dense": {
         "entrance_style": "scan_resolve",
-        "entrance_ms": 580,
-        "entrance_intensity": 1.12,
+        "entrance_ms": 1900,
+        "entrance_intensity": 1.08,
+        "beam_in_seed_ms": 800,
         "hold_motion": "scanfall",
-        "exit_style": "collapse_to_scan",
-        "exit_ms": 560,
-        "exit_intensity": 1.08,
-        "particle_mode_enter": "materialize",
+        "exit_style": "beam_dematerialize",
+        "exit_ms": 1400,
+        "exit_intensity": 1.04,
+        "beam_out_seed_ms": 420,
+        "particle_mode_enter": "scanfall",
         "particle_mode_hold": "scanfall",
-        "particle_mode_exit": "collapse",
-        "glyph_resolve_style": "resolve",
+        "particle_mode_exit": "scanfall",
+        "glyph_resolve_style": "scan_resolve",
         "glyph_overshoot": 0.02
       },
       "subtle_ping": {
@@ -857,12 +863,12 @@
       }
     },
     "lifecyclePhases": {
-      "note": "Preview-only object materialization lifecycle. entrance_ms splits into beam_in_seed + materializing_object; exit_ms splits into beam_out_seed + dematerializing_object.",
+      "note": "Object materialization lifecycle. entrance_ms splits into beam_in_seed + materializing_object; exit_ms splits into beam_out_seed + dematerializing_object. Reference values match transporter VFX canon.",
       "reference": {
-        "entrance_ms": 700,
-        "beam_in_seed_ms": 150,
-        "exit_ms": 520,
-        "beam_out_seed_ms": 180
+        "entrance_ms": 1900,
+        "beam_in_seed_ms": 800,
+        "exit_ms": 1400,
+        "beam_out_seed_ms": 420
       }
     },
     "placementPresence": {
@@ -1005,10 +1011,10 @@
     }
   },
   "animation": {
-    "beamPhaseMs": 3200,
-    "glyphAlphaMs": 1800,
-    "enterMs": 480,
-    "exitMs": 360
+    "beamPhaseMs": 2400,
+    "glyphAlphaMs": 2400,
+    "enterMs": 1900,
+    "exitMs": 1400
   },
   "previewDefaults": {
     "hail_id": "hail.sniffer.001",

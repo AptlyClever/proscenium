@@ -25,8 +25,16 @@ Historical builds before G2 reset. Retained for audit only — do not install ov
 ## Install reference (Arcade)
 
 ```bash
+cd hail-overlay-poc
+./scripts/deploy-arcade-apk.sh --build
+```
+
+Or manually:
+
+```bash
 adb connect 192.168.68.105:5555
 adb install -r hail-overlay-poc/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.controlalt.hailoverlay/.LauncherStartActivity
 adb shell appops set com.controlalt.hailoverlay SYSTEM_ALERT_WINDOW allow
 curl -sS http://192.168.68.105:8765/health
 ```

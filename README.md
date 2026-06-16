@@ -32,14 +32,25 @@ Release (unsigned):
 
 ## Install and provision (Google TV)
 
+**Arcade (recommended):**
+
+```bash
+cd hail-overlay-poc
+./scripts/deploy-arcade-apk.sh           # install + start listener + health check
+./scripts/deploy-arcade-apk.sh --build   # build then deploy
+```
+
+**Manual:**
+
 ```bash
 adb connect <tv-ip>
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.controlalt.hailoverlay/.LauncherStartActivity
 adb shell appops set com.controlalt.hailoverlay SYSTEM_ALERT_WINDOW allow
 adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay   # optional
 ```
 
-Launch **Hail** on the TV from the app icon — the launcher trampoline starts the hail listener and exits immediately.
+`adb install` alone does **not** start the HTTP listener (Praxis #173). The launcher trampoline step is required after every install.
 
 ## Trigger hail
 

@@ -13,6 +13,11 @@ function easeInCubic(t) {
   return t * t * t;
 }
 
+function easeInOutCubic(t) {
+  const c = clamp01(t);
+  return c < 0.5 ? 4 * c * c * c : 1 - Math.pow(-2 * c + 2, 3) / 2;
+}
+
 function clamp01(t) {
   return Math.max(0, Math.min(1, t));
 }
@@ -232,9 +237,89 @@ function contractNamedEffectBlock(contract, namedId) {
   return ne[namedId] || null;
 }
 
+/** Locked transporter variation choreography — mirrors contract previewVisual.transporterVariationChoreography */
+export const TRANSPORTER_VARIATION_CHOREOGRAPHY = {
+  voyaging: {
+    effectStart: 0,
+    glyphResolveStart: 0.42,
+    glyphImpactPeak: 0.74,
+    glyphLockIn: 0.9,
+    messageRevealStart: 0.82,
+    stableReady: 0.95,
+  },
+  "generation-next": {
+    effectStart: 0,
+    glyphResolveStart: 0.38,
+    glyphImpactPeak: 0.7,
+    glyphLockIn: 0.88,
+    messageRevealStart: 0.8,
+    stableReady: 0.94,
+  },
+  spoon: {
+    effectStart: 0,
+    glyphResolveStart: 0.4,
+    glyphImpactPeak: 0.68,
+    glyphLockIn: 0.86,
+    messageRevealStart: 0.78,
+    stableReady: 0.92,
+  },
+};
+
+function mergeChoreographyAnchors(base, override) {
+  return Object.assign({}, base || {}, override || {});
+}
+
+function transporterVariationChoreographyFromContract(contract, variationId) {
+  if (!variationId) {
+    return null;
+  }
+  const locked =
+    contract &&
+    contract.previewVisual &&
+    contract.previewVisual.transporterVariationChoreography;
+  if (locked && locked[variationId]) {
+    return mergeChoreographyAnchors(CHOREOGRAPHY_ANCHORS.transporter, locked[variationId]);
+  }
+  const registry =
+    contract &&
+    contract.previewVisual &&
+    contract.previewVisual.effectRegistry &&
+    contract.previewVisual.effectRegistry.entries;
+  const transporter = registry && registry.transporter;
+  const variation =
+    transporter &&
+    transporter.variations &&
+    transporter.variations[variationId];
+  const anchors =
+    variation &&
+    variation.identity &&
+    variation.identity.choreographyAnchors;
+  if (anchors) {
+    return mergeChoreographyAnchors(CHOREOGRAPHY_ANCHORS.transporter, anchors);
+  }
+  if (TRANSPORTER_VARIATION_CHOREOGRAPHY[variationId]) {
+    return mergeChoreographyAnchors(
+      CHOREOGRAPHY_ANCHORS.transporter,
+      TRANSPORTER_VARIATION_CHOREOGRAPHY[variationId],
+    );
+  }
+  return null;
+}
+
 /** Resolve effect/glyph/message timing anchors for named effect entrance. */
 export function resolveChoreographyAnchors(profile, contract) {
   const namedId = profile.named_effect_id || resolveNamedEffectId(profile._preset_id);
+  const variationId =
+    profile._variation_id ||
+    profile.variation_id ||
+    profile.transporter_variation ||
+    profile.effect_variation_id;
+  if (namedId === "transporter" && variationId) {
+    const fromVariation = transporterVariationChoreographyFromContract(contract, variationId);
+    if (fromVariation) {
+      return fromVariation;
+    }
+  }
   const base = CHOREOGRAPHY_ANCHORS[namedId] || CHOREOGRAPHY_ANCHORS.transporter;
   const block = contractNamedEffectBlock(contract, namedId);
   const fromContract =
@@ -385,7 +470,9 @@ function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle, anchors
 
   const beamClearT =
     enterElapsedMs >= beamClearStartMs
-      ? clamp01((enterElapsedMs - beamClearStartMs) / Math.max(1, beamClearEndMs - beamClearStartMs))
+      ? easeInOutCubic(
+          clamp01((enterElapsedMs - beamClearStartMs) / Math.max(1, beamClearEndMs - beamClearStartMs)),
+        )
       : 0;
 
   return {
@@ -395,14 +482,17 @@ function resolveEnterBeamInPhase(enterElapsedMs, enterMs, entranceStyle, anchors
   };
 }
 
-function applyBeamClear(beamScale, beamIntensity, beamClearT) {
+function applyBeamClear(beamScale, beamIntensity, beamClearT, beamReveal) {
   if (beamClearT <= 0) {
-    return { beamScale, beamIntensity };
+    return { beamScale, beamIntensity, beamReveal: beamReveal != null ? beamReveal : 1 };
   }
-  const fade = 1 - easeInCubic(clamp01(beamClearT));
+  const eased = easeInOutCubic(clamp01(beamClearT));
+  const fade = 1 - eased;
+  const reveal = beamReveal != null ? beamReveal : 1;
   return {
-    beamScale: beamScale * (0.12 + fade * 0.88),
-    beamIntensity: beamIntensity * fade,
+    beamScale: beamScale * (0.18 + fade * 0.82),
+    beamIntensity: beamIntensity * fade * 0.72,
+    beamReveal: reveal * (1 - eased * 0.88),
   };
 }
 
@@ -805,25 +895,29 @@ function computeDematerializingFrame(t, profile, exitMul) {
       break;
     }
     case "beam_dematerialize": {
-      messageAlpha = t < 0.12 ? 1 - easeInCubic(t / 0.12) : 0;
+      messageAlpha = t < 0.12 ? 1 - easeInOutCubic(t / 0.12) : 0;
       if (t < 0.14) {
         glyphAlpha = 1;
         glyphScale = 1;
         glyphClipReveal = 1;
+        beamIntensity = 0.35;
+        beamScale = 0.92;
       } else if (t < 0.52) {
         const frag = (t - 0.14) / 0.38;
-        glyphClipReveal = 1 - easeInCubic(frag);
-        glyphAlpha = 1 - easeInCubic(frag) * 0.55;
-        glyphScale = 1 - easeInCubic(frag) * 0.08;
+        const e = easeInOutCubic(frag);
+        glyphClipReveal = 1 - e;
+        glyphAlpha = 1 - e * 0.55;
+        glyphScale = 1 - e * 0.08;
         beamIntensity = 0.35 + easeOutCubic(frag) * 0.55;
         beamScale = 0.92 + easeOutCubic(frag) * 0.18;
       } else {
         const pull = (t - 0.52) / 0.48;
+        const e = easeInOutCubic(pull);
         glyphClipReveal = 0;
-        glyphAlpha = 0.45 - easeInCubic(pull) * 0.45;
-        glyphScale = 0.92 - easeInCubic(pull) * 0.22;
-        beamIntensity = 0.9 - easeInCubic(pull) * 0.9;
-        beamScale = 1.1 - easeInCubic(pull) * 0.82;
+        glyphAlpha = 0.45 - e * 0.45;
+        glyphScale = 0.92 - e * 0.22;
+        beamIntensity = 0.9 - e * 0.9;
+        beamScale = 1.1 - e * 0.82;
       }
       break;
     }
@@ -870,7 +964,7 @@ function computeDematerializingFrame(t, profile, exitMul) {
 }
 
 function computeBeamOutSeedFrame(t, profile, exitMul) {
-  const rise = easeOutCubic(t);
+  const rise = easeInOutCubic(t);
   const peak = profile.exit_intensity * exitMul;
   let beamScale = 1;
   let beamIntensity = rise * peak;
@@ -880,8 +974,8 @@ function computeBeamOutSeedFrame(t, profile, exitMul) {
       beamScale = 1 + rise * 0.14;
       break;
     case "beam_dematerialize":
-      beamScale = 1 + rise * 0.28;
-      beamIntensity = rise * peak * 0.72;
+      beamScale = 0.86 + rise * 0.06;
+      beamIntensity = (0.1 + rise * 0.25) * peak;
       break;
     case "collapse_to_scan":
       beamScale = 1 + rise * 0.18;
@@ -1105,7 +1199,7 @@ export function computeFrame(lifecycleRef, profile, grammar, now, contract) {
       glyphClipReveal = 1;
     }
     objectMaterialized = glyphAlpha >= 0.98 && messageAlpha >= 0.98;
-    const cleared = applyBeamClear(beamScale, beamIntensity, beamClearT);
+    const cleared = applyBeamClear(beamScale, beamIntensity, beamClearT, 1);
     beamScale = cleared.beamScale;
     beamIntensity = cleared.beamIntensity;
     beamActive = beamIntensity > 0.02;

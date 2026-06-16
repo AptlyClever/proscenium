@@ -53,6 +53,7 @@ class OverlayController(
         val durationMs: Long,
         val sizeTier: PaintBoxTier,
         val transporterVariation: ResolvedTransporterVariation,
+        val choreography: EffectChoreography,
     )
 
     init {
@@ -71,6 +72,7 @@ class OverlayController(
                 durationMs = hail.durationMs,
                 sizeTier = hail.sizeTier,
                 transporterVariation = hail.transporterVariation,
+                choreography = hail.choreography,
             )
 
             val view = ComposeView(context).apply {
@@ -87,6 +89,7 @@ class OverlayController(
                             placement = state.placement,
                             sizeTier = state.sizeTier,
                             transporterVariation = state.transporterVariation,
+                            choreography = state.choreography,
                             stableHoldMs = state.durationMs,
                             onLifecycleComplete = { dismissInternal(removeOnly = true) },
                         )

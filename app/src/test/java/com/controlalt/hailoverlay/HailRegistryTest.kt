@@ -278,4 +278,26 @@ class HailRegistryTest {
         val result = validBase(hailId = "not-a-hail-id")
         assertTrue(result.isFailure)
     }
+
+    @Test
+    fun resolves_variation_canonical_palette_when_operator_palette_is_default_cyan() {
+        val spoonPayload = proofPayload(paletteId = "transporter_spoon")
+        val result = HailRegistry.validate(
+            hailId = spoonPayload.hailId,
+            effectId = spoonPayload.effectId,
+            glyphId = spoonPayload.glyphId,
+            paletteId = "axiom_dark_cyan",
+            message = spoonPayload.message,
+            durationMs = spoonPayload.durationMs,
+            placementId = spoonPayload.placementId,
+            placementMode = spoonPayload.placementMode,
+            xPercent = null,
+            yPercent = null,
+            sizeTier = spoonPayload.sizeTier,
+            brokerProof = brokerProof(spoonPayload),
+            effectVariationId = "spoon",
+        )
+        assertTrue(result.isSuccess)
+        assertEquals("transporter_spoon", result.getOrNull()?.paletteId)
+    }
 }

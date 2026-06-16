@@ -35,4 +35,21 @@ class TransporterVariationProfileTest {
         val resolved = TransporterVariationProfile.resolve("voyaging", null, 1.2f, null)
         assertEquals(1.2f, resolved.beamScale)
     }
+
+    @Test
+    fun vfx_layers_match_slice4_contract() {
+        val voyaging = TransporterVfxLayers.forVariation("voyaging")
+        assertEquals(3, voyaging.scanPulseCount)
+        assertTrue(voyaging.powerPellet)
+        assertTrue(!voyaging.showerCurtain)
+
+        val tng = TransporterVfxLayers.forVariation("generation-next")
+        assertTrue(tng.showerCurtain)
+        assertTrue(tng.powerPellet)
+        assertEquals(0, tng.scanPulseCount)
+
+        val spoon = TransporterVfxLayers.forVariation("spoon")
+        assertTrue(spoon.showerCurtain)
+        assertTrue(spoon.swirlField)
+    }
 }

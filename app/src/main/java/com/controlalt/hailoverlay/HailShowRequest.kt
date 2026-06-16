@@ -19,6 +19,7 @@ data class HailShowRequest(
     val beamIntensity: Float?,
     val beamScale: Float?,
     val particleStyleHint: String?,
+    val choreography: EffectChoreography,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
@@ -43,6 +44,7 @@ data class HailShowRequest(
                     beamIntensity = androidTuning?.optDouble("beam_intensity")?.toFloat(),
                     beamScale = androidTuning?.optDouble("beam_scale")?.toFloat(),
                     particleStyleHint = effectIdentity?.optString("particle_style")?.ifBlank { null },
+                    choreography = EffectChoreography.fromJson(effectIdentity),
                 )
             }
         }
@@ -66,6 +68,7 @@ data class HailShowRequest(
             beamIntensity = beamIntensity,
             beamScale = beamScale,
             particleStyleHint = particleStyleHint,
+            choreography = choreography,
         )
     }
 }

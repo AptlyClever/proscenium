@@ -20,6 +20,9 @@ object PaintBoxLayout {
         val beamWidth: Float,
         val beamHeight: Float,
         val glyphVisualSizePx: Float,
+        val glyphVisualTopY: Float,
+        val glyphVisualCenterY: Float,
+        val contentFootY: Float,
         val tier: PaintBoxTier,
     )
 
@@ -76,6 +79,10 @@ object PaintBoxLayout {
             tier.glyphVisualSizeFloorPx,
             boxH * tier.glyphVisualFraction,
         )
+        val glyphVisualTopY = safeTop
+        val glyphVisualCenterY = safeTop + glyphVisualSizePx * 0.5f
+        val messageBlockPx = glyphVisualSizePx * 0.42f + 48f
+        val contentFootY = minOf(safeTop + safeH, safeTop + glyphVisualSizePx + messageBlockPx)
 
         return Regions(
             paintBoxLeft = left,
@@ -91,6 +98,9 @@ object PaintBoxLayout {
             beamWidth = scaledBeamW,
             beamHeight = scaledBeamH,
             glyphVisualSizePx = glyphVisualSizePx,
+            glyphVisualTopY = glyphVisualTopY,
+            glyphVisualCenterY = glyphVisualCenterY,
+            contentFootY = contentFootY,
             tier = tier,
         )
     }
