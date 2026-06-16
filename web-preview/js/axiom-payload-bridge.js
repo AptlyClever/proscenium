@@ -11,6 +11,18 @@ const TRANSPORTER_VARIATION_PROFILES = {
   spoon: { beamWidth: 0.28, beamHeight: 0.66, beamShape: "column", particleDensity: 72 },
 };
 
+const POP_VARIATION_PROFILES = {
+  "soft-tap": { popScaleMul: 1, flashMul: 1, sparkMul: 1 },
+  "snap-back": { popScaleMul: 0.92, flashMul: 1.15, sparkMul: 0.75 },
+  "bubble-pop": { popScaleMul: 1.18, flashMul: 0.88, sparkMul: 1.35 },
+};
+
+const BURST_VARIATION_PROFILES = {
+  pulse: { bloomMul: 1, spreadMul: 1, snapMul: 1 },
+  "solar-flare": { bloomMul: 1.22, spreadMul: 0.88, snapMul: 1.05 },
+  rippler: { bloomMul: 0.95, spreadMul: 1.28, snapMul: 0.92 },
+};
+
 function trim(value) {
   if (typeof value !== "string") {
     return "";
@@ -35,7 +47,7 @@ export function resolveVariationPreviewPaletteId(payload) {
   return "";
 }
 
-export function variationEffectParamOverrides(payload) {
+function transporterVariationOverrides(payload) {
   const profile = resolveVariationProfile(payload) || "voyaging";
   const profileBeam = TRANSPORTER_VARIATION_PROFILES[profile] || TRANSPORTER_VARIATION_PROFILES.voyaging;
   const android = (payload && payload.android_effect_tuning) || {};
@@ -84,6 +96,72 @@ export function variationEffectParamOverrides(payload) {
   }
 
   return overrides;
+}
+
+function popVariationOverrides(payload) {
+  const profile = resolveVariationProfile(payload) || "soft-tap";
+  const profilePop = POP_VARIATION_PROFILES[profile] || POP_VARIATION_PROFILES["soft-tap"];
+  const tuning = (payload && payload.effect_tuning) || {};
+  const projection = (payload && payload.effect_tuning_projection) || {};
+  const popSize = typeof tuning.pop_size === "number" ? tuning.pop_size : 1;
+  const popImpact = typeof tuning.pop_impact === "number" ? tuning.pop_impact : 1;
+  const sparkDensity = typeof tuning.spark_density === "number" ? tuning.spark_density : 0.35;
+
+  const overrides = {
+    beamHeight: Math.round(100 * popSize * profilePop.popScaleMul),
+    effectIntensity: Math.round(100 * popImpact * profilePop.flashMul),
+    particleDensity: Math.round(100 * sparkDensity * profilePop.sparkMul),
+    _fieldStyle: (payload.effect_identity && payload.effect_identity.field_style) || "micro_flash",
+  };
+
+  if (typeof projection.effectIntensity === "number") {
+    overrides.effectIntensity = Math.round(projection.effectIntensity * 100 * profilePop.flashMul);
+  }
+  if (typeof projection.particleDensity === "number") {
+    overrides.particleDensity = Math.round(projection.particleDensity * 100 * profilePop.sparkMul);
+  }
+
+  return overrides;
+}
+
+function burstVariationOverrides(payload) {
+  const profile = resolveVariationProfile(payload) || "pulse";
+  const profileBurst = BURST_VARIATION_PROFILES[profile] || BURST_VARIATION_PROFILES.pulse;
+  const tuning = (payload && payload.effect_tuning) || {};
+  const projection = (payload && payload.effect_tuning_projection) || {};
+  const bloomStrength = typeof tuning.bloom_strength === "number" ? tuning.bloom_strength : 1;
+  const snapIntensity = typeof tuning.snap_intensity === "number" ? tuning.snap_intensity : 1;
+  const particleSpread = typeof tuning.particle_spread === "number" ? tuning.particle_spread : 1;
+
+  const overrides = {
+    glowIntensity: Math.round(100 * bloomStrength * profileBurst.bloomMul),
+    entrance_intensity: Math.round(100 * snapIntensity * profileBurst.snapMul),
+    particleSpread: Math.round(100 * particleSpread * profileBurst.spreadMul),
+    _fieldStyle: (payload.effect_identity && payload.effect_identity.field_style) || "radial_bloom",
+  };
+
+  if (typeof projection.glowIntensity === "number") {
+    overrides.glowIntensity = Math.round(projection.glowIntensity * 100 * profileBurst.bloomMul);
+  }
+  if (typeof projection.particleSpread === "number") {
+    overrides.particleSpread = Math.round(projection.particleSpread * 100 * profileBurst.spreadMul);
+  }
+
+  return overrides;
+}
+
+export function variationEffectParamOverrides(payload) {
+  const effectId = trim(payload && payload.effect_id);
+  if (effectId === "pop") {
+    return popVariationOverrides(payload);
+  }
+  if (effectId === "burst") {
+    return burstVariationOverrides(payload);
+  }
+  if (effectId === "transporter") {
+    return transporterVariationOverrides(payload);
+  }
+  return {};
 }
 
 /**
