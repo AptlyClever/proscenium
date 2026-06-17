@@ -55,10 +55,16 @@ fun TransporterOverlay(
     val entranceProgress = remember { Animatable(0f) }
     val exitProgress = remember { Animatable(1f) }
     var stablePulse by remember { mutableStateOf(0f) }
+    var stableElapsedMs by remember { mutableStateOf(0L) }
+    val messageSidekick = remember(packageLayout, stableHoldMs) {
+        packageLayout?.messageSidekick
+            ?: MessageSidekickTiming.fromJson(null, stableHoldMs)
+    }
 
     LaunchedEffect(glyphId, message, stableHoldMs) {
         phase = TransporterPhase.ENTRANCE
         entranceProgress.snapTo(0f)
+        stableElapsedMs = 0L
         entranceProgress.animateTo(
             targetValue = 1f,
             animationSpec = tween(
@@ -67,11 +73,15 @@ fun TransporterOverlay(
             ),
         )
         phase = TransporterPhase.STABLE
-        val stableEnd = System.currentTimeMillis() + stableHoldMs
+        val stableStart = System.currentTimeMillis()
+        val stableEnd = stableStart + stableHoldMs
         while (System.currentTimeMillis() < stableEnd) {
-            stablePulse = ((System.currentTimeMillis() % 2400L) / 2400f)
+            val now = System.currentTimeMillis()
+            stableElapsedMs = now - stableStart
+            stablePulse = ((now % 2400L) / 2400f)
             kotlinx.coroutines.delay(16)
         }
+        stableElapsedMs = stableHoldMs
         phase = TransporterPhase.EXIT
         exitProgress.snapTo(1f)
         exitProgress.animateTo(
@@ -110,11 +120,17 @@ fun TransporterOverlay(
                 entranceT = entrance,
                 choreography = choreography,
                 beamPresence = beamPresence,
+                messageSidekick = messageSidekick,
             )
-            TransporterPhase.STABLE -> TransporterLifecycle.computeStableFrame(stablePulse)
+            TransporterPhase.STABLE -> TransporterLifecycle.computeStableFrame(
+                stablePulse = stablePulse,
+                stableElapsedMs = stableElapsedMs,
+                messageSidekick = messageSidekick,
+            )
             TransporterPhase.EXIT -> TransporterLifecycle.computeExitFrame(
                 exitElapsed = 1f - exit,
                 beamPresence = beamPresence,
+                messageSidekick = messageSidekick,
             )
             TransporterPhase.CLEARED -> TransporterLifecycle.computeStableFrame(0f).copy(
                 glyphAlpha = 0f,

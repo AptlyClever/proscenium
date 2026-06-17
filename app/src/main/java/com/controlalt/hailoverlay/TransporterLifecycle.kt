@@ -108,6 +108,7 @@ object TransporterLifecycle {
         entranceT: Float,
         choreography: EffectChoreography,
         beamPresence: Float,
+        messageSidekick: MessageSidekickTiming? = null,
     ): Frame {
         val t = entranceT.coerceIn(0f, 1f)
         val anchors = choreography
@@ -163,7 +164,9 @@ object TransporterLifecycle {
             t < anchors.glyphResolveStart -> 0.08f
             else -> (0.08f + easeOutCubic(glyphT) * 0.92f).coerceIn(0f, 1f)
         }
-        val messageAlpha = if (t < anchors.messageRevealStart) {
+        val messageAlpha = if (messageSidekick?.useStablePhase == true) {
+            0f
+        } else if (t < anchors.messageRevealStart) {
             0f
         } else {
             easeOutCubic(messageT) * 0.92f
@@ -184,8 +187,35 @@ object TransporterLifecycle {
         )
     }
 
-    fun computeStableFrame(stablePulse: Float): Frame {
+    fun computeMessageAlphaStable(elapsedMs: Long, timing: MessageSidekickTiming): Float {
+        val elapsed = elapsedMs.coerceAtLeast(0L)
+        val opacity = timing.targetOpacity
+        if (elapsed < timing.entranceMs) {
+            val t = elapsed.toFloat() / timing.entranceMs.toFloat()
+            return (easeOutCubic(t) * opacity).coerceIn(0f, 1f)
+        }
+        if (elapsed >= timing.exitOffsetMs) {
+            val exitElapsed = elapsed - timing.exitOffsetMs
+            if (exitElapsed >= timing.exitMs) {
+                return 0f
+            }
+            val t = exitElapsed.toFloat() / timing.exitMs.toFloat()
+            return (opacity * (1f - easeInCubic(t))).coerceIn(0f, 1f)
+        }
+        return opacity.coerceIn(0f, 1f)
+    }
+
+    fun computeStableFrame(
+        stablePulse: Float,
+        stableElapsedMs: Long = 0L,
+        messageSidekick: MessageSidekickTiming? = null,
+    ): Frame {
         val pulse = 0.96f + sin(stablePulse * Math.PI.toFloat() * 2f) * 0.04f
+        val messageAlpha = if (messageSidekick?.useStablePhase == true) {
+            computeMessageAlphaStable(stableElapsedMs, messageSidekick)
+        } else {
+            1f
+        }
         return Frame(
             beamIntensity = 0f,
             beamScale = 0f,
@@ -195,7 +225,7 @@ object TransporterLifecycle {
             glyphAlpha = pulse,
             glyphScale = 1f,
             glyphOffsetY = 0f,
-            messageAlpha = 1f,
+            messageAlpha = messageAlpha.coerceIn(0f, 1f),
             particlePhase = stablePulse,
             dematerializing = false,
         )
@@ -204,9 +234,10 @@ object TransporterLifecycle {
     fun computeExitFrame(
         exitElapsed: Float,
         beamPresence: Float,
+        messageSidekick: MessageSidekickTiming? = null,
     ): Frame {
         val elapsed = exitElapsed.coerceIn(0f, 1f)
-        return when (exitSubPhase(elapsed)) {
+        val frame = when (exitSubPhase(elapsed)) {
             ExitSubPhase.BEAM_OUT_SEED -> {
                 val local = segmentProgress(elapsed, 0f, BEAM_OUT_SEED_MS / EXIT_MS)
                 val rise = easeInOutCubic(local)
@@ -277,6 +308,11 @@ object TransporterLifecycle {
                     dematerializing = true,
                 )
             }
+        }
+        return if (messageSidekick?.useStablePhase == true) {
+            frame.copy(messageAlpha = 0f)
+        } else {
+            frame
         }
     }
 

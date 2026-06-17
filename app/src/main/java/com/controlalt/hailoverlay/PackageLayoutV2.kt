@@ -24,8 +24,7 @@ data class PackageLayoutV2(
     val messageBandTop: Float,
     val messageBandWidth: Float,
     val messageBandHeight: Float,
-    val messageRevealDelayMs: Long,
-    val messageRevealStyle: String,
+    val messageSidekick: MessageSidekickTiming,
 ) {
     companion object {
         fun fromJson(
@@ -34,6 +33,7 @@ data class PackageLayoutV2(
             paintBoxScreen: JSONObject?,
             layoutRegions: JSONObject?,
             messageEntity: JSONObject?,
+            stableHoldMs: Long = 5000L,
         ): PackageLayoutV2? {
             if (packageSchemaVersion < 2 || paintBoxScreen == null || layoutRegions == null) {
                 return null
@@ -85,8 +85,7 @@ data class PackageLayoutV2(
                     ?: glyphFocus.optDouble("width").toFloat() * localScaleX,
                 messageBandHeight = messageBand?.optDouble("height")?.toFloat()?.times(localScaleY)
                     ?: 48f,
-                messageRevealDelayMs = messageEntity?.optLong("reveal_delay_ms") ?: 0L,
-                messageRevealStyle = messageEntity?.optString("reveal_style")?.ifBlank { null } ?: "fade",
+                messageSidekick = MessageSidekickTiming.fromJson(messageEntity, stableHoldMs),
             )
         }
     }

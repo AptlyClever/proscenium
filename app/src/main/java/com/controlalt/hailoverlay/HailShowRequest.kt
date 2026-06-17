@@ -37,6 +37,7 @@ data class HailShowRequest(
                     paintBoxScreen = json.optJSONObject("paint_box_screen"),
                     layoutRegions = json.optJSONObject("layout_regions"),
                     messageEntity = json.optJSONObject("message_entity"),
+                    stableHoldMs = json.optLong("duration_ms", 5000L),
                 )
                 val messageEntity = json.optJSONObject("message_entity")
                 val messageText = when {

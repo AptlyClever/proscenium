@@ -3,6 +3,7 @@ package com.controlalt.hailoverlay
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PackageLayoutV2Test {
@@ -32,7 +33,17 @@ class PackageLayoutV2Test {
             """.trimIndent(),
         )
         val messageEntity = JSONObject(
-            """{ "text": "Hello TV", "reveal_delay_ms": 420, "reveal_style": "fade" }""",
+            """
+            {
+              "text": "Hello TV",
+              "sidekick_id": "secondary_fade",
+              "entrance_ms": 480,
+              "exit_ms": 360,
+              "opacity": 0.92,
+              "exit_offset_ms": 4640,
+              "stable_hold_ms": 5000
+            }
+            """.trimIndent(),
         )
 
         val parsed = PackageLayoutV2.fromJson(
@@ -41,13 +52,15 @@ class PackageLayoutV2Test {
             paintBoxScreen = paintBoxScreen,
             layoutRegions = layoutRegions,
             messageEntity = messageEntity,
+            stableHoldMs = 5000L,
         )
 
         assertNotNull(parsed)
         assertEquals(653f, parsed!!.paintBoxLeft)
         assertEquals(173f, parsed.paintBoxTop)
-        assertEquals(420L, parsed.messageRevealDelayMs)
-        assertEquals("fade", parsed.messageRevealStyle)
+        assertTrue(parsed.messageSidekick.useStablePhase)
+        assertEquals(480L, parsed.messageSidekick.entranceMs)
+        assertEquals(0.92f, parsed.messageSidekick.targetOpacity, 0.001f)
         assertEquals(478f * (614f / 614f), parsed.messageBandWidth, 0.01f)
     }
 
