@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build (optional), install, and start the Hail overlay listener on Arcade Google TV.
 #
+# Praxis protocol: objects/protocols/arcade-hail-overlay-live-deploy.md
 # Praxis #173: adb install does not start the listener — launcher trampoline must run
 # after every install so LCARD send and /health work without manual TV interaction.
 #
