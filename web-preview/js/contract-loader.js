@@ -9,7 +9,8 @@ export const CONTRACT_SOURCE_AXIOM_API = "axiom-api";
 export const CONTRACT_SOURCE_LOCAL_MIRROR = "local-mirror-fallback";
 export const CONTRACT_SOURCE_ERROR = "error";
 
-export const REQUIRED_CONTRACT_VERSION = "v001-integration";
+export const REQUIRED_CONTRACT_VERSIONS = Object.freeze(["v001-integration", "v002-beta"]);
+export const REQUIRED_CONTRACT_VERSION = REQUIRED_CONTRACT_VERSIONS[0];
 export const REQUIRED_NAMED_EFFECTS = ["none", "pop", "burst", "transporter"];
 
 const CANONICAL_REPOSITORY = "AptlyClever/ctrl-alt-axiom";
@@ -49,15 +50,19 @@ export function normalizeContractDocument(body) {
   throw new Error("unrecognized contract response shape");
 }
 
-/** Minimum integrity checks for Axiom-owned v001 integration contract. */
+/** Minimum integrity checks for Axiom-owned Hails render contract (v001 + v002-beta). */
 export function validateContractIntegrity(contract) {
   const errors = [];
   if (!contract || typeof contract !== "object") {
     return { valid: false, errors: ["contract must be an object"] };
   }
-  if (contract.version !== REQUIRED_CONTRACT_VERSION) {
+  if (!REQUIRED_CONTRACT_VERSIONS.includes(contract.version)) {
     errors.push(
-      "version must be " + REQUIRED_CONTRACT_VERSION + " (got " + contract.version + ")",
+      "version must be one of " +
+        REQUIRED_CONTRACT_VERSIONS.join(", ") +
+        " (got " +
+        contract.version +
+        ")",
     );
   }
   const ownership = contract.ownership || {};
