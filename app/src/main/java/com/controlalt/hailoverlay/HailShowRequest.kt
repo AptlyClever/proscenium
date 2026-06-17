@@ -21,6 +21,7 @@ data class HailShowRequest(
     val particleStyleHint: String?,
     val choreography: EffectChoreography,
     val proceduralGraph: ProceduralGraphSpec?,
+    val packageLayout: PackageLayoutV2? = null,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
@@ -29,12 +30,26 @@ data class HailShowRequest(
                 val androidTuning = json.optJSONObject("android_effect_tuning")
                 val effectIdentity = json.optJSONObject("effect_identity")
                 val proceduralGraph = ProceduralGlyphParser.parseGlyphRender(json.optJSONObject("glyph_render"))
+                val packageSchemaVersion = json.optInt("package_schema_version", 0)
+                val packageLayout = PackageLayoutV2.fromJson(
+                    packageSchemaVersion = packageSchemaVersion,
+                    referenceViewport = json.optJSONObject("reference_viewport"),
+                    paintBoxScreen = json.optJSONObject("paint_box_screen"),
+                    layoutRegions = json.optJSONObject("layout_regions"),
+                    messageEntity = json.optJSONObject("message_entity"),
+                )
+                val messageEntity = json.optJSONObject("message_entity")
+                val messageText = when {
+                    messageEntity != null && messageEntity.has("text") ->
+                        messageEntity.optString("text")
+                    else -> json.getString("message")
+                }
                 HailShowRequest(
                     hailId = json.optString("hail_id", "hail.sniffer.001"),
                     effectId = json.getString("effect_id"),
                     glyphId = json.getString("glyph_id"),
                     paletteId = json.optString("palette_id").ifBlank { null },
-                    message = json.getString("message"),
+                    message = messageText,
                     durationMs = json.getLong("duration_ms"),
                     placementId = json.optString("placement_id").ifBlank { null },
                     placementMode = json.optString("placement_mode").ifBlank { null },
@@ -48,6 +63,7 @@ data class HailShowRequest(
                     particleStyleHint = effectIdentity?.optString("particle_style")?.ifBlank { null },
                     choreography = EffectChoreography.fromJson(effectIdentity),
                     proceduralGraph = proceduralGraph,
+                    packageLayout = packageLayout,
                 )
             }
         }
@@ -73,6 +89,7 @@ data class HailShowRequest(
             particleStyleHint = particleStyleHint,
             choreography = choreography,
             proceduralGraph = proceduralGraph,
+            packageLayout = packageLayout,
         )
     }
 }

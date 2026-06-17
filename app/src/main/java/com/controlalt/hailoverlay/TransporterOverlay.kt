@@ -46,6 +46,7 @@ fun TransporterOverlay(
     ),
     choreography: EffectChoreography = EffectChoreography(),
     proceduralGraph: ProceduralGraphSpec? = null,
+    packageLayout: PackageLayoutV2? = null,
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
@@ -88,8 +89,15 @@ fun TransporterOverlay(
         val density = LocalDensity.current
         val screenW = with(density) { maxWidth.toPx() }
         val screenH = with(density) { maxHeight.toPx() }
-        val regions = remember(screenW, screenH, placement, sizeTier, transporterVariation) {
-            PaintBoxLayout.resolve(screenW, screenH, placement, sizeTier, transporterVariation)
+        val scaledPackage = remember(screenW, screenH, packageLayout) {
+            packageLayout?.scaleToScreen(screenW, screenH)
+        }
+        val regions = remember(screenW, screenH, placement, sizeTier, transporterVariation, scaledPackage) {
+            if (scaledPackage != null) {
+                scaledPackage.toPaintBoxRegions(sizeTier)
+            } else {
+                PaintBoxLayout.resolve(screenW, screenH, placement, sizeTier, transporterVariation)
+            }
         }
         val variationId = transporterVariation.profile.variationId
         val beamScaleMul = transporterVariation.beamScale
@@ -134,10 +142,25 @@ fun TransporterOverlay(
             }
         }
 
-        val glyphSizeDp = with(density) { regions.glyphVisualSizePx.toDp() }
+        val glyphSizeDp = with(density) {
+            (scaledPackage?.glyphHeight ?: regions.glyphVisualSizePx).toDp()
+        }
         val boxWidthDp = with(density) { regions.paintBoxWidth.toDp() }
-        val safePadH = with(density) { (regions.safeZoneLeft - regions.paintBoxLeft).toDp() }
-        val safePadV = with(density) { (regions.safeZoneTop - regions.paintBoxTop).toDp() }
+        val boxHeightDp = with(density) { regions.paintBoxHeight.toDp() }
+        val glyphWidthPx = scaledPackage?.glyphWidth ?: regions.glyphVisualSizePx
+        val glyphHeightPx = scaledPackage?.glyphHeight ?: regions.glyphVisualSizePx
+        val glyphOffsetX = with(density) {
+            ((regions.glyphCenterX - regions.paintBoxLeft) - glyphWidthPx / 2f).toDp()
+        }
+        val glyphOffsetY = with(density) {
+            ((regions.glyphCenterY - regions.paintBoxTop) - glyphHeightPx / 2f).toDp()
+        }
+        val messageOffsetY = scaledPackage?.let { layout ->
+            with(density) { (layout.messageBandTop - regions.paintBoxTop).toDp() }
+        }
+        val messageWidthDp = scaledPackage?.let { layout ->
+            with(density) { layout.messageBandWidth.toDp() }
+        }
         Box(
             modifier = Modifier
                 .offset {
@@ -147,27 +170,58 @@ fun TransporterOverlay(
                     )
                 }
                 .width(boxWidthDp)
-                .padding(horizontal = safePadH, vertical = safePadV),
-            contentAlignment = Alignment.TopCenter,
+                .height(boxHeightDp),
+            contentAlignment = if (scaledPackage != null) Alignment.TopStart else Alignment.TopCenter,
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                GlyphDisplay(
-                    glyphId = glyphId,
-                    alpha = frame.glyphAlpha.coerceIn(0f, 1f),
-                    size = glyphSizeDp.coerceAtLeast(48.dp),
-                    proceduralGraph = proceduralGraph,
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+            if (scaledPackage != null) {
+                Box(modifier = Modifier.offset(x = glyphOffsetX, y = glyphOffsetY)) {
+                    GlyphDisplay(
+                        glyphId = glyphId,
+                        alpha = frame.glyphAlpha.coerceIn(0f, 1f),
+                        size = glyphSizeDp.coerceAtLeast(48.dp),
+                        proceduralGraph = proceduralGraph,
+                    )
+                }
                 Text(
                     text = message,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = palette.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    modifier = Modifier
+                        .offset(y = messageOffsetY ?: 0.dp)
+                        .padding(horizontal = 8.dp)
+                        .width(messageWidthDp ?: boxWidthDp),
                 )
+            } else {
+                val safePadH = with(density) { (regions.safeZoneLeft - regions.paintBoxLeft).toDp() }
+                val safePadV = with(density) { (regions.safeZoneTop - regions.paintBoxTop).toDp() }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = safePadH, vertical = safePadV),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        GlyphDisplay(
+                            glyphId = glyphId,
+                            alpha = frame.glyphAlpha.coerceIn(0f, 1f),
+                            size = glyphSizeDp.coerceAtLeast(48.dp),
+                            proceduralGraph = proceduralGraph,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = message,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                    }
+                }
             }
         }
     }
