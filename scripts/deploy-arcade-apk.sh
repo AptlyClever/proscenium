@@ -90,7 +90,7 @@ adb -s "$ADB_TARGET" shell appops set "$PACKAGE" SYSTEM_ALERT_WINDOW allow >/dev
 echo "Starting listener (launcher trampoline) ..."
 adb -s "$ADB_TARGET" shell am start -n "$LAUNCHER_COMPONENT" >/dev/null
 
-sleep 2
+sleep 5
 
 HEALTH_URL="http://${TV_HOST}:${TV_PORT}/health"
 echo "Health check: $HEALTH_URL"

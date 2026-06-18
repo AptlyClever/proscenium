@@ -92,6 +92,14 @@ data class TransporterVariationProfile(
             }
         }
 
+        fun shimmerIntensity(profile: TransporterVariationProfile): Float {
+            return when (profile.variationId) {
+                "generation-next" -> 0.45f
+                "spoon" -> 0.35f
+                else -> 0.28f
+            }
+        }
+
         fun resolve(
             variationId: String?,
             beamIntensity: Float?,

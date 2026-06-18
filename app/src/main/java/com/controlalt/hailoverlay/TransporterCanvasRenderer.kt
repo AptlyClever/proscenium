@@ -35,12 +35,6 @@ object TransporterCanvasRenderer {
         val bottom: Float,
     )
 
-    private val profileBeamScale = mapOf(
-        "voyaging" to (0.92f to 1.0f),
-        "generation-next" to (1.35f to 1.12f),
-        "spoon" to (1.15f to 1.05f),
-    )
-
     private fun rolesFor(paletteId: String): PaletteRoles {
         return when (paletteId) {
             "transporter_white" -> PaletteRoles(
@@ -88,13 +82,13 @@ object TransporterCanvasRenderer {
 
     fun resolveBeamBounds(
         regions: PaintBoxLayout.Regions,
-        variationId: String,
+        profile: TransporterVariationProfile,
         beamScale: Float,
         beamReveal: Float,
         dematerializing: Boolean,
     ): BeamBounds {
-        val (widthMul, heightMul) = profileBeamScale[variationId]
-            ?: profileBeamScale.getValue("voyaging")
+        val widthMul = profile.beamWidthMultiplier
+        val heightMul = profile.beamHeightMultiplier
         val cx = regions.safeZoneLeft + regions.safeZoneWidth * 0.5f
         val fullTop = regions.safeZoneTop - regions.beamHeight * 0.12f
         val fullBottom = regions.contentFootY + regions.beamHeight * 0.15f
@@ -230,21 +224,22 @@ object TransporterCanvasRenderer {
     ) {
         val rand = Mulberry32(PARTICLE_SEED)
         val count = particleBudget(sizeTier, heavy)
-        val spread = if (dense) 0.55f else 0.38f
-        val speed = if (dense) 0.16f else 0.13f
+        val spread = if (dense) 0.55f else 0.35f
+        val speed = if (dense) 0.14f else 0.12f * 0.95f
         repeat(count) { i ->
             rand.next()
             val seed = rand.next()
             val travel = ((i / count.toFloat()) + phase * speed) % 1f
             val baseY = beam.bottom - (beam.bottom - beam.top) * travel
-            val wobble = sin((i + phase * 4f) * 0.5f) * beam.bw * 0.14f * spread
+            val wobble = sin((i + phase * 3.5f) * 0.45f) * beam.bw * 0.1f * spread
             val x = beam.cx + wobble
             val alpha = alphaTv(
-                (if (dense) 0.22f + seed * 0.35f else 0.18f + seed * 0.28f) * presence,
+                (if (dense) 0.08f + seed * 0.12f else 0.06f + seed * 0.08f) * presence * 0.9f,
             )
             val radius = max(
-                2.5f,
-                (if (dense) 2.2f + seed * 3.2f else 1.8f + seed * 2.8f) * TV_PARTICLE_RADIUS_SCALE,
+                2f,
+                (if (dense) 0.9f + seed * 1.4f else 0.7f + seed * 1.2f) *
+                    TV_PARTICLE_RADIUS_SCALE * (if (dense) 1.15f else 1f),
             )
             drawCircle(
                 color = roles.particle.copy(alpha = alpha),
@@ -387,24 +382,76 @@ object TransporterCanvasRenderer {
         }
     }
 
+    private fun DrawScope.drawGlyphLocalResidual(
+        cx: Float,
+        cy: Float,
+        stablePulse: Float,
+        roles: PaletteRoles,
+        shimmerIntensity: Float,
+        intensity: Float,
+        layoutSizePx: Float,
+    ) {
+        if (shimmerIntensity < 0.2f || intensity <= 0.01f) {
+            return
+        }
+        val pulse = 0.5f + sin(stablePulse * Math.PI.toFloat() * 2f) * 0.5f
+        val baseR = layoutSizePx.coerceAtLeast(48f)
+        val radius = baseR * (0.045f + shimmerIntensity * 0.028f)
+        drawCircle(
+            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                colors = listOf(
+                    roles.accent.copy(
+                        alpha = alphaTv(0.1f * shimmerIntensity * intensity * (0.65f + pulse * 0.35f)),
+                    ),
+                    roles.glow.copy(alpha = alphaTv(0.04f * shimmerIntensity * intensity)),
+                    Color.Transparent,
+                ),
+                center = Offset(cx, cy),
+                radius = radius,
+            ),
+            radius = radius,
+            center = Offset(cx, cy),
+        )
+        val sparkCount = when {
+            shimmerIntensity > 0.45f -> 3
+            shimmerIntensity > 0.28f -> 2
+            else -> 1
+        }
+        repeat(sparkCount) { i ->
+            val angle = stablePulse * Math.PI.toFloat() * 2f +
+                (i / sparkCount.toFloat()) * Math.PI.toFloat() * 2f
+            val dist = radius * (0.32f + sin(stablePulse * 3.2f + i * 1.7f) * 0.12f)
+            val sx = cx + kotlin.math.cos(angle) * dist
+            val sy = cy + sin(angle) * dist * 0.55f
+            val sparkAlpha = alphaTv(0.07f * shimmerIntensity * intensity * (0.55f + pulse * 0.45f))
+            if (sparkAlpha <= 0.01f) {
+                return@repeat
+            }
+            drawCircle(
+                color = roles.particle.copy(alpha = sparkAlpha),
+                radius = 0.65f + shimmerIntensity * 0.45f,
+                center = Offset(sx, sy),
+            )
+        }
+    }
+
     fun DrawScope.drawTransporterFrame(
         regions: PaintBoxLayout.Regions,
         paletteId: String,
-        variationId: String,
+        variation: ResolvedTransporterVariation,
         frame: TransporterLifecycle.Frame,
-        baseBeamIntensity: Float,
-        beamScaleMul: Float,
     ) {
         if (regions.paintBoxWidth < 8f || !frame.beamActive) {
             return
         }
 
+        val profile = variation.profile
         val roles = rolesFor(paletteId)
-        val presence = (baseBeamIntensity * frame.beamIntensity).coerceIn(0f, 1f)
-        val glowMul = 0.9f + presence * 0.28f
-        val beamOp = (0.45f + presence * 0.5f) * (1f - frame.beamClearT * 0.65f)
-        val shimmer = sin(frame.particlePhase * Math.PI.toFloat() * 2f) * 0.14f
-        val scaledBeam = beamScaleMul * frame.beamScale
+        val presence = (variation.beamOpacity * frame.beamIntensity).coerceIn(0f, 1f)
+        val glowMul = 0.85f + presence * 0.25f
+        val beamOp = frame.beamIntensity * (0.45f + presence * 0.5f) * (1f - frame.beamClearT * 0.65f)
+        val shimmer = sin(frame.particlePhase * Math.PI.toFloat() * 2f) * 0.1f
+        val scaledBeam = variation.beamScale * frame.beamScale
 
         if (beamOp <= 0.02f) {
             return
@@ -412,13 +459,13 @@ object TransporterCanvasRenderer {
 
         val beam = resolveBeamBounds(
             regions,
-            variationId,
+            profile,
             scaledBeam,
             frame.beamReveal,
             frame.dematerializing,
         )
         val phase = frame.particlePhase
-        val vfx = TransporterVfxLayers.forVariation(variationId)
+        val vfx = profile.vfxLayers
         val wipeT = if (frame.dematerializing) {
             1f - phase
         } else {
@@ -437,20 +484,35 @@ object TransporterCanvasRenderer {
             drawScanPulses(beam, roles, phase, vfx.scanPulseCount, beamOp)
         }
 
-        if (variationId == "generation-next") {
-            drawBeamShimmer(beam, roles, beamOp, glowMul, shimmer)
-            drawSparkleRise(beam, roles, phase, presence, regions.tier)
-        } else {
-            drawBeamColumn(beam, roles, beamOp, glowMul, shimmer)
-            drawScanfallParticles(
-                beam,
-                roles,
-                phase,
-                presence,
-                regions.tier,
-                dense = variationId == "spoon",
-                heavy = !frame.dematerializing,
-            )
+        when (profile.particleStyle) {
+            TransporterParticleStyle.SPARKLE_RISE -> {
+                drawBeamShimmer(beam, roles, beamOp, glowMul, shimmer)
+                drawSparkleRise(beam, roles, phase, presence, regions.tier)
+            }
+            TransporterParticleStyle.SCANFALL_DENSE -> {
+                drawBeamColumn(beam, roles, beamOp, glowMul, shimmer)
+                drawScanfallParticles(
+                    beam,
+                    roles,
+                    phase,
+                    presence,
+                    regions.tier,
+                    dense = true,
+                    heavy = !frame.dematerializing,
+                )
+            }
+            TransporterParticleStyle.SCANFALL -> {
+                drawBeamColumn(beam, roles, beamOp, glowMul, shimmer)
+                drawScanfallParticles(
+                    beam,
+                    roles,
+                    phase,
+                    presence,
+                    regions.tier,
+                    dense = false,
+                    heavy = !frame.dematerializing,
+                )
+            }
         }
 
         if (vfx.swirlField) {
@@ -464,32 +526,23 @@ object TransporterCanvasRenderer {
     fun DrawScope.drawTransporterStableFrame(
         regions: PaintBoxLayout.Regions,
         paletteId: String,
-        variationId: String,
+        variation: ResolvedTransporterVariation,
         stablePulse: Float,
+        glyphResidualIntensity: Float = 1f,
     ) {
         if (regions.paintBoxWidth < 8f) {
             return
         }
-        val roles = rolesFor(paletteId)
-        val beam = resolveBeamBounds(
-            regions,
-            variationId,
-            beamScale = 0.85f,
-            beamReveal = 0.35f,
-            dematerializing = false,
+        val shimmer = TransporterVariationProfile.shimmerIntensity(variation.profile)
+        val layoutSize = min(regions.paintBoxWidth, regions.paintBoxHeight)
+        drawGlyphLocalResidual(
+            cx = regions.glyphCenterX,
+            cy = regions.glyphVisualCenterY,
+            stablePulse = stablePulse,
+            roles = rolesFor(paletteId),
+            shimmerIntensity = shimmer,
+            intensity = glyphResidualIntensity.coerceIn(0f, 1f),
+            layoutSizePx = layoutSize,
         )
-        val count = particleBudget(regions.tier, heavy = false)
-        val rand = Mulberry32(PARTICLE_SEED + 3)
-        repeat(count) { i ->
-            val seed = rand.next()
-            val travel = ((i / count.toFloat()) + stablePulse * 0.04f) % 1f
-            val y = beam.bottom - (beam.bottom - beam.top) * travel * 0.45f
-            val x = beam.cx + sin(i + stablePulse * 6f) * beam.bw * 0.08f
-            drawCircle(
-                color = roles.particle.copy(alpha = alphaTv(0.04f + seed * 0.06f)),
-                radius = max(2f, (1f + seed) * TV_PARTICLE_RADIUS_SCALE * 0.5f),
-                center = Offset(x, y),
-            )
-        }
     }
 }

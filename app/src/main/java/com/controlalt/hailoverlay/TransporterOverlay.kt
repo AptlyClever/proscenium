@@ -117,8 +117,6 @@ fun TransporterOverlay(
                 PaintBoxLayout.resolve(screenW, screenH, placement, sizeTier, transporterVariation)
             }
         }
-        val variationId = transporterVariation.profile.variationId
-        val beamScaleMul = transporterVariation.beamScale
         val beamPresence = transporterVariation.beamOpacity
 
         val entrance = entranceProgress.value
@@ -153,16 +151,15 @@ fun TransporterOverlay(
                 TransporterPhase.ENTRANCE, TransporterPhase.EXIT -> drawTransporterFrame(
                     regions = regions,
                     paletteId = paletteId,
-                    variationId = variationId,
+                    variation = transporterVariation,
                     frame = frame,
-                    baseBeamIntensity = 1f,
-                    beamScaleMul = beamScaleMul,
                 )
                 TransporterPhase.STABLE -> drawTransporterStableFrame(
                     regions = regions,
                     paletteId = paletteId,
-                    variationId = variationId,
+                    variation = transporterVariation,
                     stablePulse = stablePulse,
+                    glyphResidualIntensity = frame.glyphAlpha,
                 )
                 TransporterPhase.CLEARED -> Unit
             }
