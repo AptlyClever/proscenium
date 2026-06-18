@@ -37,6 +37,7 @@ object HailRegistry {
         val choreography: EffectChoreography,
         val proceduralGraph: ProceduralGraphSpec? = null,
         val packageLayout: PackageLayoutV2? = null,
+        val palettePresentation: PalettePresentation? = null,
     )
 
     private fun resolveDeliveryPalette(palette: String, effectVariationId: String?): String {
@@ -67,6 +68,7 @@ object HailRegistry {
         choreography: EffectChoreography = EffectChoreography(),
         proceduralGraph: ProceduralGraphSpec? = null,
         packageLayout: PackageLayoutV2? = null,
+        palettePresentation: PalettePresentation? = null,
     ): Result<ValidatedHail> {
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
             return Result.failure(IllegalArgumentException("effect_id not allowlisted"))
@@ -140,6 +142,7 @@ object HailRegistry {
                 choreography = choreography,
                 proceduralGraph = proceduralGraph,
                 packageLayout = packageLayout,
+                palettePresentation = palettePresentation,
             ),
         )
     }

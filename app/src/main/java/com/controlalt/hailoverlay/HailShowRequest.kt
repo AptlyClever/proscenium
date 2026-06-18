@@ -22,6 +22,7 @@ data class HailShowRequest(
     val choreography: EffectChoreography,
     val proceduralGraph: ProceduralGraphSpec?,
     val packageLayout: PackageLayoutV2? = null,
+    val palettePresentation: PalettePresentation? = null,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
@@ -38,6 +39,11 @@ data class HailShowRequest(
                     layoutRegions = json.optJSONObject("layout_regions"),
                     messageEntity = json.optJSONObject("message_entity"),
                     stableHoldMs = json.optLong("duration_ms", 5000L),
+                )
+                val paletteId = json.optString("palette_id").ifBlank { null }
+                val palettePresentation = PalettePresentation.fromJson(
+                    json.optJSONObject("palette_presentation"),
+                    paletteId,
                 )
                 val messageEntity = json.optJSONObject("message_entity")
                 val messageText = when {
@@ -65,6 +71,7 @@ data class HailShowRequest(
                     choreography = EffectChoreography.fromJson(effectIdentity),
                     proceduralGraph = proceduralGraph,
                     packageLayout = packageLayout,
+                    palettePresentation = palettePresentation,
                 )
             }
         }
@@ -91,6 +98,7 @@ data class HailShowRequest(
             choreography = choreography,
             proceduralGraph = proceduralGraph,
             packageLayout = packageLayout,
+            palettePresentation = palettePresentation,
         )
     }
 }

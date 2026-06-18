@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,10 +51,12 @@ fun TransporterOverlay(
     choreography: EffectChoreography = EffectChoreography(),
     proceduralGraph: ProceduralGraphSpec? = null,
     packageLayout: PackageLayoutV2? = null,
+    palettePresentation: PalettePresentation? = null,
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
     val palette = paletteFor(paletteId)
+    val presentation = palettePresentation ?: PalettePresentation.fromJson(null, paletteId)
     var phase by remember { mutableStateOf(TransporterPhase.ENTRANCE) }
     val entranceProgress = remember { Animatable(0f) }
     val exitProgress = remember { Animatable(1f) }
@@ -177,6 +183,8 @@ fun TransporterOverlay(
         val messageWidthDp = scaledPackage?.let { layout ->
             with(density) { layout.messageBandWidth.toDp() }
         }
+        val scrimRadiusDp = with(density) { presentation.packageCornerRadiusPx.toDp() }
+        val plateRadiusDp = with(density) { presentation.messagePlateRadiusPx.toDp() }
         Box(
             modifier = Modifier
                 .offset {
@@ -189,6 +197,22 @@ fun TransporterOverlay(
                 .height(boxHeightDp),
             contentAlignment = if (scaledPackage != null) Alignment.TopStart else Alignment.TopCenter,
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(scrimRadiusDp),
+                        ambientColor = androidx.compose.ui.graphics.Color.Black.copy(
+                            alpha = presentation.packageShadowAlpha,
+                        ),
+                        spotColor = androidx.compose.ui.graphics.Color.Black.copy(
+                            alpha = presentation.packageShadowAlpha,
+                        ),
+                    )
+                    .clip(RoundedCornerShape(scrimRadiusDp))
+                    .background(presentation.scrimColor()),
+            )
             if (scaledPackage != null) {
                 Box(modifier = Modifier.offset(x = glyphOffsetX, y = glyphOffsetY)) {
                     GlyphDisplay(
@@ -202,12 +226,14 @@ fun TransporterOverlay(
                     text = message,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = palette.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
+                    color = presentation.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .offset(y = messageOffsetY ?: 0.dp)
-                        .padding(horizontal = 8.dp)
-                        .width(messageWidthDp ?: boxWidthDp),
+                        .width(messageWidthDp ?: boxWidthDp)
+                        .clip(RoundedCornerShape(plateRadiusDp))
+                        .background(presentation.plateColor())
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                 )
             } else {
                 val safePadH = with(density) { (regions.safeZoneLeft - regions.paintBoxLeft).toDp() }
@@ -232,9 +258,12 @@ fun TransporterOverlay(
                             text = message,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = palette.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
+                            color = presentation.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 8.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(plateRadiusDp))
+                                .background(presentation.plateColor())
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                         )
                     }
                 }
