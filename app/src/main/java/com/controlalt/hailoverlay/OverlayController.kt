@@ -57,6 +57,7 @@ class OverlayController(
         val proceduralGraph: ProceduralGraphSpec? = null,
         val packageLayout: PackageLayoutV2? = null,
         val palettePresentation: PalettePresentation? = null,
+        val lifecycleTiming: LifecycleTiming = LifecycleTiming(),
     )
 
     init {
@@ -67,18 +68,20 @@ class OverlayController(
     fun show(hail: HailRegistry.ValidatedHail) {
         mainHandler.post {
             dismissInternal(removeOnly = false)
+            val stableHoldMs = hail.lifecycleTiming.stableHoldMs ?: hail.durationMs
             overlayState.value = OverlayState(
                 glyphId = hail.glyphId,
                 message = hail.message,
                 paletteId = hail.paletteId,
                 placement = hail.placement,
-                durationMs = hail.durationMs,
+                durationMs = stableHoldMs,
                 sizeTier = hail.sizeTier,
                 transporterVariation = hail.transporterVariation,
                 choreography = hail.choreography,
                 proceduralGraph = hail.proceduralGraph,
                 packageLayout = hail.packageLayout,
                 palettePresentation = hail.palettePresentation,
+                lifecycleTiming = hail.lifecycleTiming,
             )
 
             val view = ComposeView(context).apply {
@@ -99,6 +102,7 @@ class OverlayController(
                             proceduralGraph = state.proceduralGraph,
                             packageLayout = state.packageLayout,
                             palettePresentation = state.palettePresentation,
+                            lifecycleTiming = state.lifecycleTiming,
                             stableHoldMs = state.durationMs,
                             onLifecycleComplete = { dismissInternal(removeOnly = true) },
                         )
@@ -125,7 +129,7 @@ class OverlayController(
             lifecycleRegistry.currentState = Lifecycle.State.RESUMED
 
             dismissRunnable = Runnable { dismissInternal(removeOnly = true) }
-            val safetyMs = TransporterContract.totalLifecycleMs(hail.durationMs) + 500L
+            val safetyMs = hail.lifecycleTiming.totalLifecycleMs(hail.durationMs) + 500L
             mainHandler.postDelayed(dismissRunnable!!, safetyMs)
         }
     }

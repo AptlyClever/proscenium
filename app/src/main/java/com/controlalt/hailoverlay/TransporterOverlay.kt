@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +53,7 @@ fun TransporterOverlay(
     proceduralGraph: ProceduralGraphSpec? = null,
     packageLayout: PackageLayoutV2? = null,
     palettePresentation: PalettePresentation? = null,
+    lifecycleTiming: LifecycleTiming = LifecycleTiming(),
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
@@ -67,14 +69,14 @@ fun TransporterOverlay(
             ?: MessageSidekickTiming.fromJson(null, stableHoldMs)
     }
 
-    LaunchedEffect(glyphId, message, stableHoldMs) {
+    LaunchedEffect(glyphId, message, stableHoldMs, lifecycleTiming) {
         phase = TransporterPhase.ENTRANCE
         entranceProgress.snapTo(0f)
         stableElapsedMs = 0L
         entranceProgress.animateTo(
             targetValue = 1f,
             animationSpec = tween(
-                durationMillis = TransporterContract.ENTRANCE_MS.toInt(),
+                durationMillis = lifecycleTiming.entranceMs.toInt().coerceAtLeast(1),
                 easing = LinearEasing,
             ),
         )
@@ -93,7 +95,7 @@ fun TransporterOverlay(
         exitProgress.animateTo(
             targetValue = 0f,
             animationSpec = tween(
-                durationMillis = TransporterContract.EXIT_MS.toInt(),
+                durationMillis = lifecycleTiming.exitMs.toInt().coerceAtLeast(1),
                 easing = LinearEasing,
             ),
         )
@@ -127,6 +129,7 @@ fun TransporterOverlay(
                 choreography = choreography,
                 beamPresence = beamPresence,
                 messageSidekick = messageSidekick,
+                timing = lifecycleTiming,
             )
             TransporterPhase.STABLE -> TransporterLifecycle.computeStableFrame(
                 stablePulse = stablePulse,
@@ -137,6 +140,7 @@ fun TransporterOverlay(
                 exitElapsed = 1f - exit,
                 beamPresence = beamPresence,
                 messageSidekick = messageSidekick,
+                timing = lifecycleTiming,
             )
             TransporterPhase.CLEARED -> TransporterLifecycle.computeStableFrame(0f).copy(
                 glyphAlpha = 0f,
@@ -177,12 +181,23 @@ fun TransporterOverlay(
         val glyphOffsetY = with(density) {
             ((regions.glyphCenterY - regions.paintBoxTop) - glyphHeightPx / 2f).toDp()
         }
+        val messageOffsetX = scaledPackage?.let { layout ->
+            with(density) { (layout.messageBandLeft - regions.paintBoxLeft).toDp() }
+        }
         val messageOffsetY = scaledPackage?.let { layout ->
             with(density) { (layout.messageBandTop - regions.paintBoxTop).toDp() }
         }
         val messageWidthDp = scaledPackage?.let { layout ->
             with(density) { layout.messageBandWidth.toDp() }
         }
+        val messageHeightDp = scaledPackage?.let { layout ->
+            with(density) { layout.messageBandHeight.toDp() }
+        }
+        val messageFontSize = scaledPackage?.let { layout ->
+            with(density) {
+                (layout.messageBandHeight * 0.24f).coerceIn(9f, 14f).toSp()
+            }
+        } ?: 12.sp
         val scrimRadiusDp = with(density) { presentation.packageCornerRadiusPx.toDp() }
         val plateRadiusDp = with(density) { presentation.messagePlateRadiusPx.toDp() }
         Box(
@@ -222,19 +237,34 @@ fun TransporterOverlay(
                         proceduralGraph = proceduralGraph,
                     )
                 }
-                Text(
-                    text = message,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = presentation.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
-                    textAlign = TextAlign.Center,
+                Box(
                     modifier = Modifier
-                        .offset(y = messageOffsetY ?: 0.dp)
+                        .offset(
+                            x = messageOffsetX ?: 0.dp,
+                            y = messageOffsetY ?: 0.dp,
+                        )
                         .width(messageWidthDp ?: boxWidthDp)
-                        .clip(RoundedCornerShape(plateRadiusDp))
-                        .background(presentation.plateColor())
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                )
+                        .height(messageHeightDp ?: 48.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = message,
+                        fontSize = messageFontSize,
+                        fontWeight = FontWeight.Normal,
+                        lineHeight = messageFontSize * 1.25f,
+                        color = presentation.messageColor.copy(
+                            alpha = frame.messageAlpha.coerceIn(0f, 1f) * 0.9f,
+                        ),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(plateRadiusDp))
+                            .background(presentation.plateColor())
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             } else {
                 val safePadH = with(density) { (regions.safeZoneLeft - regions.paintBoxLeft).toDp() }
                 val safePadV = with(density) { (regions.safeZoneTop - regions.paintBoxTop).toDp() }
@@ -256,10 +286,15 @@ fun TransporterOverlay(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = message,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = presentation.messageColor.copy(alpha = frame.messageAlpha.coerceIn(0f, 1f)),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = 15.sp,
+                            color = presentation.messageColor.copy(
+                                alpha = frame.messageAlpha.coerceIn(0f, 1f) * 0.9f,
+                            ),
                             textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(plateRadiusDp))
                                 .background(presentation.plateColor())

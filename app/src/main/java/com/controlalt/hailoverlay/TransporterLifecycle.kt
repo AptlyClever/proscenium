@@ -9,11 +9,6 @@ import kotlin.math.sin
  */
 object TransporterLifecycle {
 
-    private const val ENTRANCE_MS = TransporterContract.ENTRANCE_MS.toFloat()
-    private const val EXIT_MS = TransporterContract.EXIT_MS.toFloat()
-    private const val BEAM_IN_SEED_MS = TransporterContract.BEAM_IN_SEED_MS.toFloat()
-    private const val BEAM_OUT_SEED_MS = TransporterContract.BEAM_OUT_SEED_MS.toFloat()
-
     /** Dematerialize segment opens at this normalized beam intensity (matches beam_out_seed end). */
     private const val EXIT_DEMAT_BEAM_INTENSITY = 0.35f
     private const val EXIT_DEMAT_BEAM_SCALE = 0.92f
@@ -62,9 +57,14 @@ object TransporterLifecycle {
         }
     }
 
-    fun entranceSubPhase(entranceT: Float, choreography: EffectChoreography): EntranceSubPhase {
+    fun entranceSubPhase(
+        entranceT: Float,
+        choreography: EffectChoreography,
+        timing: LifecycleTiming = LifecycleTiming(),
+    ): EntranceSubPhase {
         val t = entranceT.coerceIn(0f, 1f)
-        val beamInEnd = BEAM_IN_SEED_MS / ENTRANCE_MS
+        val entranceMs = timing.entranceMs.toFloat().coerceAtLeast(1f)
+        val beamInEnd = timing.beamInSeedMs.toFloat() / entranceMs
         val clearStart = choreography.glyphLockIn
         return when {
             t < beamInEnd -> EntranceSubPhase.BEAM_IN_SEED
@@ -73,8 +73,9 @@ object TransporterLifecycle {
         }
     }
 
-    fun exitSubPhase(exitElapsed: Float): ExitSubPhase {
-        val beamOutEnd = BEAM_OUT_SEED_MS / EXIT_MS
+    fun exitSubPhase(exitElapsed: Float, timing: LifecycleTiming = LifecycleTiming()): ExitSubPhase {
+        val exitMs = timing.exitMs.toFloat().coerceAtLeast(1f)
+        val beamOutEnd = timing.beamOutSeedMs.toFloat() / exitMs
         return if (exitElapsed < beamOutEnd) {
             ExitSubPhase.BEAM_OUT_SEED
         } else {
@@ -109,8 +110,11 @@ object TransporterLifecycle {
         choreography: EffectChoreography,
         beamPresence: Float,
         messageSidekick: MessageSidekickTiming? = null,
+        timing: LifecycleTiming = LifecycleTiming(),
     ): Frame {
         val t = entranceT.coerceIn(0f, 1f)
+        val entranceMs = timing.entranceMs.toFloat().coerceAtLeast(1f)
+        val beamInSeedMs = timing.beamInSeedMs.toFloat()
         val anchors = choreography
         val glyphT = segmentProgress(t, anchors.glyphResolveStart, anchors.glyphLockIn)
         val lockT = segmentProgress(t, anchors.glyphLockIn, anchors.stableReady)
@@ -127,7 +131,7 @@ object TransporterLifecycle {
         var beamReveal: Float
         var beamClearT = 0f
 
-        val beamInEnd = BEAM_IN_SEED_MS / ENTRANCE_MS
+        val beamInEnd = beamInSeedMs / entranceMs
         when {
             t < beamInEnd -> {
                 val local = segmentProgress(t, 0f, beamInEnd)
@@ -235,11 +239,14 @@ object TransporterLifecycle {
         exitElapsed: Float,
         beamPresence: Float,
         messageSidekick: MessageSidekickTiming? = null,
+        timing: LifecycleTiming = LifecycleTiming(),
     ): Frame {
         val elapsed = exitElapsed.coerceIn(0f, 1f)
-        val frame = when (exitSubPhase(elapsed)) {
+        val exitMs = timing.exitMs.toFloat().coerceAtLeast(1f)
+        val beamOutSeedMs = timing.beamOutSeedMs.toFloat()
+        val frame = when (exitSubPhase(elapsed, timing)) {
             ExitSubPhase.BEAM_OUT_SEED -> {
-                val local = segmentProgress(elapsed, 0f, BEAM_OUT_SEED_MS / EXIT_MS)
+                val local = segmentProgress(elapsed, 0f, beamOutSeedMs / exitMs)
                 val rise = easeInOutCubic(local)
                 val beamIntensity = (0.1f + rise * (EXIT_DEMAT_BEAM_INTENSITY - 0.1f)) * beamPresence
                 val beamScale = 0.86f + rise * (EXIT_DEMAT_BEAM_SCALE - 0.86f)
@@ -260,7 +267,7 @@ object TransporterLifecycle {
             ExitSubPhase.DEMATERIALIZING -> {
                 val local = segmentProgress(
                     elapsed,
-                    BEAM_OUT_SEED_MS / EXIT_MS,
+                    beamOutSeedMs / exitMs,
                     1f,
                 )
                 val frag = easeInOutCubic(local)

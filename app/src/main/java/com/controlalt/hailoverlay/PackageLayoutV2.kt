@@ -85,7 +85,11 @@ data class PackageLayoutV2(
                     ?: glyphFocus.optDouble("width").toFloat() * localScaleX,
                 messageBandHeight = messageBand?.optDouble("height")?.toFloat()?.times(localScaleY)
                     ?: 48f,
-                messageSidekick = MessageSidekickTiming.fromJson(messageEntity, stableHoldMs),
+                messageSidekick = MessageSidekickTiming.fromJson(
+                    messageEntity,
+                    stableHoldMs,
+                    forceStablePhase = packageSchemaVersion >= 2,
+                ),
             )
         }
     }

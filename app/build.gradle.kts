@@ -26,8 +26,8 @@ android {
         applicationId = "com.controlalt.hailoverlay"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2000016
-        versionName = "2.0.0-alpha.16"
+        versionCode = 2000017
+        versionName = "2.0.0-alpha.17"
         buildConfigField(
             "String",
             "OVERLAY_BROKER_SECRET",

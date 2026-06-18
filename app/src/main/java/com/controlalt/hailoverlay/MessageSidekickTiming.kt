@@ -20,10 +20,14 @@ data class MessageSidekickTiming(
         private const val DEFAULT_EXIT_MS = 360L
         private const val DEFAULT_OPACITY = 0.92f
 
-        fun fromJson(messageEntity: JSONObject?, stableHoldMs: Long): MessageSidekickTiming {
+        fun fromJson(
+            messageEntity: JSONObject?,
+            stableHoldMs: Long,
+            forceStablePhase: Boolean = false,
+        ): MessageSidekickTiming {
             val hold = messageEntity?.optLong("stable_hold_ms")?.takeIf { it > 0L } ?: stableHoldMs.coerceAtLeast(0L)
             if (messageEntity == null) {
-                return legacyDefaults(hold, useStablePhase = false)
+                return legacyDefaults(hold, useStablePhase = forceStablePhase)
             }
 
             val hasSidekickPayload = messageEntity.has("sidekick_id") ||
@@ -31,7 +35,7 @@ data class MessageSidekickTiming(
                 messageEntity.has("exit_offset_ms")
 
             if (!hasSidekickPayload) {
-                return legacyDefaults(hold, useStablePhase = false)
+                return legacyDefaults(hold, useStablePhase = forceStablePhase)
             }
 
             val entranceMs = messageEntity.optLong("entrance_ms", DEFAULT_ENTRANCE_MS).coerceAtLeast(80L)

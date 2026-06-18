@@ -22,6 +22,7 @@ data class HailShowRequest(
     val choreography: EffectChoreography,
     val proceduralGraph: ProceduralGraphSpec?,
     val packageLayout: PackageLayoutV2? = null,
+    val lifecycleTiming: LifecycleTiming = LifecycleTiming(),
     val palettePresentation: PalettePresentation? = null,
 ) {
     companion object {
@@ -31,6 +32,12 @@ data class HailShowRequest(
                 val androidTuning = json.optJSONObject("android_effect_tuning")
                 val effectIdentity = json.optJSONObject("effect_identity")
                 val proceduralGraph = ProceduralGlyphParser.parseGlyphRender(json.optJSONObject("glyph_render"))
+                val durationMs = json.getLong("duration_ms")
+                val lifecycleTiming = LifecycleTiming.fromJson(
+                    json.optJSONObject("lifecycle_timing"),
+                    durationMs,
+                )
+                val stableHoldMs = lifecycleTiming.stableHoldMs ?: durationMs
                 val packageSchemaVersion = json.optInt("package_schema_version", 0)
                 val packageLayout = PackageLayoutV2.fromJson(
                     packageSchemaVersion = packageSchemaVersion,
@@ -38,7 +45,7 @@ data class HailShowRequest(
                     paintBoxScreen = json.optJSONObject("paint_box_screen"),
                     layoutRegions = json.optJSONObject("layout_regions"),
                     messageEntity = json.optJSONObject("message_entity"),
-                    stableHoldMs = json.optLong("duration_ms", 5000L),
+                    stableHoldMs = stableHoldMs,
                 )
                 val paletteId = json.optString("palette_id").ifBlank { null }
                 val palettePresentation = PalettePresentation.fromJson(
@@ -72,6 +79,7 @@ data class HailShowRequest(
                     proceduralGraph = proceduralGraph,
                     packageLayout = packageLayout,
                     palettePresentation = palettePresentation,
+                    lifecycleTiming = lifecycleTiming,
                 )
             }
         }
@@ -99,6 +107,7 @@ data class HailShowRequest(
             proceduralGraph = proceduralGraph,
             packageLayout = packageLayout,
             palettePresentation = palettePresentation,
+            lifecycleTiming = lifecycleTiming,
         )
     }
 }
