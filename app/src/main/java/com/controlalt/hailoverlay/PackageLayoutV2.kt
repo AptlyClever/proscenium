@@ -41,7 +41,10 @@ data class PackageLayoutV2(
             val refW = referenceViewport?.optDouble("width")?.toFloat() ?: 1920f
             val refH = referenceViewport?.optDouble("height")?.toFloat() ?: 1080f
             val glyphFocus = layoutRegions.optJSONObject("glyph_focus") ?: return null
-            val beam = layoutRegions.optJSONObject("transporter_beam_envelope") ?: return null
+            val effectField = layoutRegions.optJSONObject("effect_field")
+            val beam = effectField
+                ?: layoutRegions.optJSONObject("transporter_beam_envelope")
+                ?: return null
             val messageBand = layoutRegions.optJSONObject("message_band")
             val boxW = layoutRegions.optJSONObject("paint_box")?.optDouble("width")?.toFloat()
                 ?: paintBoxScreen.optDouble("width").toFloat()

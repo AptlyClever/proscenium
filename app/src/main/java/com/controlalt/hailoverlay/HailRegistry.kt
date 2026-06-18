@@ -43,7 +43,10 @@ object HailRegistry {
 
     private fun resolveDeliveryPalette(palette: String, effectVariationId: String?): String {
         val canonical = TransporterVariationProfile.canonicalPaletteId(effectVariationId)
-        if (canonical != null && palette == "axiom_dark_cyan") {
+        if (
+            canonical != null &&
+            (palette == "axiom_dark_cyan" || palette == "transporter_white")
+        ) {
             return canonical
         }
         return palette
