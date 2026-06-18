@@ -190,11 +190,7 @@ fun TransporterOverlay(
         val messageHeightDp = scaledPackage?.let { layout ->
             with(density) { layout.messageBandHeight.toDp() }
         }
-        val messageFontSize = scaledPackage?.let { layout ->
-            with(density) {
-                (layout.messageBandHeight * 0.24f).coerceIn(9f, 14f).toSp()
-            }
-        } ?: 12.sp
+        val messageFontSize = MessageTypography.fontSizeSp(screenH, sizeTier, density)
         val scrimRadiusDp = with(density) { presentation.packageCornerRadiusPx.toDp() }
         val plateRadiusDp = with(density) { presentation.messagePlateRadiusPx.toDp() }
         Box(
