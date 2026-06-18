@@ -56,12 +56,12 @@ data class PalettePresentation(
             return runCatching {
                 val normalized = if (value.startsWith("#")) value.substring(1) else value
                 when (normalized.length) {
-                    6 -> Color(0xFF000000 or normalized.toLong(16).toInt())
-                    8 -> Color(normalized.toLong(16).toInt())
-                    else -> Color(0xFF000000 or fallbackHex.removePrefix("#").toLong(16).toInt())
+                    6 -> Color(0xFF000000L or normalized.toLong(16))
+                    8 -> Color(normalized.toLong(16))
+                    else -> Color(0xFF000000L or fallbackHex.removePrefix("#").toLong(16))
                 }
             }.getOrElse {
-                Color(0xFF000000 or fallbackHex.removePrefix("#").toLong(16).toInt())
+                Color(0xFF000000L or fallbackHex.removePrefix("#").toLong(16))
             }
         }
     }
