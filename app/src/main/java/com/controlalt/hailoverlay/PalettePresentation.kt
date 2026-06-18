@@ -16,6 +16,7 @@ data class PalettePresentation(
     val messagePlateRadiusPx: Float,
     val messageColor: Color,
     val packageShadowAlpha: Float,
+    val rimGlowAlpha: Float = 0f,
 ) {
     companion object {
         private const val DEFAULT_SCRIM_OPACITY = 0.2f
@@ -35,6 +36,7 @@ data class PalettePresentation(
                     messagePlateRadiusPx = json.optDouble("message_plate_radius_px", DEFAULT_PLATE_RADIUS_PX.toDouble()).toFloat(),
                     messageColor = parseColor(json.optString("message_color"), "#F0FAF6"),
                     packageShadowAlpha = json.optDouble("package_shadow_alpha", DEFAULT_SHADOW_ALPHA.toDouble()).toFloat(),
+                    rimGlowAlpha = json.optDouble("rim_glow_alpha", 0.0).toFloat().coerceIn(0f, 0.35f),
                 )
             }
             val palette = paletteFor(paletteId ?: "axiom_dark_cyan")

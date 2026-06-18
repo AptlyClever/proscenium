@@ -223,7 +223,23 @@ fun TransporterOverlay(
                         ),
                     )
                     .clip(RoundedCornerShape(scrimRadiusDp))
-                    .background(presentation.scrimColor()),
+                    .background(presentation.scrimColor())
+                    .then(
+                        if (presentation.rimGlowAlpha > 0.02f) {
+                            Modifier.shadow(
+                                elevation = 12.dp,
+                                shape = RoundedCornerShape(scrimRadiusDp),
+                                ambientColor = androidx.compose.ui.graphics.Color.White.copy(
+                                    alpha = presentation.rimGlowAlpha * 0.55f,
+                                ),
+                                spotColor = androidx.compose.ui.graphics.Color.White.copy(
+                                    alpha = presentation.rimGlowAlpha,
+                                ),
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
             )
             if (scaledPackage != null) {
                 Box(modifier = Modifier.offset(x = glyphOffsetX, y = glyphOffsetY)) {
