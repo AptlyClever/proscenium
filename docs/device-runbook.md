@@ -30,7 +30,7 @@ adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay
 | Room | TV IP | Overlay URL |
 |------|-------|-------------|
 | Arcade | `192.168.68.105` | `http://192.168.68.105:8765/hail/show` |
-| Master Bedroom | `192.168.68.91` | `http://192.168.68.91:8765/hail/show` |
+| Master Bedroom | `192.168.68.101` | `http://192.168.68.101:8765/hail/show` |
 
 ## First boot
 
