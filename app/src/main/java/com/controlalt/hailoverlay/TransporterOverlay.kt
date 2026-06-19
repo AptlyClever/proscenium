@@ -1,15 +1,12 @@
 package com.controlalt.hailoverlay
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -19,13 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -57,12 +55,11 @@ fun TransporterOverlay(
     stableHoldMs: Long,
     onLifecycleComplete: () -> Unit,
 ) {
-    val palette = paletteFor(paletteId)
     val presentation = palettePresentation ?: PalettePresentation.fromJson(null, paletteId)
     var phase by remember { mutableStateOf(TransporterPhase.ENTRANCE) }
-    val entranceProgress = remember { Animatable(0f) }
-    val exitProgress = remember { Animatable(1f) }
-    var stablePulse by remember { mutableStateOf(0f) }
+    var entranceT by remember { mutableFloatStateOf(0f) }
+    var exitT by remember { mutableFloatStateOf(1f) }
+    var stablePulse by remember { mutableFloatStateOf(0f) }
     var stableElapsedMs by remember { mutableStateOf(0L) }
     val messageSidekick = remember(packageLayout, stableHoldMs) {
         packageLayout?.messageSidekick
@@ -71,15 +68,20 @@ fun TransporterOverlay(
 
     LaunchedEffect(glyphId, message, stableHoldMs, lifecycleTiming) {
         phase = TransporterPhase.ENTRANCE
-        entranceProgress.snapTo(0f)
+        entranceT = 0f
+        exitT = 1f
         stableElapsedMs = 0L
-        entranceProgress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(
-                durationMillis = lifecycleTiming.entranceMs.toInt().coerceAtLeast(1),
-                easing = LinearEasing,
-            ),
-        )
+        val entranceMs = lifecycleTiming.entranceMs.toInt().coerceAtLeast(1)
+        val entranceStart = System.currentTimeMillis()
+        while (true) {
+            val elapsed = System.currentTimeMillis() - entranceStart
+            if (elapsed >= entranceMs) {
+                break
+            }
+            entranceT = elapsed.toFloat() / entranceMs.toFloat()
+            kotlinx.coroutines.delay(16)
+        }
+        entranceT = 1f
         phase = TransporterPhase.STABLE
         val stableStart = System.currentTimeMillis()
         val stableEnd = stableStart + stableHoldMs
@@ -91,14 +93,17 @@ fun TransporterOverlay(
         }
         stableElapsedMs = stableHoldMs
         phase = TransporterPhase.EXIT
-        exitProgress.snapTo(1f)
-        exitProgress.animateTo(
-            targetValue = 0f,
-            animationSpec = tween(
-                durationMillis = lifecycleTiming.exitMs.toInt().coerceAtLeast(1),
-                easing = LinearEasing,
-            ),
-        )
+        val exitMs = lifecycleTiming.exitMs.toInt().coerceAtLeast(1)
+        val exitStart = System.currentTimeMillis()
+        while (true) {
+            val elapsed = System.currentTimeMillis() - exitStart
+            if (elapsed >= exitMs) {
+                break
+            }
+            exitT = 1f - (elapsed.toFloat() / exitMs.toFloat())
+            kotlinx.coroutines.delay(16)
+        }
+        exitT = 0f
         phase = TransporterPhase.CLEARED
         onLifecycleComplete()
     }
@@ -119,11 +124,9 @@ fun TransporterOverlay(
         }
         val beamPresence = transporterVariation.beamOpacity
 
-        val entrance = entranceProgress.value
-        val exit = exitProgress.value
         val frame = when (phase) {
             TransporterPhase.ENTRANCE -> TransporterLifecycle.computeEntranceFrame(
-                entranceT = entrance,
+                entranceT = entranceT,
                 choreography = choreography,
                 beamPresence = beamPresence,
                 messageSidekick = messageSidekick,
@@ -135,7 +138,7 @@ fun TransporterOverlay(
                 messageSidekick = messageSidekick,
             )
             TransporterPhase.EXIT -> TransporterLifecycle.computeExitFrame(
-                exitElapsed = 1f - exit,
+                exitElapsed = 1f - exitT,
                 beamPresence = beamPresence,
                 messageSidekick = messageSidekick,
                 timing = lifecycleTiming,
@@ -144,25 +147,6 @@ fun TransporterOverlay(
                 glyphAlpha = 0f,
                 messageAlpha = 0f,
             )
-        }
-
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            when (phase) {
-                TransporterPhase.ENTRANCE, TransporterPhase.EXIT -> drawTransporterFrame(
-                    regions = regions,
-                    paletteId = paletteId,
-                    variation = transporterVariation,
-                    frame = frame,
-                )
-                TransporterPhase.STABLE -> drawTransporterStableFrame(
-                    regions = regions,
-                    paletteId = paletteId,
-                    variation = transporterVariation,
-                    stablePulse = stablePulse,
-                    glyphResidualIntensity = frame.glyphAlpha,
-                )
-                TransporterPhase.CLEARED -> Unit
-            }
         }
 
         val glyphSizeDp = with(density) {
@@ -190,53 +174,69 @@ fun TransporterOverlay(
         val messageHeightDp = scaledPackage?.let { layout ->
             with(density) { layout.messageBandHeight.toDp() }
         }
-        val messageFontSize = MessageTypography.fontSizeSp(screenH, sizeTier, density)
+        val messageHorizontalPadPx = with(density) { 6.dp.toPx() }
+        val messageVerticalPadPx = with(density) { 2.dp.toPx() }
+        val messageBandHeightPx = scaledPackage?.messageBandHeight ?: 0f
+        val messageBandWidthPx = scaledPackage?.messageBandWidth ?: 0f
+        val messageFontSize = MessageTypography.fontSizeSp(
+            screenHeightPx = screenH,
+            bandHeightPx = messageBandHeightPx.takeIf { it > 0f },
+            bandWidthPx = messageBandWidthPx.takeIf { it > 0f },
+            textLength = message.length,
+            tier = sizeTier,
+            density = density,
+            horizontalPaddingPx = messageHorizontalPadPx * 2f,
+            verticalPaddingPx = messageVerticalPadPx * 2f,
+        )
         val scrimRadiusDp = with(density) { presentation.packageCornerRadiusPx.toDp() }
         val plateRadiusDp = with(density) { presentation.messagePlateRadiusPx.toDp() }
+        val effectRegions = remember(regions) { regions.toPackageLocal() }
+        val packageOffsetModifier = Modifier
+            .offset {
+                IntOffset(
+                    regions.paintBoxLeft.roundToInt(),
+                    regions.paintBoxTop.roundToInt(),
+                )
+            }
+            .width(boxWidthDp)
+            .height(boxHeightDp)
+
+        // Praxis stack in one package tree: Shell scrim → Effects canvas → Glyph → Message.
+        // Siblings (not full-screen zIndex) — required for reliable overlay compositing on Google TV.
         Box(
-            modifier = Modifier
-                .offset {
-                    IntOffset(
-                        regions.paintBoxLeft.roundToInt(),
-                        regions.paintBoxTop.roundToInt(),
-                    )
-                }
-                .width(boxWidthDp)
-                .height(boxHeightDp),
+            modifier = packageOffsetModifier,
             contentAlignment = if (scaledPackage != null) Alignment.TopStart else Alignment.TopCenter,
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(scrimRadiusDp),
-                        ambientColor = androidx.compose.ui.graphics.Color.Black.copy(
-                            alpha = presentation.packageShadowAlpha,
-                        ),
-                        spotColor = androidx.compose.ui.graphics.Color.Black.copy(
-                            alpha = presentation.packageShadowAlpha,
-                        ),
-                    )
                     .clip(RoundedCornerShape(scrimRadiusDp))
-                    .background(presentation.scrimColor())
-                    .then(
-                        if (presentation.rimGlowAlpha > 0.02f) {
-                            Modifier.shadow(
-                                elevation = 12.dp,
-                                shape = RoundedCornerShape(scrimRadiusDp),
-                                ambientColor = androidx.compose.ui.graphics.Color.White.copy(
-                                    alpha = presentation.rimGlowAlpha * 0.55f,
-                                ),
-                                spotColor = androidx.compose.ui.graphics.Color.White.copy(
-                                    alpha = presentation.rimGlowAlpha,
-                                ),
-                            )
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    .background(presentation.scrimColor()),
             )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        when (phase) {
+                            TransporterPhase.ENTRANCE, TransporterPhase.EXIT -> drawTransporterFrame(
+                                regions = effectRegions,
+                                paletteId = paletteId,
+                                variation = transporterVariation,
+                                frame = frame,
+                            )
+                            TransporterPhase.STABLE -> drawTransporterStableFrame(
+                                regions = effectRegions,
+                                paletteId = paletteId,
+                                variation = transporterVariation,
+                                stablePulse = stablePulse,
+                                glyphResidualIntensity = frame.glyphAlpha,
+                            )
+                            TransporterPhase.CLEARED -> Unit
+                        }
+                    },
+            )
+
             if (scaledPackage != null) {
                 Box(modifier = Modifier.offset(x = glyphOffsetX, y = glyphOffsetY)) {
                     GlyphDisplay(
@@ -253,25 +253,24 @@ fun TransporterOverlay(
                             y = messageOffsetY ?: 0.dp,
                         )
                         .width(messageWidthDp ?: boxWidthDp)
-                        .height(messageHeightDp ?: 48.dp),
+                        .height(messageHeightDp ?: 48.dp)
+                        .clip(RoundedCornerShape(plateRadiusDp))
+                        .background(presentation.plateColor())
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = message,
                         fontSize = messageFontSize,
                         fontWeight = FontWeight.Normal,
-                        lineHeight = messageFontSize * 1.25f,
+                        lineHeight = messageFontSize * MessageTypography.LINE_HEIGHT_MULTIPLIER,
                         color = presentation.messageColor.copy(
                             alpha = frame.messageAlpha.coerceIn(0f, 1f) * 0.9f,
                         ),
                         textAlign = TextAlign.Center,
-                        maxLines = 2,
+                        maxLines = MessageTypography.MAX_LINES,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(plateRadiusDp))
-                            .background(presentation.plateColor())
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             } else {

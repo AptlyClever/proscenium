@@ -16,7 +16,7 @@ object TransporterCanvasRenderer {
 
     private const val PARTICLE_SEED = 42
   /** Web-preview alphas are too faint on Android TV over live content. */
-    private const val TV_ALPHA_BOOST = 4.2f
+    private const val TV_ALPHA_BOOST = 6.5f
     private const val TV_PARTICLE_RADIUS_SCALE = 2.4f
 
     private data class PaletteRoles(
@@ -89,7 +89,7 @@ object TransporterCanvasRenderer {
     ): BeamBounds {
         val widthMul = profile.beamWidthMultiplier
         val heightMul = profile.beamHeightMultiplier
-        val cx = regions.safeZoneLeft + regions.safeZoneWidth * 0.5f
+        val cx = regions.glyphCenterX
         val fullTop = regions.safeZoneTop - regions.beamHeight * 0.12f
         val fullBottom = regions.contentFootY + regions.beamHeight * 0.15f
         val span = (fullBottom - fullTop).coerceAtLeast(48f)

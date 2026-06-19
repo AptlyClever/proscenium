@@ -123,6 +123,14 @@ data class PackageLayoutV2(
         val safeTop = paintBoxTop + paintBoxHeight * tier.safeZoneInsetFraction
         val safeW = paintBoxWidth * (1f - tier.safeZoneInsetFraction * 2f)
         val safeH = paintBoxHeight * (1f - tier.safeZoneInsetFraction * 2f)
+        val glyphH = safeH * tier.glyphFocusFraction
+        val fallbackBeamH = minOf(safeH, glyphH * tier.transporterBeamHeightMultiplier)
+        val fallbackBeamW = minOf(
+            safeW * TransporterContract.BEAM_WIDTH_SAFE_ZONE_FRACTION,
+            glyphWidth * TransporterContract.BEAM_WIDTH_GLYPH_FRACTION,
+        )
+        val resolvedBeamW = if (beamWidth >= 8f) beamWidth else fallbackBeamW
+        val resolvedBeamH = if (beamHeight >= 8f) beamHeight else fallbackBeamH
         return PaintBoxLayout.Regions(
             paintBoxLeft = paintBoxLeft,
             paintBoxTop = paintBoxTop,
@@ -134,8 +142,8 @@ data class PackageLayoutV2(
             safeZoneHeight = safeH,
             glyphCenterX = glyphCenterX,
             glyphCenterY = glyphCenterY,
-            beamWidth = beamWidth,
-            beamHeight = beamHeight,
+            beamWidth = resolvedBeamW,
+            beamHeight = resolvedBeamH,
             glyphVisualSizePx = glyphHeight,
             glyphVisualTopY = glyphCenterY - glyphHeight / 2f,
             glyphVisualCenterY = glyphCenterY,

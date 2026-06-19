@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.WindowManager
+import android.view.View
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
@@ -85,6 +86,7 @@ class OverlayController(
             )
 
             val view = ComposeView(context).apply {
+                setLayerType(View.LAYER_TYPE_HARDWARE, null)
                 setViewTreeLifecycleOwner(this@OverlayController)
                 setViewTreeSavedStateRegistryOwner(this@OverlayController)
                 setViewTreeViewModelStoreOwner(this@OverlayController)
@@ -117,7 +119,8 @@ class OverlayController(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START

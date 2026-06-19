@@ -24,7 +24,24 @@ object PaintBoxLayout {
         val glyphVisualCenterY: Float,
         val contentFootY: Float,
         val tier: PaintBoxTier,
-    )
+    ) {
+        /** Paint-box-local coordinates for in-package Canvas (origin = package top-left). */
+        fun toPackageLocal(): Regions {
+            val left = paintBoxLeft
+            val top = paintBoxTop
+            return copy(
+                paintBoxLeft = 0f,
+                paintBoxTop = 0f,
+                safeZoneLeft = safeZoneLeft - left,
+                safeZoneTop = safeZoneTop - top,
+                glyphCenterX = glyphCenterX - left,
+                glyphCenterY = glyphCenterY - top,
+                glyphVisualTopY = glyphVisualTopY - top,
+                glyphVisualCenterY = glyphVisualCenterY - top,
+                contentFootY = contentFootY - top,
+            )
+        }
+    }
 
     fun resolve(
         screenWidthPx: Float,
