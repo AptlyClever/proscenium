@@ -59,7 +59,7 @@ curl -sS -X POST "http://<tv-ip>:8765/hail/show" \
   -H "Content-Type: application/json" \
   -d '{
     "effect_id": "transporter_beam",
-    "glyph_id": "hail-sniffer",
+    "glyph_id": "default",
     "message": "What'\''s sniffing?",
     "duration_ms": 5500
   }'
@@ -78,8 +78,8 @@ Only this schema is accepted; all fields must match allowlists:
 | Field | Allowed values |
 |-------|----------------|
 | `effect_id` | `transporter_beam` |
-| `glyph_id` | `hail-sniffer` |
-| `message` | `What's sniffing?` |
+| `glyph_id` | `default` |
+| `message` | `Spoon transporter check` |
 | `duration_ms` | `1000`–`30000` |
 
 Non-allowlisted requests return HTTP 400.

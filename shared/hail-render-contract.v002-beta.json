@@ -28,8 +28,8 @@
   },
   "glyphs": {
     "allowlist": [
-      "hail-sniffer",
-      "hail-eye-check",
+      "default",
+      "default",
       "hail-summons",
       "hail-alert",
       "hail-route",
@@ -38,8 +38,8 @@
     ],
     "emojiFallback": {
       "default": "\u2726",
-      "hail-eye-check": "\u25ce",
-      "hail-sniffer": "\ud83d\udc43"
+      "default": "\u25ce",
+      "default": "\ud83d\udc43"
     }
   },
   "lifecycleModel": {
@@ -203,10 +203,10 @@
   "previewDefaults": {
     "duration_ms": 5500,
     "effect_id": "transporter",
-    "glyph_id": "hail-sniffer",
-    "hail_id": "hail.sniffer.001",
+    "glyph_id": "default",
+    "hail_id": "hail.spoon_transporter.001",
     "hail_scale_tier": "medium",
-    "message": "What's sniffing?",
+    "message": "Spoon transporter check",
     "palette_id": "axiom_dark_cyan",
     "placement_id": "top_right",
     "placement_mode": "preset"

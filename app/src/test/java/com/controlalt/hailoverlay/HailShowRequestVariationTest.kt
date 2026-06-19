@@ -12,9 +12,9 @@ class HailShowRequestVariationTest {
     fun fromJson_parses_variation_choreography_anchors() {
         val json = """
             {
-              "hail_id": "hail.sniffer.001",
+              "hail_id": "hail.spoon_transporter.001",
               "effect_id": "transporter_beam",
-              "glyph_id": "hail-sniffer",
+              "glyph_id": "default",
               "palette_id": "transporter_generation_next",
               "message": "Engage",
               "duration_ms": 5000,
@@ -44,9 +44,9 @@ class HailShowRequestVariationTest {
     fun fromJson_parses_variation_and_android_tuning() {
         val json = """
             {
-              "hail_id": "hail.sniffer.001",
+              "hail_id": "hail.spoon_transporter.001",
               "effect_id": "transporter_beam",
-              "glyph_id": "hail-sniffer",
+              "glyph_id": "default",
               "palette_id": "transporter_white",
               "message": "Sniff check",
               "duration_ms": 5500,
@@ -71,9 +71,9 @@ class HailShowRequestVariationTest {
     fun validate_resolves_transporter_variation_on_validated_hail() {
         val placement = Placement.resolve("upper_center", Placement.MODE_PRESET, null, null).getOrThrow()
         val proofPayload = OverlayBrokerGate.brokerProofPayloadFromValidated(
-            hailId = "hail.sniffer.001",
+            hailId = "hail.spoon_transporter.001",
             effectId = "transporter_beam",
-            glyphId = "hail-sniffer",
+            glyphId = "default",
             paletteId = "transporter_spoon",
             message = "Spoon beam",
             durationMs = 5500L,

@@ -9,7 +9,7 @@ class MessageTextValidatorTest {
     @Test
     fun accepts_axiom_authored_messages() {
         listOf(
-            "What's sniffing?",
+            "Spoon transporter check",
             "Sniff check initiated.",
             "Nose protocol online.",
         ).forEach { message ->
@@ -21,9 +21,9 @@ class MessageTextValidatorTest {
 
     @Test
     fun trims_surrounding_whitespace() {
-        val result = MessageTextValidator.validate("  What's sniffing?  ")
+        val result = MessageTextValidator.validate("  Spoon transporter check  ")
         assertTrue(result.isSuccess)
-        assertEquals("What's sniffing?", result.getOrNull())
+        assertEquals("Spoon transporter check", result.getOrNull())
     }
 
     @Test

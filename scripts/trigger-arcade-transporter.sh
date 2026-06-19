@@ -96,7 +96,7 @@ const payload = attachBrokerProofToOverlayPayload(
   {
     hail_id: `hail.operator.${process.env.VARIATION}`,
     effect_id: "transporter_beam",
-    glyph_id: "hail-sniffer",
+    glyph_id: "default",
     palette_id: "axiom_dark_cyan",
     message: process.env.MESSAGE,
     duration_ms: 5500,

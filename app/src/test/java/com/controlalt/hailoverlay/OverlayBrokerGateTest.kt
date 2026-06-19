@@ -22,7 +22,7 @@ class OverlayBrokerGateTest {
         return OverlayBrokerGate.brokerProofPayloadFromValidated(
             hailId = hailId,
             effectId = "transporter_beam",
-            glyphId = "hail-sniffer",
+            glyphId = "default",
             paletteId = "axiom_dark_cyan",
             message = message,
             durationMs = 5000L,
@@ -48,7 +48,7 @@ class OverlayBrokerGateTest {
         val payload = samplePayload()
         val canonical = OverlayBrokerGate.canonicalProofInput(payload)
         assertEquals(
-            "hail.dynamic.test.001|transporter_beam|hail-sniffer|axiom_dark_cyan|Dynamic hail broker test|5000|upper_center|preset|||medium",
+            "hail.dynamic.test.001|transporter_beam|default|axiom_dark_cyan|Dynamic hail broker test|5000|upper_center|preset|||medium",
             canonical,
         )
     }

@@ -289,7 +289,7 @@ function isTransportLifecyclePhase(phase) {
 }
 
 export function glyphMarkup(glyphId, contract) {
-  if (glyphId === "hail-sniffer") {
+  if (glyphId === "default") {
     return (
       '<svg class="hail-glyph-svg" viewBox="0 0 96 96" aria-hidden="true">' +
       '<path fill="currentColor" d="M48,14 C58,14 66,22 66,34 C66,46 58,54 48,54 C38,54 30,46 30,34 C30,22 38,14 48,14 Z"/>' +
@@ -297,7 +297,7 @@ export function glyphMarkup(glyphId, contract) {
       "</svg>"
     );
   }
-  if (glyphId === "hail-eye-check") {
+  if (glyphId === "default") {
     return (
       '<svg class="hail-glyph-svg" viewBox="0 0 96 96" aria-hidden="true">' +
       '<ellipse cx="48" cy="42" rx="24" ry="16" fill="none" stroke="currentColor" stroke-width="4.5"/>' +

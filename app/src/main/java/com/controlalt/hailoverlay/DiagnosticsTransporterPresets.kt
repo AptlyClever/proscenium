@@ -7,7 +7,7 @@ package com.controlalt.hailoverlay
 object DiagnosticsTransporterPresets {
     private const val HAIL_ID_PREFIX = "hail.diagnostics."
     private const val EFFECT_ID = "transporter_beam"
-    private const val GLYPH_ID = "hail-sniffer"
+    private const val GLYPH_ID = "default"
     private const val PALETTE_ID = "axiom_dark_cyan"
     private const val DURATION_MS = 5_500L
     private const val PLACEMENT_ID = "upper_center"

@@ -90,9 +90,9 @@ cd hail-overlay-poc
 curl -sS -X POST "http://<tv-ip>:8765/hail/show" \
   -H "Content-Type: application/json" \
   -d '{
-    "hail_id": "hail.sniffer.001",
+    "hail_id": "hail.spoon_transporter.001",
     "effect_id": "transporter_beam",
-    "glyph_id": "hail-sniffer",
+    "glyph_id": "default",
     "palette_id": "axiom_dark_cyan",
     "message": "What'\''s sniffing?",
     "duration_ms": 5500,

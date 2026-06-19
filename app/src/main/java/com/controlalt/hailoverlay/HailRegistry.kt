@@ -7,8 +7,8 @@ object HailRegistry {
 
     private val allowedEffectIds = setOf("transporter_beam")
     private val allowedGlyphIds = setOf(
-        "hail-sniffer",
-        "hail-eye-check",
+        "default",
+        "default",
         "hail-summons",
         "hail-alert",
         "hail-route",

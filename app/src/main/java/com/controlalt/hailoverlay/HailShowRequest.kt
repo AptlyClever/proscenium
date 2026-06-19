@@ -59,7 +59,7 @@ data class HailShowRequest(
                     else -> json.getString("message")
                 }
                 HailShowRequest(
-                    hailId = json.optString("hail_id", "hail.sniffer.001"),
+                    hailId = json.optString("hail_id", "hail.spoon_transporter.001"),
                     effectId = json.getString("effect_id"),
                     glyphId = json.getString("glyph_id"),
                     paletteId = json.optString("palette_id").ifBlank { null },

@@ -9,11 +9,11 @@ class HailRegistryTest {
     private fun testSecret(): String = BuildConfig.OVERLAY_BROKER_SECRET
 
     private fun proofPayload(
-        hailId: String = "hail.sniffer.001",
+        hailId: String = "hail.spoon_transporter.001",
         effectId: String = "transporter_beam",
-        glyphId: String = "hail-sniffer",
+        glyphId: String = "default",
         paletteId: String = "axiom_dark_cyan",
-        message: String = "What's sniffing?",
+        message: String = "Spoon transporter check",
         durationMs: Long = 5500L,
         placementId: String = "upper_center",
         placementMode: String = Placement.MODE_PRESET,
@@ -39,12 +39,12 @@ class HailRegistryTest {
     }
 
     private fun validBase(
-        message: String = "What's sniffing?",
+        message: String = "Spoon transporter check",
         effectId: String = "transporter_beam",
-        glyphId: String = "hail-sniffer",
+        glyphId: String = "default",
         paletteId: String = "axiom_dark_cyan",
         placementId: String = "upper_center",
-        hailId: String = "hail.sniffer.001",
+        hailId: String = "hail.spoon_transporter.001",
         durationMs: Long = 5500L,
         sizeTier: String? = null,
     ): Result<HailRegistry.ValidatedHail> {
@@ -83,7 +83,7 @@ class HailRegistryTest {
 
     @Test
     fun accepts_dynamic_hail_id_with_broker_proof() {
-        val hailId = "hail.can_i_see_this.001"
+        val hailId = "hail.spoon_transporter.001"
         val result = validBase(
             hailId = hailId,
             message = "Can I see this?",
@@ -104,9 +104,9 @@ class HailRegistryTest {
     @Test
     fun rejects_missing_broker_proof() {
         val result = HailRegistry.validate(
-            hailId = "hail.sniffer.001",
+            hailId = "hail.spoon_transporter.001",
             effectId = "transporter_beam",
-            glyphId = "hail-sniffer",
+            glyphId = "default",
             paletteId = "axiom_dark_cyan",
             message = "Missing proof",
             durationMs = 5500L,
@@ -124,9 +124,9 @@ class HailRegistryTest {
     fun rejects_invalid_broker_proof() {
         val result = validBase().let { _ ->
             HailRegistry.validate(
-                hailId = "hail.sniffer.001",
+                hailId = "hail.spoon_transporter.001",
                 effectId = "transporter_beam",
-                glyphId = "hail-sniffer",
+                glyphId = "default",
                 paletteId = "axiom_dark_cyan",
                 message = "Bad proof",
                 durationMs = 5500L,
@@ -231,12 +231,12 @@ class HailRegistryTest {
     @Test
     fun accepts_hail_eye_check_glyph() {
         val result = validBase(
-            hailId = "hail.can_i_see_this.001",
-            glyphId = "hail-eye-check",
+            hailId = "hail.spoon_transporter.001",
+            glyphId = "default",
             message = "Can I see this?",
         )
         assertTrue(result.isSuccess)
-        assertEquals("hail-eye-check", result.getOrNull()?.glyphId)
+        assertEquals("default", result.getOrNull()?.glyphId)
     }
 
     @Test
