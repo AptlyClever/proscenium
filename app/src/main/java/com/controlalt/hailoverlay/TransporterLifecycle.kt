@@ -164,10 +164,17 @@ object TransporterLifecycle {
             }
         }
 
+        if (t >= anchors.effectStart && t < anchors.glyphResolveStart) {
+            val anticipation = segmentProgress(t, anchors.effectStart, anchors.glyphResolveStart)
+            beamIntensity = (beamIntensity + anticipation * 0.08f * beamPresence).coerceIn(0f, 1f)
+        }
+
         val glyphAlpha = when {
-            t < anchors.glyphResolveStart -> 0.08f
+            t < anchors.effectStart -> 0.04f
+            t < anchors.glyphResolveStart -> 0.04f + segmentProgress(t, anchors.effectStart, anchors.glyphResolveStart) * 0.04f
             else -> (0.08f + easeOutCubic(glyphT) * 0.92f).coerceIn(0f, 1f)
         }
+        val glyphScale = computeGlyphEntranceScale(t, anchors)
         val messageAlpha = if (messageSidekick?.useStablePhase == true) {
             0f
         } else if (t < anchors.messageRevealStart) {
@@ -183,7 +190,7 @@ object TransporterLifecycle {
             beamReveal = beamReveal.coerceIn(0f, 1f),
             beamClearT = beamClearT,
             glyphAlpha = glyphAlpha,
-            glyphScale = 1f,
+            glyphScale = glyphScale,
             glyphOffsetY = 0f,
             messageAlpha = messageAlpha.coerceIn(0f, 1f),
             particlePhase = particlePhase.coerceIn(0f, 1f),
@@ -330,6 +337,31 @@ object TransporterLifecycle {
         val beamScale: Float,
         val beamReveal: Float,
     )
+
+    private fun computeGlyphEntranceScale(t: Float, anchors: EffectChoreography): Float {
+        val overshoot = anchors.glyphLockInOvershoot.coerceIn(0f, 0.12f)
+        val peakScale = 1f + overshoot
+        return when {
+            t < anchors.effectStart -> 0.82f
+            t < anchors.glyphResolveStart -> {
+                val local = segmentProgress(t, anchors.effectStart, anchors.glyphResolveStart)
+                0.82f + easeOutCubic(local) * 0.04f
+            }
+            t < anchors.glyphImpactPeak -> {
+                val local = segmentProgress(t, anchors.glyphResolveStart, anchors.glyphImpactPeak)
+                0.86f + easeOutCubic(local) * 0.06f
+            }
+            t < anchors.glyphLockIn -> {
+                val local = segmentProgress(t, anchors.glyphImpactPeak, anchors.glyphLockIn)
+                0.92f + easeOutCubic(local) * (peakScale - 0.92f)
+            }
+            t < anchors.stableReady -> {
+                val settle = segmentProgress(t, anchors.glyphLockIn, anchors.stableReady)
+                peakScale - easeOutCubic(settle) * overshoot
+            }
+            else -> 1f
+        }
+    }
 
     private fun segmentProgress(t: Float, start: Float, end: Float): Float {
         if (t <= start) {

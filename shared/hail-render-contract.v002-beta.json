@@ -28,8 +28,6 @@
   },
   "glyphs": {
     "allowlist": [
-      "default",
-      "default",
       "hail-summons",
       "hail-alert",
       "hail-route",
@@ -37,9 +35,7 @@
       "default"
     ],
     "emojiFallback": {
-      "default": "\u2726",
-      "default": "\u25ce",
-      "default": "\ud83d\udc43"
+      "default": "\u2726"
     }
   },
   "lifecycleModel": {
@@ -863,9 +859,10 @@
               "identity": {
                 "beamProfile": "wide_soft_column",
                 "choreographyAnchors": {
-                  "effectStart": 0,
+                  "effectStart": 0.05,
                   "glyphImpactPeak": 0.7,
                   "glyphLockIn": 0.88,
+                  "glyphLockInOvershoot": 0.04,
                   "glyphResolveStart": 0.38,
                   "messageRevealStart": 0.8,
                   "stableReady": 0.94
@@ -892,9 +889,10 @@
               "identity": {
                 "beamProfile": "amber_column",
                 "choreographyAnchors": {
-                  "effectStart": 0,
+                  "effectStart": 0.05,
                   "glyphImpactPeak": 0.68,
                   "glyphLockIn": 0.86,
+                  "glyphLockInOvershoot": 0.04,
                   "glyphResolveStart": 0.4,
                   "messageRevealStart": 0.78,
                   "stableReady": 0.92
@@ -1056,6 +1054,7 @@
           "effectStart": "Field anticipation begins",
           "glyphImpactPeak": "Perceptual peak \u2014 pop overshoot, burst snap, transporter scan midpoint",
           "glyphLockIn": "Glyph sharpens to stable readable form",
+          "glyphLockInOvershoot": "Lock-in scale overshoot above 1.0 before settle (e.g. 0.04 = 1.04x)",
           "glyphResolveStart": "Glyph resolve begins (partial/fragmented first frame)",
           "messageRevealStart": "Message reveal begins (after glyph focal moment)",
           "stableReady": "Entrance choreography complete; stable hold begins"
@@ -1185,9 +1184,10 @@
         },
         "transporter": {
           "choreographyAnchors": {
-            "effectStart": 0,
+            "effectStart": 0.05,
             "glyphImpactPeak": 0.74,
             "glyphLockIn": 0.9,
+            "glyphLockInOvershoot": 0.04,
             "glyphResolveStart": 0.42,
             "messageRevealStart": 0.82,
             "stableReady": 0.95
@@ -1239,7 +1239,282 @@
         },
         "note": "Named effects define how the glyph resolves, not just the surrounding field."
       },
-      "note": "Recallable named effect presets selected by id at runtime. Workbench may expose advanced tuning; end-user contract is effect id only."
+      "note": "Recallable named effect presets selected by id at runtime. Workbench may expose advanced tuning; end-user contract is effect id only. messageRevealStyle / messageRevealStart are legacy preview hints — superseded for delivery by messageRegistry (pso-20260621)."
+    },
+    "messageRegistry": {
+      "defaultSidekickId": "secondary_fade",
+      "lifecycleModel": {
+        "entrance_trigger": "stable_hold_start",
+        "exit_trigger": "stable_hold_end_minus_exit_ms",
+        "note": "Message Sidekick runs during stable_hold only — not during Effects Sidekick entrance"
+      },
+      "speedTiers": {
+        "slow": {
+          "entrance_ms": 720,
+          "exit_ms": 540,
+          "label": "Slow"
+        },
+        "normal": {
+          "entrance_ms": 480,
+          "exit_ms": 360,
+          "label": "Normal"
+        },
+        "quick": {
+          "entrance_ms": 240,
+          "exit_ms": 180,
+          "label": "Quick"
+        }
+      },
+      "entries": {
+        "secondary_fade": {
+          "capabilities": {
+            "google_tv_apk": {
+              "deliverable": true
+            }
+          },
+          "default": true,
+          "identity": {
+            "color_source": "palette_message",
+            "entrance_speed_tier": "normal",
+            "entrance_style": "fade",
+            "exit_speed_tier": "normal",
+            "exit_style": "fade",
+            "opacity_default": 0.92
+          },
+          "label": "Secondary fade",
+          "status": "active",
+          "tuning": {
+            "defaults": {
+              "entrance_speed_tier": "normal",
+              "exit_speed_tier": "normal",
+              "opacity": 0.92
+            },
+            "variables": [
+              {
+                "default": 0.92,
+                "key": "opacity",
+                "label": "Opacity",
+                "max": 1.0,
+                "min": 0.2,
+                "step": 0.02,
+                "type": "range"
+              },
+              {
+                "default": "normal",
+                "key": "entrance_speed_tier",
+                "label": "Fade in",
+                "options": [
+                  "slow",
+                  "normal",
+                  "quick"
+                ],
+                "type": "enum"
+              },
+              {
+                "default": "normal",
+                "key": "exit_speed_tier",
+                "label": "Fade out",
+                "options": [
+                  "slow",
+                  "normal",
+                  "quick"
+                ],
+                "type": "enum"
+              }
+            ]
+          }
+        },
+        "soft_slide": {
+          "capabilities": {
+            "google_tv_apk": {
+              "deliverable": true
+            }
+          },
+          "identity": {
+            "color_source": "palette_message",
+            "entrance_speed_tier": "normal",
+            "entrance_style": "slide_up",
+            "exit_speed_tier": "quick",
+            "exit_style": "fade",
+            "opacity_default": 0.94
+          },
+          "label": "Soft slide",
+          "status": "active",
+          "tuning": {
+            "defaults": {
+              "entrance_speed_tier": "normal",
+              "exit_speed_tier": "quick",
+              "opacity": 0.94
+            },
+            "variables": [
+              {
+                "default": 0.94,
+                "key": "opacity",
+                "label": "Opacity",
+                "max": 1.0,
+                "min": 0.2,
+                "step": 0.02,
+                "type": "range"
+              },
+              {
+                "default": "normal",
+                "key": "entrance_speed_tier",
+                "label": "Fade in",
+                "options": [
+                  "slow",
+                  "normal",
+                  "quick"
+                ],
+                "type": "enum"
+              },
+              {
+                "default": "quick",
+                "key": "exit_speed_tier",
+                "label": "Fade out",
+                "options": [
+                  "slow",
+                  "normal",
+                  "quick"
+                ],
+                "type": "enum"
+              }
+            ]
+          }
+        },
+        "whisper": {
+          "capabilities": {
+            "google_tv_apk": {
+              "deliverable": true
+            }
+          },
+          "identity": {
+            "color_source": "palette_message",
+            "entrance_speed_tier": "slow",
+            "entrance_style": "fade",
+            "exit_speed_tier": "slow",
+            "exit_style": "fade",
+            "opacity_default": 0.78
+          },
+          "label": "Whisper",
+          "status": "active",
+          "tuning": {
+            "defaults": {
+              "entrance_speed_tier": "slow",
+              "exit_speed_tier": "slow",
+              "opacity": 0.78
+            },
+            "variables": [
+              {
+                "default": 0.78,
+                "key": "opacity",
+                "label": "Opacity",
+                "max": 1.0,
+                "min": 0.2,
+                "step": 0.02,
+                "type": "range"
+              },
+              {
+                "default": "slow",
+                "key": "entrance_speed_tier",
+                "label": "Fade in",
+                "options": [
+                  "slow",
+                  "normal",
+                  "quick"
+                ],
+                "type": "enum"
+              },
+              {
+                "default": "slow",
+                "key": "exit_speed_tier",
+                "label": "Fade out",
+                "options": [
+                  "slow",
+                  "normal",
+                  "quick"
+                ],
+                "type": "enum"
+              }
+            ]
+          }
+        }
+      },
+      "note": "Message Sidekick registry — stable-phase copy presentation. Independent of Effects Sidekick choreography."
+    },
+    "presentationRegistry": {
+      "defaultPresetId": "operational",
+      "defaultPresetByPriority": {
+        "green": "operational",
+        "yellow": "card_lift",
+        "red": "cinematic"
+      },
+      "entries": {
+        "operational": {
+          "label": "Operational",
+          "status": "active",
+            "modifiers": {
+            "package_scrim_opacity": 0.2,
+            "message_backing_opacity": 0.5,
+            "package_shadow_alpha": 0.26,
+            "entrance_presence_scale": 1.0,
+            "rim_glow_alpha": 0.06
+          }
+        },
+        "card_lift": {
+          "label": "Card lift",
+          "status": "active",
+          "modifiers": {
+            "package_scrim_opacity": 0.26,
+            "message_backing_opacity": 0.64,
+            "package_shadow_alpha": 0.36,
+            "entrance_presence_scale": 1.1,
+            "rim_glow_alpha": 0.14
+          }
+        },
+        "cinematic": {
+          "label": "Cinematic",
+          "status": "active",
+          "modifiers": {
+            "package_scrim_opacity": 0.34,
+            "message_backing_opacity": 0.78,
+            "package_shadow_alpha": 0.44,
+            "entrance_presence_scale": 1.18,
+            "rim_glow_alpha": 0.2
+          }
+        }
+      },
+      "note": "Priority-driven TV presentation presets — scrim, plate, entrance presence. V1 presets only; geometry unchanged."
+    },
+    "messageSidekickDefaultsByPriority": {
+      "green": {},
+      "yellow": {},
+      "red": {
+        "entrance_speed_tier": "quick"
+      },
+      "note": "Legacy mirror of alertLevelKits messageTuning — prefer alertLevelKits as SoT."
+    },
+    "alertLevelKits": {
+      "green": {
+        "kitId": "green_operational",
+        "label": "Operational",
+        "presentationPresetId": "operational",
+        "messageTuning": {}
+      },
+      "yellow": {
+        "kitId": "yellow_card_lift",
+        "label": "Card lift",
+        "presentationPresetId": "card_lift",
+        "messageTuning": {}
+      },
+      "red": {
+        "kitId": "red_cinematic",
+        "label": "Cinematic",
+        "presentationPresetId": "cinematic",
+        "messageTuning": {
+          "entrance_speed_tier": "quick"
+        }
+      },
+      "note": "Alert Level kits — presentation preset + Message Sidekick defaults. Optional accent wash belongs on visual.accent_wash (Hail Package), not per kit."
     },
     "note": "Axiom-owned preview visual contract \u2014 consumed by LCARD preview workbench and future Control Alt apps. Workbench-only blocks (effectPresets, presetPresence, legacy effectPresetIds) exist for tuning; runtime model uses namedEffects + paintBox + effectsBudget.",
     "paintBox": {
@@ -1630,6 +1905,7 @@
     },
     "transporterVariationChoreography": {
       "generation-next": {
+        "effectStart": 0.05,
         "glyphImpactPeak": 0.7,
         "glyphLockIn": 0.88,
         "glyphResolveStart": 0.38,
@@ -1638,6 +1914,7 @@
       },
       "note": "Locked choreography anchors (fraction of entrance_ms) per transporter variation \u2014 VFX definitions v001.",
       "spoon": {
+        "effectStart": 0.05,
         "glyphImpactPeak": 0.68,
         "glyphLockIn": 0.86,
         "glyphResolveStart": 0.4,
@@ -1645,6 +1922,7 @@
         "stableReady": 0.92
       },
       "voyaging": {
+        "effectStart": 0.05,
         "glyphImpactPeak": 0.74,
         "glyphLockIn": 0.9,
         "glyphResolveStart": 0.42,

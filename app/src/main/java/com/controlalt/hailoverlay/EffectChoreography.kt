@@ -8,9 +8,11 @@ import org.json.JSONObject
 data class EffectChoreography(
     val glyphResolveStyle: String = "scan_resolve",
     val messageRevealStyle: String = "secondary_scan_fade",
+    val effectStart: Float = 0.05f,
     val glyphResolveStart: Float = 0.42f,
     val glyphImpactPeak: Float = 0.74f,
     val glyphLockIn: Float = 0.9f,
+    val glyphLockInOvershoot: Float = 0.04f,
     val messageRevealStart: Float = 0.82f,
     val stableReady: Float = 0.95f,
 ) {
@@ -23,9 +25,11 @@ data class EffectChoreography(
             return EffectChoreography(
                 glyphResolveStyle = json.optString("glyph_resolve_style").ifBlank { "scan_resolve" },
                 messageRevealStyle = json.optString("message_reveal_style").ifBlank { "secondary_scan_fade" },
+                effectStart = anchors?.optDouble("effectStart")?.toFloat() ?: 0.05f,
                 glyphResolveStart = anchors?.optDouble("glyphResolveStart")?.toFloat() ?: 0.42f,
                 glyphImpactPeak = anchors?.optDouble("glyphImpactPeak")?.toFloat() ?: 0.74f,
                 glyphLockIn = anchors?.optDouble("glyphLockIn")?.toFloat() ?: 0.9f,
+                glyphLockInOvershoot = anchors?.optDouble("glyphLockInOvershoot")?.toFloat()?.coerceIn(0f, 0.12f) ?: 0.04f,
                 messageRevealStart = anchors?.optDouble("messageRevealStart")?.toFloat() ?: 0.82f,
                 stableReady = anchors?.optDouble("stableReady")?.toFloat() ?: 0.95f,
             )

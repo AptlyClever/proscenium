@@ -240,6 +240,7 @@ fun TransporterOverlay(
                     GlyphDisplay(
                         glyphId = glyphId,
                         alpha = frame.glyphAlpha.coerceIn(0f, 1f),
+                        scale = frame.glyphScale,
                         size = glyphSizeDp.coerceAtLeast(48.dp),
                         proceduralGraph = proceduralGraph,
                     )
@@ -287,6 +288,7 @@ fun TransporterOverlay(
                         GlyphDisplay(
                             glyphId = glyphId,
                             alpha = frame.glyphAlpha.coerceIn(0f, 1f),
+                            scale = frame.glyphScale,
                             size = glyphSizeDp.coerceAtLeast(48.dp),
                             proceduralGraph = proceduralGraph,
                         )

@@ -16,9 +16,10 @@ fun ProceduralGlyphDisplay(
     alpha: Float,
     size: Dp,
     tint: Color = Color.White,
+    modifier: Modifier = Modifier,
 ) {
     val glyphAlpha = alpha.coerceIn(0f, 1f)
-    Canvas(modifier = Modifier.size(size)) {
+    Canvas(modifier = modifier.size(size)) {
         val scale = this.size.minDimension / 48f
         graph.paths.forEach { spec ->
             val path = PathParser().parsePathString(spec.d).toPath()

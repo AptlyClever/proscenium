@@ -17,14 +17,22 @@ fun GlyphDisplay(
     glyphId: String,
     alpha: Float,
     size: Dp,
+    scale: Float = 1f,
     proceduralGraph: ProceduralGraphSpec? = null,
 ) {
     val glyphAlpha = alpha.coerceIn(0f, 1f)
+    val glyphScale = scale.coerceIn(0.5f, 1.35f)
+    val scaleModifier = Modifier.graphicsLayer {
+        this.alpha = glyphAlpha
+        scaleX = glyphScale
+        scaleY = glyphScale
+    }
     if (proceduralGraph != null) {
         ProceduralGlyphDisplay(
             graph = proceduralGraph,
             alpha = glyphAlpha,
             size = size,
+            modifier = scaleModifier,
         )
         return
     }
@@ -36,7 +44,7 @@ fun GlyphDisplay(
             contentDescription = glyphId,
             modifier = Modifier
                 .size(size)
-                .graphicsLayer { this.alpha = glyphAlpha },
+                .then(scaleModifier),
         )
         return
     }
@@ -46,6 +54,7 @@ fun GlyphDisplay(
         fontSize = (size.value * 0.9f).sp,
         color = Color.White.copy(alpha = glyphAlpha),
         textAlign = TextAlign.Center,
+        modifier = scaleModifier,
     )
 }
 

@@ -7,12 +7,26 @@ import org.junit.Test
 class TransporterLifecycleTest {
 
   private val choreography = EffectChoreography(
+      effectStart = 0.05f,
       glyphResolveStart = 0.42f,
       glyphImpactPeak = 0.74f,
       glyphLockIn = 0.9f,
+      glyphLockInOvershoot = 0.04f,
       messageRevealStart = 0.82f,
       stableReady = 0.95f,
   )
+
+  @Test
+  fun glyphScale_peaks_at_lock_in_overshoot() {
+    val atLockIn = TransporterLifecycle.computeEntranceFrame(0.9f, choreography, 1f)
+    assertEquals(1.04f, atLockIn.glyphScale, 0.02f)
+  }
+
+  @Test
+  fun glyphScale_settles_to_one_by_stable_ready() {
+    val atStable = TransporterLifecycle.computeEntranceFrame(0.95f, choreography, 1f)
+    assertEquals(1f, atStable.glyphScale, 0.02f)
+  }
 
   @Test
   fun beamClear_is_identity_at_start() {
