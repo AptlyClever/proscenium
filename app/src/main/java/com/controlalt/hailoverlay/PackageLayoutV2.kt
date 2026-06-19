@@ -41,6 +41,8 @@ data class PackageLayoutV2(
             val refW = referenceViewport?.optDouble("width")?.toFloat() ?: 1920f
             val refH = referenceViewport?.optDouble("height")?.toFloat() ?: 1080f
             val glyphFocus = layoutRegions.optJSONObject("glyph_focus") ?: return null
+            val glyphArt = layoutRegions.optJSONObject("glyph_art")
+            val glyphBounds = glyphArt ?: glyphFocus
             val effectField = layoutRegions.optJSONObject("effect_field")
             val beam = effectField
                 ?: layoutRegions.optJSONObject("transporter_beam_envelope")
@@ -74,10 +76,14 @@ data class PackageLayoutV2(
                 paintBoxTop = paintBoxScreen.optDouble("top").toFloat(),
                 paintBoxWidth = paintBoxScreen.optDouble("width").toFloat(),
                 paintBoxHeight = paintBoxScreen.optDouble("height").toFloat(),
-                glyphCenterX = localX(glyphFocus.optDouble("center_x")),
-                glyphCenterY = localY(glyphFocus.optDouble("center_y")),
-                glyphWidth = glyphFocus.optDouble("width").toFloat() * localScaleX,
-                glyphHeight = glyphFocus.optDouble("height").toFloat() * localScaleX,
+                glyphCenterX = localX(
+                    glyphBounds.optDouble("center_x", glyphFocus.optDouble("center_x")),
+                ),
+                glyphCenterY = localY(
+                    glyphBounds.optDouble("center_y", glyphFocus.optDouble("center_y")),
+                ),
+                glyphWidth = glyphBounds.optDouble("width").toFloat() * localScaleX,
+                glyphHeight = glyphBounds.optDouble("height").toFloat() * localScaleX,
                 beamWidth = beam.optDouble("width").toFloat() * localScaleX,
                 beamHeight = beam.optDouble("height").toFloat() * localScaleX,
                 messageBandLeft = messageBand?.let { localX(it.optDouble("left")) }

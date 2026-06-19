@@ -65,6 +65,54 @@ class PackageLayoutV2Test {
     }
 
     @Test
+    fun fromJson_prefers_glyph_art_for_draw_dimensions() {
+        val layoutRegions = JSONObject(
+            """
+            {
+              "paint_box": { "left": 0, "top": 0, "width": 614, "height": 367 },
+              "glyph_focus": {
+                "left": 210, "top": 91, "width": 192, "height": 183,
+                "center_x": 307, "center_y": 183
+              },
+              "glyph_art": {
+                "left": 226, "top": 102, "width": 161, "height": 161,
+                "center_x": 307, "center_y": 183
+              },
+              "effect_field": {
+                "left": 203, "top": 58, "width": 208, "height": 250,
+                "center_x": 307, "center_y": 183
+              },
+              "transporter_beam_envelope": {
+                "left": 203, "top": 58, "width": 208, "height": 250,
+                "center_x": 307, "center_y": 183
+              },
+              "message_band": {
+                "left": 210, "top": 275, "width": 192, "height": 36
+              }
+            }
+            """.trimIndent(),
+        )
+        val paintBoxScreen = JSONObject(
+            """
+            { "left": 653, "top": 173, "width": 614, "height": 367, "placement_id": "upper_center" }
+            """.trimIndent(),
+        )
+
+        val parsed = PackageLayoutV2.fromJson(
+            packageSchemaVersion = 2,
+            referenceViewport = JSONObject("""{ "width": 1920, "height": 1080 }"""),
+            paintBoxScreen = paintBoxScreen,
+            layoutRegions = layoutRegions,
+            messageEntity = null,
+        )
+
+        assertNotNull(parsed)
+        assertEquals(161f, parsed!!.glyphWidth, 0.01f)
+        assertEquals(161f, parsed.glyphHeight, 0.01f)
+        assertEquals(208f, parsed.beamWidth, 0.01f)
+    }
+
+    @Test
     fun fromJson_returns_null_for_v1_payload() {
         val parsed = PackageLayoutV2.fromJson(
             packageSchemaVersion = 1,

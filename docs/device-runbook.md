@@ -53,6 +53,16 @@ adb shell am start -a com.controlalt.hailoverlay.action.OPEN_DIAGNOSTICS -n com.
 
 Normal launcher entry is `com.controlalt.hailoverlay/.LauncherStartActivity` (via app icon).
 
+## Size-tier device matrix (step 10 gate — Away Team only)
+
+```bash
+cd hail-overlay-poc
+./scripts/trigger-away-team-size-tier-matrix.sh
+./scripts/verify-android-size-tier-device-v001.sh
+```
+
+Tailscale overlay: `http://100.87.93.94:8765/health`. Do **not** use Arcade (`192.168.68.105`) or Master Bedroom for this gate. See `reports/lcard-android-size-tier-device-v001.md` and `protocol-away-team-hail-overlay-deploy`.
+
 ## Manual hail test
 
 Production builds require `broker_proof` from LCARD. For **operator-controlled** parity work on Arcade, prefer one of:
