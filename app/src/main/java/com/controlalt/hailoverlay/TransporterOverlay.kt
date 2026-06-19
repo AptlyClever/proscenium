@@ -1,6 +1,7 @@
 package com.controlalt.hailoverlay
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -188,7 +189,6 @@ fun TransporterOverlay(
             horizontalPaddingPx = messageHorizontalPadPx * 2f,
             verticalPaddingPx = messageVerticalPadPx * 2f,
         )
-        val scrimRadiusDp = with(density) { presentation.packageCornerRadiusPx.toDp() }
         val plateRadiusDp = with(density) { presentation.messagePlateRadiusPx.toDp() }
         val effectRegions = remember(regions) { regions.toPackageLocal() }
         val packageOffsetModifier = Modifier
@@ -207,11 +207,9 @@ fun TransporterOverlay(
             modifier = packageOffsetModifier,
             contentAlignment = if (scaledPackage != null) Alignment.TopStart else Alignment.TopCenter,
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(scrimRadiusDp))
-                    .background(presentation.scrimColor()),
+            PackagePresentationShell.Scrim(
+                presentation = presentation,
+                modifier = Modifier.fillMaxSize(),
             )
 
             Box(
@@ -255,6 +253,7 @@ fun TransporterOverlay(
                         .width(messageWidthDp ?: boxWidthDp)
                         .height(messageHeightDp ?: 48.dp)
                         .clip(RoundedCornerShape(plateRadiusDp))
+                        .then(PackagePresentationShell.messagePlateBorderModifier(RoundedCornerShape(plateRadiusDp)))
                         .background(presentation.plateColor())
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center,
