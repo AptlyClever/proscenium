@@ -57,14 +57,7 @@ fun PopOverlay(
 ) {
     val presentation = palettePresentation ?: PalettePresentation.fromJson(null, paletteId)
     val resolvedTiming = remember(lifecycleTiming, stableHoldMs) {
-        if (
-            lifecycleTiming.entranceMs == TransporterContract.ENTRANCE_MS &&
-            lifecycleTiming.exitMs == TransporterContract.EXIT_MS
-        ) {
-            PopContract.lifecycleTiming(stableHoldMs)
-        } else {
-            lifecycleTiming.copy(stableHoldMs = lifecycleTiming.stableHoldMs ?: stableHoldMs)
-        }
+        PopContract.lifecycleTiming(lifecycleTiming.stableHoldMs ?: stableHoldMs)
     }
     var phase by remember { mutableStateOf(TransporterPhase.ENTRANCE) }
     var entranceT by remember { mutableFloatStateOf(0f) }
@@ -85,6 +78,7 @@ fun PopOverlay(
         stablePulse = 0f
         stableElapsedMs = 0L
         val entranceMs = resolvedTiming.entranceMs.toInt().coerceAtLeast(1)
+        val holdMs = resolvedTiming.stableHoldMs ?: stableHoldMs
         val entranceStart = System.currentTimeMillis()
         while (true) {
             val elapsed = System.currentTimeMillis() - entranceStart
@@ -97,14 +91,14 @@ fun PopOverlay(
         entranceT = 1f
         phase = TransporterPhase.STABLE
         val stableStart = System.currentTimeMillis()
-        val stableEnd = stableStart + stableHoldMs
+        val stableEnd = stableStart + holdMs
         while (System.currentTimeMillis() < stableEnd) {
             val now = System.currentTimeMillis()
             stableElapsedMs = now - stableStart
             stablePulse = ((now % 2400L) / 2400f)
             kotlinx.coroutines.delay(16)
         }
-        stableElapsedMs = stableHoldMs
+        stableElapsedMs = holdMs
         phase = TransporterPhase.EXIT
         val exitMs = resolvedTiming.exitMs.toInt().coerceAtLeast(1)
         val exitStart = System.currentTimeMillis()

@@ -38,10 +38,15 @@ data class HailShowRequest(
                 val presentationTemplate = PresentationTemplateParser.parse(
                     json.optJSONObject("presentation_template"),
                 )
-                val mergedEffectIdentity = PresentationTemplateParser.mergeChoreographyIntoIdentity(
-                    effectIdentity,
-                    presentationTemplate,
-                )
+                val effectId = json.getString("effect_id")
+                val mergedEffectIdentity = if (effectId == "pop" || effectId == "none") {
+                    effectIdentity
+                } else {
+                    PresentationTemplateParser.mergeChoreographyIntoIdentity(
+                        effectIdentity,
+                        presentationTemplate,
+                    )
+                }
                 val glyphRenderJson = json.optJSONObject("glyph_render")
                 val proceduralGraph = ProceduralGlyphParser.parseGlyphRender(glyphRenderJson)
                 val imageLayersGlyph = ProceduralGlyphParser.parseImageLayersGlyphRender(glyphRenderJson)
@@ -78,7 +83,7 @@ data class HailShowRequest(
                 }
                 HailShowRequest(
                     hailId = json.optString("hail_id", "hail.spoon_transporter.001"),
-                    effectId = json.getString("effect_id"),
+                    effectId = effectId,
                     glyphId = json.getString("glyph_id"),
                     paletteId = json.optString("palette_id").ifBlank { null },
                     message = messageText,

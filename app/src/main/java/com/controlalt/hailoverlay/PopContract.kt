@@ -5,8 +5,8 @@ package com.controlalt.hailoverlay
  * Authority: hail-render-contract pop timingMs (device revision 2026-06-18).
  */
 object PopContract {
-    const val ENTRANCE_MS = 680L
-    const val EXIT_MS = 400L
+    const val ENTRANCE_MS = 900L
+    const val EXIT_MS = 480L
 
     fun totalLifecycleMs(stableHoldMs: Long): Long {
         return ENTRANCE_MS + stableHoldMs + EXIT_MS
