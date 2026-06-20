@@ -529,11 +529,16 @@ object TransporterCanvasRenderer {
         variation: ResolvedTransporterVariation,
         stablePulse: Float,
         glyphResidualIntensity: Float = 1f,
+        stableInterest: StableInterest? = null,
     ) {
         if (regions.paintBoxWidth < 8f) {
             return
         }
-        val shimmer = TransporterVariationProfile.shimmerIntensity(variation.profile)
+        val interest = stableInterest?.takeIf { it.glyphLocalResidual }
+        if (interest == null) {
+            return
+        }
+        val shimmer = interest.glyphShimmerIntensity.coerceIn(0.18f, 0.55f)
         val layoutSize = min(regions.paintBoxWidth, regions.paintBoxHeight)
         drawGlyphLocalResidual(
             cx = regions.glyphCenterX,

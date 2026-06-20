@@ -21,9 +21,13 @@ data class HailShowRequest(
     val particleStyleHint: String?,
     val choreography: EffectChoreography,
     val proceduralGraph: ProceduralGraphSpec?,
+    val imageGlyph: ImageGlyphSpec? = null,
+    val imageLayersGlyph: ImageLayersGlyphSpec? = null,
+    val presentationTemplate: PresentationTemplateSpec? = null,
     val packageLayout: PackageLayoutV2? = null,
     val lifecycleTiming: LifecycleTiming = LifecycleTiming(),
     val palettePresentation: PalettePresentation? = null,
+    val stableInterest: StableInterest? = null,
 ) {
     companion object {
         fun fromJson(raw: String): Result<HailShowRequest> {
@@ -31,7 +35,21 @@ data class HailShowRequest(
                 val json = JSONObject(raw)
                 val androidTuning = json.optJSONObject("android_effect_tuning")
                 val effectIdentity = json.optJSONObject("effect_identity")
-                val proceduralGraph = ProceduralGlyphParser.parseGlyphRender(json.optJSONObject("glyph_render"))
+                val presentationTemplate = PresentationTemplateParser.parse(
+                    json.optJSONObject("presentation_template"),
+                )
+                val mergedEffectIdentity = PresentationTemplateParser.mergeChoreographyIntoIdentity(
+                    effectIdentity,
+                    presentationTemplate,
+                )
+                val glyphRenderJson = json.optJSONObject("glyph_render")
+                val proceduralGraph = ProceduralGlyphParser.parseGlyphRender(glyphRenderJson)
+                val imageLayersGlyph = ProceduralGlyphParser.parseImageLayersGlyphRender(glyphRenderJson)
+                val imageGlyph = if (imageLayersGlyph == null) {
+                    ProceduralGlyphParser.parseImageGlyphRender(glyphRenderJson)
+                } else {
+                    null
+                }
                 val durationMs = json.getLong("duration_ms")
                 val lifecycleTiming = LifecycleTiming.fromJson(
                     json.optJSONObject("lifecycle_timing"),
@@ -75,11 +93,15 @@ data class HailShowRequest(
                     beamIntensity = androidTuning?.optDouble("beam_intensity")?.toFloat(),
                     beamScale = androidTuning?.optDouble("beam_scale")?.toFloat(),
                     particleStyleHint = effectIdentity?.optString("particle_style")?.ifBlank { null },
-                    choreography = EffectChoreography.fromJson(effectIdentity),
+                    choreography = EffectChoreography.fromJson(mergedEffectIdentity),
                     proceduralGraph = proceduralGraph,
+                    imageGlyph = imageGlyph,
+                    imageLayersGlyph = imageLayersGlyph,
+                    presentationTemplate = presentationTemplate,
                     packageLayout = packageLayout,
                     palettePresentation = palettePresentation,
                     lifecycleTiming = lifecycleTiming,
+                    stableInterest = StableInterest.fromJson(json.optJSONObject("stable_interest")),
                 )
             }
         }
@@ -105,9 +127,13 @@ data class HailShowRequest(
             particleStyleHint = particleStyleHint,
             choreography = choreography,
             proceduralGraph = proceduralGraph,
+            imageGlyph = imageGlyph,
+            imageLayersGlyph = imageLayersGlyph,
+            presentationTemplate = presentationTemplate,
             packageLayout = packageLayout,
             palettePresentation = palettePresentation,
             lifecycleTiming = lifecycleTiming,
+            stableInterest = stableInterest,
         )
     }
 }

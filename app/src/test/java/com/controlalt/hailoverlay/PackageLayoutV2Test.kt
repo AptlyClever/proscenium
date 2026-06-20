@@ -113,6 +113,51 @@ class PackageLayoutV2Test {
     }
 
     @Test
+    fun fromJson_parses_stick_oled_glyph_focus_dimensions() {
+        val layoutRegions = JSONObject(
+            """
+            {
+              "paint_box": { "left": 0, "top": 0, "width": 652.8, "height": 453.6 },
+              "glyph_focus": {
+                "left": 169.728, "top": 110.6784, "width": 313.344, "height": 232.2432,
+                "center_x": 326.4, "center_y": 226.8
+              },
+              "effect_field": {
+                "left": 157.19424, "top": 45.36, "width": 338.41152, "height": 362.88,
+                "center_x": 326.4, "center_y": 226.8
+              },
+              "message_band": {
+                "left": 169.728, "top": 342.9216, "width": 313.344, "height": 44.4528
+              }
+            }
+            """.trimIndent(),
+        )
+        val paintBoxScreen = JSONObject(
+            """
+            { "left": 633.6, "top": 129.6, "width": 652.8, "height": 453.6, "placement_id": "upper_center" }
+            """.trimIndent(),
+        )
+
+        val parsed = PackageLayoutV2.fromJson(
+            packageSchemaVersion = 2,
+            referenceViewport = JSONObject("""{ "width": 1920, "height": 1080 }"""),
+            paintBoxScreen = paintBoxScreen,
+            layoutRegions = layoutRegions,
+            messageEntity = null,
+        )
+
+        assertNotNull(parsed)
+        assertEquals(313.344f, parsed!!.glyphWidth, 0.01f)
+        assertEquals(232.2432f, parsed.glyphHeight, 0.01f)
+        assertEquals(960f, parsed.glyphCenterX, 0.01f)
+        assertEquals(
+            parsed.glyphCenterX,
+            parsed.messageBandLeft + parsed.messageBandWidth / 2f,
+            0.01f,
+        )
+    }
+
+    @Test
     fun fromJson_returns_null_for_v1_payload() {
         val parsed = PackageLayoutV2.fromJson(
             packageSchemaVersion = 1,

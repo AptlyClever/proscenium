@@ -1,6 +1,7 @@
 package com.controlalt.hailoverlay
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -59,5 +60,46 @@ class TransporterLifecycleTest {
     assertEquals(0.92f, result.first, 0.001f)
     assertEquals(0.88f, result.second, 0.001f)
     assertEquals(1f, result.third, 0.001f)
+  }
+
+  @Test
+  fun stable_frame_beam_off_with_breathe() {
+    val interest = StableInterest(
+        glyphBreatheAmplitude = 0.06f,
+        glyphShimmerIntensity = 0.32f,
+        stableResidual = "optional_glyph_local",
+    )
+    val frame = TransporterLifecycle.computeStableFrame(
+        stablePulse = 0.25f,
+        stableInterest = interest,
+    )
+    assertEquals(0f, frame.beamIntensity, 0.001f)
+    assertFalse(frame.beamActive)
+    assertTrue(frame.glyphAlpha in 0.92f..1f)
+    assertTrue(frame.glyphScale in 0.98f..1.02f)
+  }
+
+  @Test
+  fun stable_message_hidden_until_sidekick_entrance() {
+    val timing = MessageSidekickTiming(
+        entranceMs = 480L,
+        exitMs = 360L,
+        targetOpacity = 0.92f,
+        exitOffsetMs = 4640L,
+        stableHoldMs = 5000L,
+        useStablePhase = true,
+    )
+    val early = TransporterLifecycle.computeStableFrame(
+        stablePulse = 0f,
+        stableElapsedMs = 0L,
+        messageSidekick = timing,
+    )
+    assertEquals(0f, early.messageAlpha, 0.02f)
+    val mid = TransporterLifecycle.computeStableFrame(
+        stablePulse = 0.5f,
+        stableElapsedMs = 600L,
+        messageSidekick = timing,
+    )
+    assertTrue(mid.messageAlpha > 0.85f)
   }
 }

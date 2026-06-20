@@ -83,9 +83,9 @@ data class PackageLayoutV2(
                     glyphBounds.optDouble("center_y", glyphFocus.optDouble("center_y")),
                 ),
                 glyphWidth = glyphBounds.optDouble("width").toFloat() * localScaleX,
-                glyphHeight = glyphBounds.optDouble("height").toFloat() * localScaleX,
+                glyphHeight = glyphBounds.optDouble("height").toFloat() * localScaleY,
                 beamWidth = beam.optDouble("width").toFloat() * localScaleX,
-                beamHeight = beam.optDouble("height").toFloat() * localScaleX,
+                beamHeight = beam.optDouble("height").toFloat() * localScaleY,
                 messageBandLeft = messageBand?.let { localX(it.optDouble("left")) }
                     ?: localX(glyphFocus.optDouble("left")),
                 messageBandTop = messageBand?.let { localY(it.optDouble("top")) }

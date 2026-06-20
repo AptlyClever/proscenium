@@ -1,6 +1,7 @@
 package com.controlalt.hailoverlay
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -277,6 +278,49 @@ class HailRegistryTest {
     fun rejects_invalid_hail_id_format() {
         val result = validBase(hailId = "not-a-hail-id")
         assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun accepts_custom_image_layers_glyph_with_broker_proof() {
+        val hailId = "hail.fleet_beacon.001"
+        val payload = proofPayload(
+            hailId = hailId,
+            glyphId = "custom-fleet-beacon",
+            message = "Achievement unlocked",
+        )
+        val layers = ImageLayersGlyphSpec(
+            layers = listOf(
+                ImageLayerSpec(
+                    role = "mass",
+                    bitmapBase64 = "aW1hZ2U=",
+                    mediaType = "image/png",
+                    zIndex = 0,
+                ),
+                ImageLayerSpec(
+                    role = "accent",
+                    bitmapBase64 = "aW1hZ2Uy",
+                    mediaType = "image/png",
+                    zIndex = 1,
+                    pulseAnchor = "glyphImpactPeak",
+                ),
+            ),
+        )
+        val result = HailRegistry.validate(
+            hailId = hailId,
+            effectId = payload.effectId,
+            glyphId = payload.glyphId,
+            paletteId = payload.paletteId,
+            message = payload.message,
+            durationMs = payload.durationMs,
+            placementId = payload.placementId,
+            placementMode = payload.placementMode,
+            xPercent = null,
+            yPercent = null,
+            brokerProof = brokerProof(payload),
+            imageLayersGlyph = layers,
+        )
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrNull()?.imageLayersGlyph)
     }
 
     @Test

@@ -19,19 +19,50 @@ fun GlyphDisplay(
     size: Dp,
     scale: Float = 1f,
     proceduralGraph: ProceduralGraphSpec? = null,
+    imageGlyph: ImageGlyphSpec? = null,
+    imageLayersGlyph: ImageLayersGlyphSpec? = null,
+    layerPhase: TransporterPhase = TransporterPhase.STABLE,
+    layerEntranceT: Float = 0f,
+    layerStablePulse: Float = 0f,
+    layerChoreography: EffectChoreography = EffectChoreography(),
+    paletteId: String = "axiom_dark_cyan",
 ) {
     val glyphAlpha = alpha.coerceIn(0f, 1f)
     val glyphScale = scale.coerceIn(0.5f, 1.35f)
+    val glyphTint = paletteFor(paletteId).beamWhite
     val scaleModifier = Modifier.graphicsLayer {
         this.alpha = glyphAlpha
         scaleX = glyphScale
         scaleY = glyphScale
+    }
+    if (imageLayersGlyph != null) {
+        ImageLayersGlyphDisplay(
+            glyph = imageLayersGlyph,
+            alpha = glyphAlpha,
+            scale = glyphScale,
+            size = size,
+            phase = layerPhase,
+            entranceT = layerEntranceT,
+            stablePulse = layerStablePulse,
+            choreography = layerChoreography,
+        )
+        return
+    }
+    if (imageGlyph != null) {
+        ImageGlyphDisplay(
+            glyph = imageGlyph,
+            alpha = glyphAlpha,
+            size = size,
+            modifier = scaleModifier,
+        )
+        return
     }
     if (proceduralGraph != null) {
         ProceduralGlyphDisplay(
             graph = proceduralGraph,
             alpha = glyphAlpha,
             size = size,
+            tint = glyphTint,
             modifier = scaleModifier,
         )
         return

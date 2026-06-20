@@ -47,6 +47,7 @@ class OverlayController(
     val overlayState = mutableStateOf<OverlayState?>(null)
 
     data class OverlayState(
+        val effectId: String,
         val glyphId: String,
         val message: String,
         val paletteId: String,
@@ -56,9 +57,13 @@ class OverlayController(
         val transporterVariation: ResolvedTransporterVariation,
         val choreography: EffectChoreography,
         val proceduralGraph: ProceduralGraphSpec? = null,
+        val imageGlyph: ImageGlyphSpec? = null,
+        val imageLayersGlyph: ImageLayersGlyphSpec? = null,
+        val presentationTemplate: PresentationTemplateSpec? = null,
         val packageLayout: PackageLayoutV2? = null,
         val palettePresentation: PalettePresentation? = null,
         val lifecycleTiming: LifecycleTiming = LifecycleTiming(),
+        val stableInterest: StableInterest? = null,
     )
 
     init {
@@ -71,6 +76,7 @@ class OverlayController(
             dismissInternal(removeOnly = false)
             val stableHoldMs = hail.lifecycleTiming.stableHoldMs ?: hail.durationMs
             overlayState.value = OverlayState(
+                effectId = hail.effectId,
                 glyphId = hail.glyphId,
                 message = hail.message,
                 paletteId = hail.paletteId,
@@ -80,9 +86,13 @@ class OverlayController(
                 transporterVariation = hail.transporterVariation,
                 choreography = hail.choreography,
                 proceduralGraph = hail.proceduralGraph,
+                imageGlyph = hail.imageGlyph,
+                imageLayersGlyph = hail.imageLayersGlyph,
+                presentationTemplate = hail.presentationTemplate,
                 packageLayout = hail.packageLayout,
                 palettePresentation = hail.palettePresentation,
                 lifecycleTiming = hail.lifecycleTiming,
+                stableInterest = hail.stableInterest,
             )
 
             val view = ComposeView(context).apply {
@@ -93,21 +103,44 @@ class OverlayController(
                 setContent {
                     val state = overlayState.value
                     if (state != null) {
-                        TransporterOverlay(
-                            glyphId = state.glyphId,
-                            message = state.message,
-                            paletteId = state.paletteId,
-                            placement = state.placement,
-                            sizeTier = state.sizeTier,
-                            transporterVariation = state.transporterVariation,
-                            choreography = state.choreography,
-                            proceduralGraph = state.proceduralGraph,
-                            packageLayout = state.packageLayout,
-                            palettePresentation = state.palettePresentation,
-                            lifecycleTiming = state.lifecycleTiming,
-                            stableHoldMs = state.durationMs,
-                            onLifecycleComplete = { dismissInternal(removeOnly = true) },
-                        )
+                        when (state.effectId) {
+                            "pop" -> PopOverlay(
+                                glyphId = state.glyphId,
+                                message = state.message,
+                                paletteId = state.paletteId,
+                                placement = state.placement,
+                                sizeTier = state.sizeTier,
+                                choreography = state.choreography,
+                                proceduralGraph = state.proceduralGraph,
+                                imageGlyph = state.imageGlyph,
+                                imageLayersGlyph = state.imageLayersGlyph,
+                                presentationTemplate = state.presentationTemplate,
+                                packageLayout = state.packageLayout,
+                                palettePresentation = state.palettePresentation,
+                                lifecycleTiming = state.lifecycleTiming,
+                                stableHoldMs = state.durationMs,
+                                onLifecycleComplete = { dismissInternal(removeOnly = true) },
+                            )
+                            else -> TransporterOverlay(
+                                glyphId = state.glyphId,
+                                message = state.message,
+                                paletteId = state.paletteId,
+                                placement = state.placement,
+                                sizeTier = state.sizeTier,
+                                transporterVariation = state.transporterVariation,
+                                choreography = state.choreography,
+                                proceduralGraph = state.proceduralGraph,
+                                imageGlyph = state.imageGlyph,
+                                imageLayersGlyph = state.imageLayersGlyph,
+                                presentationTemplate = state.presentationTemplate,
+                                packageLayout = state.packageLayout,
+                                palettePresentation = state.palettePresentation,
+                                lifecycleTiming = state.lifecycleTiming,
+                                stableInterest = state.stableInterest,
+                                stableHoldMs = state.durationMs,
+                                onLifecycleComplete = { dismissInternal(removeOnly = true) },
+                            )
+                        }
                     }
                 }
             }

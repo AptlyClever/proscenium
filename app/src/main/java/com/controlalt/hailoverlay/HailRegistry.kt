@@ -5,7 +5,7 @@ object HailRegistry {
     const val MIN_DURATION_MS = 1_000L
     const val MAX_DURATION_MS = 30_000L
 
-    private val allowedEffectIds = setOf("transporter_beam")
+    private val allowedEffectIds = setOf("transporter_beam", "pop")
     private val allowedGlyphIds = setOf(
         "default",
         "default",
@@ -36,9 +36,13 @@ object HailRegistry {
         val transporterVariation: ResolvedTransporterVariation,
         val choreography: EffectChoreography,
         val proceduralGraph: ProceduralGraphSpec? = null,
+        val imageGlyph: ImageGlyphSpec? = null,
+        val imageLayersGlyph: ImageLayersGlyphSpec? = null,
+        val presentationTemplate: PresentationTemplateSpec? = null,
         val packageLayout: PackageLayoutV2? = null,
         val palettePresentation: PalettePresentation? = null,
         val lifecycleTiming: LifecycleTiming = LifecycleTiming(),
+        val stableInterest: StableInterest? = null,
     )
 
     private fun resolveDeliveryPalette(palette: String, effectVariationId: String?): String {
@@ -71,9 +75,13 @@ object HailRegistry {
         particleStyleHint: String? = null,
         choreography: EffectChoreography = EffectChoreography(),
         proceduralGraph: ProceduralGraphSpec? = null,
+        imageGlyph: ImageGlyphSpec? = null,
+        imageLayersGlyph: ImageLayersGlyphSpec? = null,
+        presentationTemplate: PresentationTemplateSpec? = null,
         packageLayout: PackageLayoutV2? = null,
         palettePresentation: PalettePresentation? = null,
         lifecycleTiming: LifecycleTiming = LifecycleTiming(),
+        stableInterest: StableInterest? = null,
     ): Result<ValidatedHail> {
         if (effectId.isNullOrBlank() || effectId !in allowedEffectIds) {
             return Result.failure(IllegalArgumentException("effect_id not allowlisted"))
@@ -84,7 +92,7 @@ object HailRegistry {
             return Result.failure(IllegalArgumentException("glyph_id not allowlisted"))
         }
         if (isCustomGlyph) {
-            if (proceduralGraph == null) {
+            if (proceduralGraph == null && imageGlyph == null && imageLayersGlyph == null) {
                 return Result.failure(IllegalArgumentException("glyph_id not allowlisted"))
             }
         } else if (normalizedGlyphId !in allowedGlyphIds) {
@@ -146,9 +154,13 @@ object HailRegistry {
                 ),
                 choreography = choreography,
                 proceduralGraph = proceduralGraph,
+                imageGlyph = imageGlyph,
+                imageLayersGlyph = imageLayersGlyph,
+                presentationTemplate = presentationTemplate,
                 packageLayout = packageLayout,
                 palettePresentation = palettePresentation,
                 lifecycleTiming = lifecycleTiming,
+                stableInterest = stableInterest,
             ),
         )
     }

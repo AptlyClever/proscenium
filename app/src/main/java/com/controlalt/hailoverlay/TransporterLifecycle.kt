@@ -220,8 +220,11 @@ object TransporterLifecycle {
         stablePulse: Float,
         stableElapsedMs: Long = 0L,
         messageSidekick: MessageSidekickTiming? = null,
+        stableInterest: StableInterest? = null,
     ): Frame {
-        val pulse = 0.96f + sin(stablePulse * Math.PI.toFloat() * 2f) * 0.04f
+        val breatheAmp = stableInterest?.glyphBreatheAmplitude?.coerceIn(0.02f, 0.12f) ?: 0.04f
+        val pulse = 1f - breatheAmp + sin(stablePulse * Math.PI.toFloat() * 2f) * breatheAmp
+        val scalePulse = 1f + sin(stablePulse * Math.PI.toFloat() * 2f) * (breatheAmp * 0.28f)
         val messageAlpha = if (messageSidekick?.useStablePhase == true) {
             computeMessageAlphaStable(stableElapsedMs, messageSidekick)
         } else {
@@ -234,7 +237,7 @@ object TransporterLifecycle {
             beamReveal = 0f,
             beamClearT = 1f,
             glyphAlpha = pulse,
-            glyphScale = 1f,
+            glyphScale = scalePulse,
             glyphOffsetY = 0f,
             messageAlpha = messageAlpha.coerceIn(0f, 1f),
             particlePhase = stablePulse,

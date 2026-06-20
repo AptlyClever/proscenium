@@ -26,11 +26,12 @@ object PackagePresentationShell {
     fun Scrim(
         presentation: PalettePresentation,
         modifier: Modifier = Modifier,
+        rimPulseAlpha: Float = 0f,
     ) {
         val density = LocalDensity.current
         val cornerDp = with(density) { presentation.packageCornerRadiusPx.toDp() }
         val shape = RoundedCornerShape(cornerDp)
-        val rim = presentation.rimGlowAlpha.coerceIn(0f, 0.35f)
+        val rim = (presentation.rimGlowAlpha + rimPulseAlpha).coerceIn(0f, 0.35f)
         val shadowAlpha = presentation.packageShadowAlpha.coerceIn(0f, 0.55f)
 
         Box(
