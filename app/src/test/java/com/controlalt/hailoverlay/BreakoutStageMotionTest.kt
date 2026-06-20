@@ -37,4 +37,22 @@ class BreakoutStageMotionTest {
         )
         assertTrue(mid.alpha <= 0.25f)
     }
+
+    @Test
+    fun entrance_waits_for_resolve_start_anchor() {
+        val early = BreakoutStageMotion.frame(
+            TransporterPhase.ENTRANCE,
+            entranceT = 0.2f,
+            exitElapsed = 0f,
+            glyphResolveStart = 0.28f,
+        )
+        assertEquals(0f, early.alpha, 0.001f)
+        val late = BreakoutStageMotion.frame(
+            TransporterPhase.ENTRANCE,
+            entranceT = 0.6f,
+            exitElapsed = 0f,
+            glyphResolveStart = 0.28f,
+        )
+        assertTrue(late.alpha > 0.2f)
+    }
 }

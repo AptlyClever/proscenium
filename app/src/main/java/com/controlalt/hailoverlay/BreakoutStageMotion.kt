@@ -22,10 +22,18 @@ object BreakoutStageMotion {
         entranceT: Float,
         exitElapsed: Float,
         glyphAlpha: Float = 1f,
+        glyphResolveStart: Float = 0.28f,
     ): Frame {
         return when (phase) {
             TransporterPhase.ENTRANCE -> {
-                val t = easeOutCubic(entranceT.coerceIn(0f, 1f))
+                val resolveStart = glyphResolveStart.coerceIn(0f, 0.85f)
+                val localT = if (entranceT <= resolveStart) {
+                    0f
+                } else {
+                    ((entranceT - resolveStart) / (1f - resolveStart).coerceAtLeast(0.05f))
+                        .coerceIn(0f, 1f)
+                }
+                val t = easeOutCubic(localT)
                 Frame(
                     alpha = t,
                     scale = 0.68f + 0.32f * t,

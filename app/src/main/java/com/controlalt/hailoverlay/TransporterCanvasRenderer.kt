@@ -454,12 +454,50 @@ object TransporterCanvasRenderer {
         }
     }
 
+    /** Normalized 0–1 flash strength peaking at [impactPeak] on the entrance timeline. */
+    fun impactPeakFlashIntensity(entranceT: Float, impactPeak: Float): Float {
+        val peak = impactPeak.coerceIn(0.1f, 0.95f)
+        val window = 0.09f
+        val dist = kotlin.math.abs(entranceT - peak)
+        if (dist >= window) {
+            return 0f
+        }
+        val normalized = 1f - dist / window
+        return normalized * normalized
+    }
+
+    private fun DrawScope.drawImpactPeakFlash(
+        beam: BeamBounds,
+        roles: PaletteRoles,
+        intensity: Float,
+    ) {
+        if (intensity <= 0.01f) {
+            return
+        }
+        val radius = max(beam.bw * 1.05f, 36f)
+        drawCircle(
+            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                colors = listOf(
+                    roles.accent.copy(alpha = alphaTv(0.42f * intensity)),
+                    roles.glow.copy(alpha = alphaTv(0.2f * intensity)),
+                    Color.Transparent,
+                ),
+                center = Offset(beam.cx, beam.cy),
+                radius = radius,
+            ),
+            radius = radius,
+            center = Offset(beam.cx, beam.cy),
+        )
+    }
+
     fun DrawScope.drawTransporterFrame(
         regions: PaintBoxLayout.Regions,
         paletteId: String,
         variation: ResolvedTransporterVariation,
         frame: TransporterLifecycle.Frame,
         stageFloorAnchored: Boolean = false,
+        entranceT: Float = 1f,
+        impactPeakAnchor: Float = 0.46f,
     ) {
         if (regions.paintBoxWidth < 8f || !frame.beamActive) {
             return
@@ -541,6 +579,10 @@ object TransporterCanvasRenderer {
         }
         if (vfx.powerPellet) {
             drawPowerPellet(beam, roles, pelletStrength, beamOp)
+        }
+        if (stageFloorAnchored && !frame.dematerializing) {
+            val flash = impactPeakFlashIntensity(entranceT, impactPeakAnchor)
+            drawImpactPeakFlash(beam, roles, flash)
         }
     }
 

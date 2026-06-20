@@ -112,4 +112,10 @@ class TransporterCanvasVfxParityTest {
     assertEquals(shortColumn.bottom, tallColumn.bottom, 0.5f)
     assertTrue(shortColumn.top > tallColumn.top)
   }
+
+  @Test
+  fun impact_peak_flash_peaks_at_anchor() {
+    assertEquals(1f, TransporterCanvasRenderer.impactPeakFlashIntensity(0.46f, 0.46f), 0.001f)
+    assertEquals(0f, TransporterCanvasRenderer.impactPeakFlashIntensity(0.1f, 0.46f), 0.001f)
+  }
 }

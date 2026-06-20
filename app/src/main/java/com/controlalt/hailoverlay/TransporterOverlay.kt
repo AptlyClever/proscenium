@@ -221,6 +221,7 @@ fun TransporterOverlay(
                 entranceT = entranceT,
                 exitElapsed = 1f - exitT,
                 glyphAlpha = frame.glyphAlpha,
+                glyphResolveStart = choreography.glyphResolveStart,
             )
         } else {
             BreakoutStageMotion.Frame.Identity
@@ -260,6 +261,8 @@ fun TransporterOverlay(
                                 variation = transporterVariation,
                                 frame = frame,
                                 stageFloorAnchored = breakoutStage,
+                                entranceT = if (phase == TransporterPhase.ENTRANCE) entranceT else 1f,
+                                impactPeakAnchor = choreography.glyphImpactPeak,
                             )
                             TransporterPhase.STABLE -> drawTransporterStableFrame(
                                 regions = effectRegions,
