@@ -24,6 +24,7 @@ object PaintBoxLayout {
         val glyphVisualCenterY: Float,
         val contentFootY: Float,
         val tier: PaintBoxTier,
+        val effectFootprintProfile: String = "standard",
     ) {
         /** Paint-box-local coordinates for in-package Canvas (origin = package top-left). */
         fun toPackageLocal(): Regions {

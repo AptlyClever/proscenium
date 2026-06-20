@@ -71,13 +71,22 @@ object TransporterCanvasRenderer {
         }
     }
 
-    private fun particleBudget(sizeTier: PaintBoxTier, heavy: Boolean): Int {
+    private fun particleBudget(
+        sizeTier: PaintBoxTier,
+        heavy: Boolean,
+        footprintProfile: String = "standard",
+    ): Int {
         val base = when (sizeTier.tierId) {
             "small", "s" -> if (heavy) 18 else 6
             "large", "l" -> if (heavy) 40 else 12
             else -> if (heavy) 28 else 8
         }
-        return base
+        val scaled = when (footprintProfile) {
+            "dramatic" -> (base * 1.35f).toInt()
+            "compact" -> (base * 0.85f).toInt()
+            else -> base
+        }
+        return scaled.coerceAtMost(60)
     }
 
     /** Breakout stage card deck — beam column grows upward from this Y (package-local). */
@@ -240,9 +249,10 @@ object TransporterCanvasRenderer {
         sizeTier: PaintBoxTier,
         dense: Boolean,
         heavy: Boolean,
+        footprintProfile: String = "standard",
     ) {
         val rand = Mulberry32(PARTICLE_SEED)
-        val count = particleBudget(sizeTier, heavy)
+        val count = particleBudget(sizeTier, heavy, footprintProfile)
         val spread = if (dense) 0.55f else 0.35f
         val speed = if (dense) 0.14f else 0.12f * 0.95f
         repeat(count) { i ->
@@ -276,9 +286,10 @@ object TransporterCanvasRenderer {
         phase: Float,
         presence: Float,
         sizeTier: PaintBoxTier,
+        footprintProfile: String = "standard",
     ) {
         val rand = Mulberry32(PARTICLE_SEED + 7)
-        val count = max(14, particleBudget(sizeTier, heavy = true) - 6)
+        val count = max(14, particleBudget(sizeTier, heavy = true, footprintProfile) - 6)
         repeat(count) { i ->
             val seed = rand.next()
             val travel = ((i / count.toFloat()) + phase * 0.1f) % 1f
@@ -383,9 +394,10 @@ object TransporterCanvasRenderer {
         phase: Float,
         presence: Float,
         sizeTier: PaintBoxTier,
+        footprintProfile: String = "standard",
     ) {
         val rand = Mulberry32(PARTICLE_SEED + 19)
-        val count = max(10, particleBudget(sizeTier, heavy = true) / 2)
+        val count = max(10, particleBudget(sizeTier, heavy = true, footprintProfile) / 2)
         repeat(count) { i ->
             val seed = rand.next()
             val angle = phase * Math.PI.toFloat() * 2f + i * 0.9f
@@ -409,13 +421,15 @@ object TransporterCanvasRenderer {
         shimmerIntensity: Float,
         intensity: Float,
         layoutSizePx: Float,
+        footprintProfile: String = "standard",
     ) {
         if (shimmerIntensity < 0.2f || intensity <= 0.01f) {
             return
         }
         val pulse = 0.5f + sin(stablePulse * Math.PI.toFloat() * 2f) * 0.5f
         val baseR = layoutSizePx.coerceAtLeast(48f)
-        val radius = baseR * (0.045f + shimmerIntensity * 0.028f)
+        val dramatic = footprintProfile == "dramatic"
+        val radius = baseR * (0.045f + shimmerIntensity * (if (dramatic) 0.036f else 0.028f))
         drawCircle(
             brush = androidx.compose.ui.graphics.Brush.radialGradient(
                 colors = listOf(
@@ -432,6 +446,7 @@ object TransporterCanvasRenderer {
             center = Offset(cx, cy),
         )
         val sparkCount = when {
+            dramatic -> 5
             shimmerIntensity > 0.45f -> 3
             shimmerIntensity > 0.28f -> 2
             else -> 1
@@ -448,7 +463,7 @@ object TransporterCanvasRenderer {
             }
             drawCircle(
                 color = roles.particle.copy(alpha = sparkAlpha),
-                radius = 0.65f + shimmerIntensity * 0.45f,
+                radius = (0.65f + shimmerIntensity * 0.45f) * (if (dramatic) 1.25f else 1f),
                 center = Offset(sx, sy),
             )
         }
@@ -525,6 +540,7 @@ object TransporterCanvasRenderer {
         )
         val phase = frame.particlePhase
         val vfx = profile.vfxLayers
+        val footprintProfile = regions.effectFootprintProfile
         val wipeT = if (frame.dematerializing) {
             1f - phase
         } else {
@@ -546,7 +562,7 @@ object TransporterCanvasRenderer {
         when (profile.particleStyle) {
             TransporterParticleStyle.SPARKLE_RISE -> {
                 drawBeamShimmer(beam, roles, beamOp, glowMul, shimmer)
-                drawSparkleRise(beam, roles, phase, presence, regions.tier)
+                drawSparkleRise(beam, roles, phase, presence, regions.tier, footprintProfile)
             }
             TransporterParticleStyle.SCANFALL_DENSE -> {
                 drawBeamColumn(beam, roles, beamOp, glowMul, shimmer)
@@ -558,6 +574,7 @@ object TransporterCanvasRenderer {
                     regions.tier,
                     dense = true,
                     heavy = !frame.dematerializing,
+                    footprintProfile = footprintProfile,
                 )
             }
             TransporterParticleStyle.SCANFALL -> {
@@ -570,12 +587,13 @@ object TransporterCanvasRenderer {
                     regions.tier,
                     dense = false,
                     heavy = !frame.dematerializing,
+                    footprintProfile = footprintProfile,
                 )
             }
         }
 
         if (vfx.swirlField) {
-            drawSwirlParticles(beam, roles, phase, presence, regions.tier)
+            drawSwirlParticles(beam, roles, phase, presence, regions.tier, footprintProfile)
         }
         if (vfx.powerPellet) {
             drawPowerPellet(beam, roles, pelletStrength, beamOp)
@@ -611,6 +629,7 @@ object TransporterCanvasRenderer {
             shimmerIntensity = shimmer,
             intensity = glyphResidualIntensity.coerceIn(0f, 1f),
             layoutSizePx = layoutSize,
+            footprintProfile = regions.effectFootprintProfile,
         )
     }
 }

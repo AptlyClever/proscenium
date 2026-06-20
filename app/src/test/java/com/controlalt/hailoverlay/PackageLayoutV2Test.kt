@@ -80,7 +80,8 @@ class PackageLayoutV2Test {
               },
               "effect_field": {
                 "left": 203, "top": 58, "width": 208, "height": 250,
-                "center_x": 307, "center_y": 183
+                "center_x": 307, "center_y": 183,
+                "effect_footprint_profile": "dramatic"
               },
               "transporter_beam_envelope": {
                 "left": 203, "top": 58, "width": 208, "height": 250,
@@ -110,6 +111,7 @@ class PackageLayoutV2Test {
         assertEquals(161f, parsed!!.glyphWidth, 0.01f)
         assertEquals(161f, parsed.glyphHeight, 0.01f)
         assertEquals(208f, parsed.beamWidth, 0.01f)
+        assertEquals("dramatic", parsed.effectFootprintProfile)
     }
 
     @Test

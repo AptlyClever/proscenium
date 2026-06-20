@@ -24,6 +24,7 @@ data class PackageLayoutV2(
     val messageBandTop: Float,
     val messageBandWidth: Float,
     val messageBandHeight: Float,
+    val effectFootprintProfile: String,
     val messageSidekick: MessageSidekickTiming,
 ) {
     companion object {
@@ -47,6 +48,12 @@ data class PackageLayoutV2(
             val beam = effectField
                 ?: layoutRegions.optJSONObject("transporter_beam_envelope")
                 ?: return null
+            val footprintProfile = effectField
+                ?.optString("effect_footprint_profile")
+                ?.trim()
+                ?.lowercase()
+                ?.takeIf { it.isNotEmpty() }
+                ?: "standard"
             val messageBand = layoutRegions.optJSONObject("message_band")
             val boxW = layoutRegions.optJSONObject("paint_box")?.optDouble("width")?.toFloat()
                 ?: paintBoxScreen.optDouble("width").toFloat()
@@ -94,6 +101,7 @@ data class PackageLayoutV2(
                     ?: glyphFocus.optDouble("width").toFloat() * localScaleX,
                 messageBandHeight = messageBand?.optDouble("height")?.toFloat()?.times(localScaleY)
                     ?: 48f,
+                effectFootprintProfile = footprintProfile,
                 messageSidekick = MessageSidekickTiming.fromJson(
                     messageEntity,
                     stableHoldMs,
@@ -121,6 +129,7 @@ data class PackageLayoutV2(
             messageBandTop = messageBandTop * scaleY,
             messageBandWidth = messageBandWidth * scaleX,
             messageBandHeight = messageBandHeight * scaleY,
+            effectFootprintProfile = effectFootprintProfile,
         )
     }
 
@@ -155,6 +164,7 @@ data class PackageLayoutV2(
             glyphVisualCenterY = glyphCenterY,
             contentFootY = messageBandTop + messageBandHeight,
             tier = tier,
+            effectFootprintProfile = effectFootprintProfile,
         )
     }
 }
