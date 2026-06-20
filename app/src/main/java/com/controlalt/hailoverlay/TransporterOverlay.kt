@@ -214,6 +214,18 @@ fun TransporterOverlay(
             baseRimAlpha = presentation.rimGlowAlpha,
             interest = stableInterest,
         )
+        val breakoutStage = presentationTemplate?.glyphMotionProfile == "breakout_emerge"
+        val stageMotion = if (breakoutStage) {
+            BreakoutStageMotion.frame(
+                phase = phase,
+                entranceT = entranceT,
+                exitElapsed = 1f - exitT,
+                glyphAlpha = frame.glyphAlpha,
+            )
+        } else {
+            BreakoutStageMotion.Frame.Identity
+        }
+        val messagePlateAlpha = frame.messageAlpha.coerceIn(0f, 1f)
 
         // Praxis stack in one package tree: Shell scrim → Effects canvas → Glyph → Message.
         // Siblings (not full-screen zIndex) — required for reliable overlay compositing on Google TV.
@@ -232,6 +244,8 @@ fun TransporterOverlay(
                     template = presentationTemplate,
                     layer = PresentationStageLayer.BACK,
                     modifier = Modifier.fillMaxSize(),
+                    alpha = stageMotion.alpha,
+                    scale = stageMotion.scale,
                 )
             }
 
@@ -245,6 +259,7 @@ fun TransporterOverlay(
                                 paletteId = paletteId,
                                 variation = transporterVariation,
                                 frame = frame,
+                                stageFloorAnchored = breakoutStage,
                             )
                             TransporterPhase.STABLE -> drawTransporterStableFrame(
                                 regions = effectRegions,
@@ -291,8 +306,14 @@ fun TransporterOverlay(
                         .width(messageWidthDp ?: boxWidthDp)
                         .height(messageHeightDp ?: 48.dp)
                         .clip(RoundedCornerShape(plateRadiusDp))
-                        .then(PackagePresentationShell.messagePlateBorderModifier(RoundedCornerShape(plateRadiusDp)))
-                        .background(presentation.plateColor())
+                        .then(
+                            if (messagePlateAlpha > 0.12f) {
+                                PackagePresentationShell.messagePlateBorderModifier(RoundedCornerShape(plateRadiusDp))
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .background(presentation.plateColor().copy(alpha = messagePlateAlpha * 0.92f))
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -358,10 +379,17 @@ fun TransporterOverlay(
             }
 
             if (presentationTemplate != null) {
+                val frontScale = if (breakoutStage) {
+                    (stageMotion.scale + 0.02f).coerceAtMost(1.08f)
+                } else {
+                    stageMotion.scale
+                }
                 PresentationStageDisplay(
                     template = presentationTemplate,
                     layer = PresentationStageLayer.FRONT,
                     modifier = Modifier.fillMaxSize(),
+                    alpha = stageMotion.alpha,
+                    scale = frontScale,
                 )
             }
         }

@@ -86,4 +86,30 @@ class TransporterCanvasVfxParityTest {
     assertTrue(end.beamClearT > 0.9f)
     assertTrue(end.beamIntensity < 0.08f)
   }
+
+  @Test
+  fun stage_floor_anchor_keeps_bottom_fixed_while_column_grows() {
+    val placement = Placement.resolve("upper_center", "preset", null, null).getOrThrow()
+    val regions = PaintBoxLayout.resolve(1920f, 1080f, placement, PaintBoxTier.MEDIUM, voyagingVariation())
+        .toPackageLocal()
+    val profile = voyagingVariation().profile
+    val shortColumn = TransporterCanvasRenderer.resolveBeamBounds(
+        regions,
+        profile,
+        1f,
+        0.15f,
+        dematerializing = false,
+        stageFloorAnchored = true,
+    )
+    val tallColumn = TransporterCanvasRenderer.resolveBeamBounds(
+        regions,
+        profile,
+        1f,
+        1f,
+        dematerializing = false,
+        stageFloorAnchored = true,
+    )
+    assertEquals(shortColumn.bottom, tallColumn.bottom, 0.5f)
+    assertTrue(shortColumn.top > tallColumn.top)
+  }
 }

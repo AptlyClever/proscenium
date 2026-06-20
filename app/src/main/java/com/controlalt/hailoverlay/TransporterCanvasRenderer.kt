@@ -80,23 +80,42 @@ object TransporterCanvasRenderer {
         return base
     }
 
+    /** Breakout stage card deck — beam column grows upward from this Y (package-local). */
+    private const val STAGE_FLOOR_FRACTION = 0.88f
+
     fun resolveBeamBounds(
         regions: PaintBoxLayout.Regions,
         profile: TransporterVariationProfile,
         beamScale: Float,
         beamReveal: Float,
         dematerializing: Boolean,
+        stageFloorAnchored: Boolean = false,
     ): BeamBounds {
         val widthMul = profile.beamWidthMultiplier
         val heightMul = profile.beamHeightMultiplier
         val cx = regions.glyphCenterX
+        val bw = regions.beamWidth * widthMul * beamScale
+        val bh = regions.beamHeight * heightMul * beamScale
+        val cy = regions.glyphVisualCenterY
+
+        if (stageFloorAnchored) {
+            val stageFloor = regions.paintBoxTop + regions.paintBoxHeight * STAGE_FLOOR_FRACTION
+            val columnTop = regions.safeZoneTop - regions.beamHeight * 0.12f
+            val span = (stageFloor - columnTop).coerceAtLeast(48f)
+            val reveal = beamReveal.coerceIn(0f, 1f)
+            val top = if (dematerializing) {
+                stageFloor - span * reveal.coerceAtLeast(0.05f)
+            } else {
+                stageFloor - span * reveal.coerceIn(0.05f, 1f)
+            }
+            val bottom = stageFloor
+            return BeamBounds(cx, cy, bw, bh, top, bottom)
+        }
+
         val fullTop = regions.safeZoneTop - regions.beamHeight * 0.12f
         val fullBottom = regions.contentFootY + regions.beamHeight * 0.15f
         val span = (fullBottom - fullTop).coerceAtLeast(48f)
         val revealedBottom = fullTop + span * beamReveal.coerceIn(0.05f, 1f)
-        val bw = regions.beamWidth * widthMul * beamScale
-        val bh = regions.beamHeight * heightMul * beamScale
-        val cy = regions.glyphVisualCenterY
         val top = if (dematerializing) {
             fullTop + span * (1f - beamReveal.coerceIn(0f, 1f)) * 0.35f
         } else {
@@ -440,6 +459,7 @@ object TransporterCanvasRenderer {
         paletteId: String,
         variation: ResolvedTransporterVariation,
         frame: TransporterLifecycle.Frame,
+        stageFloorAnchored: Boolean = false,
     ) {
         if (regions.paintBoxWidth < 8f || !frame.beamActive) {
             return
@@ -463,6 +483,7 @@ object TransporterCanvasRenderer {
             scaledBeam,
             frame.beamReveal,
             frame.dematerializing,
+            stageFloorAnchored = stageFloorAnchored,
         )
         val phase = frame.particlePhase
         val vfx = profile.vfxLayers

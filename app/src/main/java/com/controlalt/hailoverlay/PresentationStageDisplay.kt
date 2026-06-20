@@ -8,7 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 
 enum class PresentationStageLayer {
@@ -22,6 +24,9 @@ fun PresentationStageDisplay(
     template: PresentationTemplateSpec,
     layer: PresentationStageLayer,
     modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    scale: Float = 1f,
+    transformOriginY: Float = 0.68f,
 ) {
     val role = when (layer) {
         PresentationStageLayer.BACK -> "back"
@@ -39,7 +44,14 @@ fun PresentationStageDisplay(
             bitmap = bitmap,
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    this.alpha = alpha.coerceIn(0f, 1f)
+                    scaleX = scale.coerceIn(0.5f, 1.2f)
+                    scaleY = scale.coerceIn(0.5f, 1.2f)
+                    transformOrigin = TransformOrigin(0.5f, transformOriginY)
+                },
         )
     }
 }
