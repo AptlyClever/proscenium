@@ -118,4 +118,15 @@ class TransporterCanvasVfxParityTest {
     assertEquals(1f, TransporterCanvasRenderer.impactPeakFlashIntensity(0.46f, 0.46f), 0.001f)
     assertEquals(0f, TransporterCanvasRenderer.impactPeakFlashIntensity(0.1f, 0.46f), 0.001f)
   }
+
+  @Test
+  fun impact_peak_spark_burst_has_wider_window_than_flash() {
+    assertTrue(
+      TransporterCanvasRenderer.impactPeakSparkBurstIntensity(0.38f, 0.46f) > 0f,
+    )
+    assertEquals(0f, TransporterCanvasRenderer.impactPeakSparkBurstIntensity(0.1f, 0.46f), 0.001f)
+    assertTrue(
+      TransporterCanvasRenderer.impactPeakSparkBurstIntensity(0.46f, 0.46f) > 0.9f,
+    )
+  }
 }

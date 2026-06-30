@@ -481,6 +481,18 @@ object TransporterCanvasRenderer {
         return normalized * normalized
     }
 
+    /** Wider window than flash — radial spark ring at hero impact (capabilities demo). */
+    fun impactPeakSparkBurstIntensity(entranceT: Float, impactPeak: Float): Float {
+        val peak = impactPeak.coerceIn(0.1f, 0.95f)
+        val window = 0.17f
+        val dist = kotlin.math.abs(entranceT - peak)
+        if (dist >= window) {
+            return 0f
+        }
+        val normalized = 1f - dist / window
+        return normalized * normalized * (0.65f + 0.35f * sin(normalized * Math.PI.toFloat() * 0.5f))
+    }
+
     private fun DrawScope.drawImpactPeakFlash(
         beam: BeamBounds,
         roles: PaletteRoles,
@@ -503,6 +515,64 @@ object TransporterCanvasRenderer {
             radius = radius,
             center = Offset(beam.cx, beam.cy),
         )
+    }
+
+    private fun DrawScope.drawImpactPeakSparkBurst(
+        cx: Float,
+        cy: Float,
+        roles: PaletteRoles,
+        intensity: Float,
+        footprintProfile: String,
+    ) {
+        if (intensity <= 0.01f) {
+            return
+        }
+        val expand = 0.4f + intensity * 0.9f
+        val outerRadius = max(56f, 44f + intensity * 80f)
+        drawCircle(
+            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    roles.glow.copy(alpha = alphaTv(0.22f * intensity)),
+                    roles.accent.copy(alpha = alphaTv(0.48f * intensity)),
+                    roles.glow.copy(alpha = alphaTv(0.16f * intensity)),
+                    Color.Transparent,
+                ),
+                center = Offset(cx, cy),
+                radius = outerRadius * expand,
+            ),
+            radius = outerRadius * expand,
+            center = Offset(cx, cy),
+        )
+        drawCircle(
+            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                colors = listOf(
+                    roles.accent.copy(alpha = alphaTv(0.55f * intensity)),
+                    roles.glow.copy(alpha = alphaTv(0.28f * intensity)),
+                    Color.Transparent,
+                ),
+                center = Offset(cx, cy),
+                radius = outerRadius * 0.38f * expand,
+            ),
+            radius = outerRadius * 0.38f * expand,
+            center = Offset(cx, cy),
+        )
+        val sparkCount = if (footprintProfile == "dramatic") 28 else 18
+        repeat(sparkCount) { i ->
+            val angle = (i / sparkCount.toFloat()) * Math.PI.toFloat() * 2f + intensity * 1.4f
+            val dist = outerRadius * (0.28f + expand * 0.58f) * (0.88f + (i % 4) * 0.06f)
+            val sx = cx + kotlin.math.cos(angle) * dist
+            val sy = cy + sin(angle) * dist * 0.72f
+            val sparkAlpha = alphaTv(0.14f * intensity * (0.45f + (i % 6) / 9f))
+            if (sparkAlpha <= 0.01f) {
+                return@repeat
+            }
+            drawCircle(
+                color = roles.particle.copy(alpha = sparkAlpha),
+                radius = max(2.5f, (1.8f + intensity * 3.2f) * TV_PARTICLE_RADIUS_SCALE * 0.32f),
+                center = Offset(sx, sy),
+            )
+        }
     }
 
     fun DrawScope.drawTransporterFrame(
@@ -600,7 +670,15 @@ object TransporterCanvasRenderer {
         }
         if (stageFloorAnchored && !frame.dematerializing) {
             val flash = impactPeakFlashIntensity(entranceT, impactPeakAnchor)
+            val sparkBurst = impactPeakSparkBurstIntensity(entranceT, impactPeakAnchor)
             drawImpactPeakFlash(beam, roles, flash)
+            drawImpactPeakSparkBurst(
+                cx = regions.glyphCenterX,
+                cy = regions.glyphVisualCenterY,
+                roles = roles,
+                intensity = sparkBurst,
+                footprintProfile = footprintProfile,
+            )
         }
     }
 
