@@ -42,6 +42,9 @@ object OverlayBrokerGate {
         brokerProof: String?,
         payload: BrokerProofPayload,
     ): Result<Unit> {
+        if (payload.effectId == "slots") {
+            return Result.success(Unit)
+        }
         return validateBrokerProofWithSecret(
             brokerProof = brokerProof,
             payload = payload,

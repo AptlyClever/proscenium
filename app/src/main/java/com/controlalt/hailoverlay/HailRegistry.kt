@@ -5,7 +5,7 @@ object HailRegistry {
     const val MIN_DURATION_MS = 1_000L
     const val MAX_DURATION_MS = 30_000L
 
-    private val allowedEffectIds = setOf("transporter_beam", "pop")
+    private val allowedEffectIds = setOf("transporter_beam", "pop", "slots")
     private val allowedGlyphIds = setOf(
         "default",
         "default",
@@ -105,10 +105,18 @@ object HailRegistry {
         }
         val validatedMessage = MessageTextValidator.validate(message)
             .getOrElse { return Result.failure(it) }
-        if (durationMs == null || durationMs !in MIN_DURATION_MS..MAX_DURATION_MS) {
-            return Result.failure(
-                IllegalArgumentException("duration_ms must be between $MIN_DURATION_MS and $MAX_DURATION_MS"),
-            )
+        if (durationMs == null) {
+            return Result.failure(IllegalArgumentException("duration_ms required"))
+        }
+        val isSlots = effectId == "slots"
+        val isValidDuration = if (isSlots) {
+            durationMs == -1L || durationMs > 0
+        } else {
+            durationMs in MIN_DURATION_MS..MAX_DURATION_MS
+        }
+        if (!isValidDuration) {
+            val msg = if (isSlots) "duration_ms must be -1 or positive" else "duration_ms must be between $MIN_DURATION_MS and $MAX_DURATION_MS"
+            return Result.failure(IllegalArgumentException(msg))
         }
 
         val normalizedHailId = OverlayBrokerGate.validateHailId(hailId.orEmpty())

@@ -121,6 +121,10 @@ class OverlayController(
                                 stableHoldMs = state.durationMs,
                                 onLifecycleComplete = { dismissInternal(removeOnly = true) },
                             )
+                            "slots" -> SlotsOverlay(
+                                state = state,
+                                onDismiss = { dismissInternal(removeOnly = true) }
+                            )
                             else -> TransporterOverlay(
                                 glyphId = state.glyphId,
                                 message = state.message,
@@ -164,9 +168,11 @@ class OverlayController(
             composeView = view
             lifecycleRegistry.currentState = Lifecycle.State.RESUMED
 
-            dismissRunnable = Runnable { dismissInternal(removeOnly = true) }
-            val safetyMs = hail.lifecycleTiming.totalLifecycleMs(hail.durationMs) + 500L
-            mainHandler.postDelayed(dismissRunnable!!, safetyMs)
+            if (hail.effectId != "slots") {
+                dismissRunnable = Runnable { dismissInternal(removeOnly = true) }
+                val safetyMs = hail.lifecycleTiming.totalLifecycleMs(hail.durationMs) + 500L
+                mainHandler.postDelayed(dismissRunnable!!, safetyMs)
+            }
         }
     }
 
