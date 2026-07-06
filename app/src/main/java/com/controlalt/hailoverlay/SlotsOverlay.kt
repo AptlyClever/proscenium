@@ -42,7 +42,7 @@ private val SYMBOLS = mapOf(
 
 @Composable
 fun SlotsOverlay(
-    state: OverlayController.OverlayState,
+    wsUrlOverride: String? = null,
     onDismiss: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -94,7 +94,9 @@ fun SlotsOverlay(
 
     // Connect WebSocket
     DisposableEffect(Unit) {
-        val wsUrl = state.message.trim().ifBlank {
+        val wsUrl = wsUrlOverride?.trim().takeUnless { it.isNullOrBlank() } ?: run {
+            // TODO(control-alt-lcard#192): resolve Bandit's live address dynamically
+            // instead of hardcoding it.
             "ws://192.168.68.93:8766/api/games/slots/stream"
         }
 

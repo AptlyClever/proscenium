@@ -230,6 +230,14 @@ class HailRegistryTest {
     }
 
     @Test
+    fun rejects_slots_as_a_hail_effect() {
+        // Bandit/Slots is a persistent game session, not a Hail -- it has its
+        // own dedicated path (BanditHttpServer/BanditOverlayController) and
+        // must not be reachable through the Hail trigger pipeline at all.
+        assertTrue(validBase(effectId = "slots").isFailure)
+    }
+
+    @Test
     fun accepts_hail_eye_check_glyph() {
         val result = validBase(
             hailId = "hail.spoon_transporter.001",

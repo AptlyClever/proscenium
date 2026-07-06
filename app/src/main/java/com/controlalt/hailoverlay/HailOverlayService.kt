@@ -17,16 +17,22 @@ class HailOverlayService : Service() {
     private var httpServer: HailHttpServer? = null
     private lateinit var overlayController: OverlayController
 
+    private var banditHttpServer: BanditHttpServer? = null
+    private lateinit var banditOverlayController: BanditOverlayController
+
     override fun onCreate() {
         super.onCreate()
         HailOverlayServiceHolder.markServiceStarting()
         overlayController = OverlayController(applicationContext)
+        banditOverlayController = BanditOverlayController(applicationContext)
         startForeground(NOTIFICATION_ID, buildNotification())
         ensureHttpServer()
+        ensureBanditHttpServer()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ensureHttpServer()
+        ensureBanditHttpServer()
         updateNotification()
         return START_STICKY
     }
@@ -36,7 +42,9 @@ class HailOverlayService : Service() {
     override fun onDestroy() {
         HailOverlayServiceHolder.markStopped()
         stopHttpServer()
+        stopBanditHttpServer()
         overlayController.dismiss()
+        banditOverlayController.dismiss()
         super.onDestroy()
     }
 
@@ -69,6 +77,31 @@ class HailOverlayService : Service() {
         httpServer?.let { server ->
             runCatching { server.stop() }
             httpServer = null
+        }
+    }
+
+    private fun ensureBanditHttpServer() {
+        if (banditHttpServer != null) {
+            return
+        }
+        banditHttpServer = BanditHttpServer(
+            onShow = { wsUrlOverride -> banditOverlayController.show(wsUrlOverride) },
+            onDismiss = { banditOverlayController.dismiss() },
+        ).also { server ->
+            runCatching { server.start() }
+                .onSuccess {
+                    Log.i(TAG, "Bandit HTTP server listening on port ${BanditHttpServer.HTTP_PORT}")
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "Failed to start bandit HTTP server", error)
+                }
+        }
+    }
+
+    private fun stopBanditHttpServer() {
+        banditHttpServer?.let { server ->
+            runCatching { server.stop() }
+            banditHttpServer = null
         }
     }
 

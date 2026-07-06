@@ -121,4 +121,16 @@ class OverlayBrokerGateTest {
         assertTrue(result.isFailure)
         assertEquals(OverlayBrokerGate.ERROR_INVALID, result.exceptionOrNull()?.message)
     }
+
+    @Test
+    fun validateBrokerProof_no_longer_bypasses_slots() {
+        // Previously validateBrokerProof() short-circuited to success for
+        // effectId == "slots" with no proof at all. Slots is no longer a Hail
+        // effect (rejected upstream by HailRegistry), and this bypass is gone
+        // -- confirm a "slots"-labeled payload with no proof is rejected like
+        // any other unsigned request would be.
+        val payload = samplePayload().copy(effectId = "slots")
+        val result = OverlayBrokerGate.validateBrokerProof(brokerProof = null, payload = payload)
+        assertTrue(result.isFailure)
+    }
 }
