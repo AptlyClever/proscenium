@@ -9,6 +9,18 @@ Requirements:
 - JDK 17+
 - Android SDK 34 (platform + build-tools 34.0.0)
 
+No system JDK? Run `./scripts/setup-jdk.sh` — installs a portable Temurin 17 under
+`~/.local/jdks/` and points Gradle at it via `~/.gradle/gradle.properties` (host-local,
+not tracked by this repo, same convention as `.tools/android-sdk`). Idempotent, safe
+to re-run.
+
+Unit tests (`./gradlew test`) also need a broker secret in the environment (any
+local value, 16+ chars — **not** the real production secret):
+
+```bash
+export LCARD_OVERLAY_BROKER_SECRET="dev-local-test-secret-only-not-for-prod"
+```
+
 ```bash
 cd hail-overlay-poc
 ./gradlew assembleDebug
