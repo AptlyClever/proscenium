@@ -1,10 +1,32 @@
 package com.controlalt.hailoverlay
 
+import androidx.compose.ui.graphics.Color
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
+internal fun parseHexColor(hex: String?, fallback: Color = Color.White): Color {
+    if (hex.isNullOrBlank()) return fallback
+    return runCatching {
+        val clean = hex.removePrefix("#")
+        val argb = if (clean.length == 6) "FF$clean" else clean
+        Color(argb.toLong(16).toInt())
+    }.getOrDefault(fallback)
+}
+
+internal fun parseSymbolIcons(json: JSONObject?): Map<String, Pair<ProceduralGraphSpec, Color>> {
+    if (json == null) return emptyMap()
+    val result = mutableMapOf<String, Pair<ProceduralGraphSpec, Color>>()
+    val keys = json.keys()
+    while (keys.hasNext()) {
+        val symbolId = keys.next()
+        val iconJson = json.optJSONObject(symbolId) ?: continue
+        val graph = ProceduralGlyphParser.parseGraph(iconJson) ?: continue
+        result[symbolId] = graph to parseHexColor(iconJson.optString("tint"))
+    }
+    return result
+}
 
 class SlotsOverlaySymbolIconsTest {
     // Matches Bandit's real SlotGame.symbol_icons response shape
@@ -70,7 +92,7 @@ class SlotsOverlaySymbolIconsTest {
 
     @Test
     fun parseHexColor_falls_back_on_garbage_input() {
-        val fallback = androidx.compose.ui.graphics.Color.Red
+        val fallback = Color.Red
         assertEquals(fallback, parseHexColor("not-a-color", fallback))
         assertEquals(fallback, parseHexColor(null, fallback))
         assertEquals(fallback, parseHexColor("", fallback))
@@ -80,7 +102,7 @@ class SlotsOverlaySymbolIconsTest {
 // Plain Kotlin math on Compose Color's own float components -- deliberately
 // avoids android.graphics.Color, which isn't mocked/available in these plain
 // JVM unit tests (no Robolectric configured here).
-private fun androidx.compose.ui.graphics.Color.toArgb(): Int {
+private fun Color.toArgb(): Int {
     fun component(v: Float) = (v * 255f + 0.5f).toInt().coerceIn(0, 255)
     return (component(alpha) shl 24) or (component(red) shl 16) or (component(green) shl 8) or component(blue)
 }
