@@ -31,7 +31,11 @@ import java.util.concurrent.TimeUnit
 
 private const val TAG = "SlotsOverlay"
 
-// Symbol descriptors
+// Emoji fallback for symbols Bandit hasn't shipped a real glyph spec for yet
+// (or while a game's symbol_icons hasn't loaded). Real icons -- parsed from
+// the game's symbol_icons field, the same ProceduralGraphSpec JSON shape
+// ProceduralGlyphParser already understands -- take priority; see
+// parseSymbolIcons()/ReelColumnView below.
 private val SYMBOLS = mapOf(
     "STAR" to Pair("⭐", Color(0xFFFFD700)),  // Gold
     "ALT" to Pair("⚙️", Color(0xFF00FFFF)),   // Cyan
@@ -39,6 +43,36 @@ private val SYMBOLS = mapOf(
     "CHIP" to Pair("🪙", Color(0xFFFFCC00)),  // Yellow
     "FAIL" to Pair("❌", Color(0xFFFF4444))   // Red
 )
+
+internal fun parseHexColor(hex: String?, fallback: Color = Color.White): Color {
+    if (hex.isNullOrBlank()) return fallback
+    return runCatching {
+        val clean = hex.removePrefix("#")
+        val argb = if (clean.length == 6) "FF$clean" else clean
+        Color(argb.toLong(16).toInt())
+    }.getOrDefault(fallback)
+}
+
+/**
+ * Bandit's SlotGame.symbol_icons is a map of symbol id -> {version, tint,
+ * paths, circles}. The paths/circles/version shape is deliberately identical
+ * to what ProceduralGlyphParser.parseGraph already parses for Hail glyphs, so
+ * it's reused as-is here; only `tint` (a Bandit-side addition, since a real
+ * glyph's tint normally comes from a Hail palette lookup this game doesn't
+ * have) is parsed separately.
+ */
+internal fun parseSymbolIcons(json: JSONObject?): Map<String, Pair<ProceduralGraphSpec, Color>> {
+    if (json == null) return emptyMap()
+    val result = mutableMapOf<String, Pair<ProceduralGraphSpec, Color>>()
+    val keys = json.keys()
+    while (keys.hasNext()) {
+        val symbolId = keys.next()
+        val iconJson = json.optJSONObject(symbolId) ?: continue
+        val graph = ProceduralGlyphParser.parseGraph(iconJson) ?: continue
+        result[symbolId] = graph to parseHexColor(iconJson.optString("tint"))
+    }
+    return result
+}
 
 @Composable
 fun SlotsOverlay(
@@ -53,6 +87,7 @@ fun SlotsOverlay(
     var winAmount by remember { mutableStateOf(0.0f) }
     var statusText by remember { mutableStateOf("Ready to Spin") }
     var connectionStatus by remember { mutableStateOf("Connecting...") }
+    var symbolIcons by remember { mutableStateOf<Map<String, Pair<ProceduralGraphSpec, Color>>>(emptyMap()) }
 
     // Reel display symbols (3 rows x 3 columns)
     val reel1 = remember { mutableStateListOf("STAR", "ALT", "CTRL") }
@@ -119,9 +154,17 @@ fun SlotsOverlay(
                         val json = JSONObject(text)
                         when (json.optString("event")) {
                             "session_started" -> {
-                                val session = json.optJSONObject("session")
-                                balance = session?.let { it.optDouble("balance", balance.toDouble()).toFloat() } ?: balance
+                                // Bandit's real broadcast is flat (session_id/
+                                // opening_balance/game at the top level), not
+                                // nested under a "session" key -- this was
+                                // reading a field that never existed, so
+                                // balance never actually synced from a real
+                                // session start.
+                                balance = json.optDouble("opening_balance", balance.toDouble()).toFloat()
                                 statusText = "Session Active"
+                                symbolIcons = parseSymbolIcons(
+                                    json.optJSONObject("game")?.optJSONObject("symbol_icons")
+                                )
                             }
                             "spin_started" -> {
                                 isFlashWin = false
@@ -132,11 +175,17 @@ fun SlotsOverlay(
                                 isSpinning3 = true
                             }
                             "spin_result" -> {
+                                // presentation_payload's real keys are "symbols"
+                                // (not "reels") and "balance_after" (not a
+                                // top-level "balance") -- both were reading
+                                // fields that never existed in Bandit's actual
+                                // broadcast, so a real spin never landed or
+                                // updated the balance shown here.
                                 val pp = json.optJSONObject("presentation_payload")
-                                val reelSymbols = pp?.optJSONArray("reels")
+                                val reelSymbols = pp?.optJSONArray("symbols")
                                 val outcome = pp?.optString("outcome_type") ?: ""
                                 val won = pp?.let { it.optDouble("payout_amount", 0.0).toFloat() } ?: 0.0f
-                                val endBalance = json.optDouble("balance", balance.toDouble()).toFloat()
+                                val endBalance = pp?.optDouble("balance_after", balance.toDouble())?.toFloat() ?: balance
 
                                 if (reelSymbols != null && reelSymbols.length() >= 3) {
                                     val r1 = reelSymbols.getString(0)
@@ -305,11 +354,11 @@ fun SlotsOverlay(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ReelColumnView(symbols = reel1, isSpinning = isSpinning1)
+                    ReelColumnView(symbols = reel1, isSpinning = isSpinning1, symbolIcons = symbolIcons)
                     Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(Color(0xFF1E1E24)))
-                    ReelColumnView(symbols = reel2, isSpinning = isSpinning2)
+                    ReelColumnView(symbols = reel2, isSpinning = isSpinning2, symbolIcons = symbolIcons)
                     Box(modifier = Modifier.width(1.dp).fillMaxHeight().background(Color(0xFF1E1E24)))
-                    ReelColumnView(symbols = reel3, isSpinning = isSpinning3)
+                    ReelColumnView(symbols = reel3, isSpinning = isSpinning3, symbolIcons = symbolIcons)
                 }
 
                 // Win flashing payline indicator
@@ -375,7 +424,11 @@ fun SlotsOverlay(
 }
 
 @Composable
-fun ReelColumnView(symbols: List<String>, isSpinning: Boolean) {
+fun ReelColumnView(
+    symbols: List<String>,
+    isSpinning: Boolean,
+    symbolIcons: Map<String, Pair<ProceduralGraphSpec, Color>> = emptyMap(),
+) {
     Column(
         modifier = Modifier
             .width(120.dp)
@@ -385,15 +438,33 @@ fun ReelColumnView(symbols: List<String>, isSpinning: Boolean) {
     ) {
         symbols.forEachIndexed { idx, symbol ->
             val isCenter = idx == 1
-            val symData = SYMBOLS[symbol] ?: Pair("❓", Color.White)
-            Text(
-                text = symData.first,
-                fontSize = if (isCenter && !isSpinning) 42.sp else 32.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .wrapContentSize()
-                    .padding(vertical = 4.dp)
-            )
+            val size = if (isCenter && !isSpinning) 48.dp else 36.dp
+            val realIcon = symbolIcons[symbol.lowercase()]
+            if (realIcon != null) {
+                val (graph, tint) = realIcon
+                ProceduralGlyphDisplay(
+                    graph = graph,
+                    alpha = 1f,
+                    size = size,
+                    tint = tint,
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .padding(vertical = 4.dp)
+                )
+            } else {
+                // Fallback for symbols/games without a real glyph spec yet
+                // (e.g. fruit/space machines) -- same emoji placeholder this
+                // overlay has always shown.
+                val symData = SYMBOLS[symbol.uppercase()] ?: Pair("❓", Color.White)
+                Text(
+                    text = symData.first,
+                    fontSize = if (isCenter && !isSpinning) 42.sp else 32.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .padding(vertical = 4.dp)
+                )
+            }
         }
     }
 }
