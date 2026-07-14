@@ -1,0 +1,26 @@
+name: proscenium
+
+services:
+  web:
+    build: .
+    container_name: proscenium-web
+    restart: unless-stopped
+    ports:
+      - "192.168.68.93:8788:8000"
+    environment:
+      CTRL_ALT_APP_ID: proscenium
+      AXIOM_EFFECTIVE_BASE_URL: ${AXIOM_EFFECTIVE_BASE_URL:-http://192.168.68.93:7895}
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5)\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
