@@ -1,0 +1,85 @@
+{
+  "display_class": "stick_oled",
+  "effect_id": "transporter",
+  "effect_variation_id": "voyaging",
+  "glyph_id": "default",
+  "id": "hail.package.parity.golden",
+  "layout_regions": {
+    "effect_field": {
+      "anchor": "glyph_optical_center",
+      "bottom": 408.24,
+      "center_x": 326.40000000000003,
+      "center_y": 226.8,
+      "effect_field_fraction": {
+        "height_of_safe_zone": 1.0,
+        "width_of_safe_zone": 0.648
+      },
+      "effect_footprint_profile": "standard",
+      "glyph_optical_center": {
+        "x": 326.40000000000003,
+        "y": 226.8
+      },
+      "height": 362.88,
+      "left": 157.19424000000004,
+      "shape": "column",
+      "top": 45.360000000000014,
+      "width": 338.41152
+    },
+    "glyph_focus": {
+      "center_x": 326.40000000000003,
+      "center_y": 226.8,
+      "height": 232.2432,
+      "left": 169.728,
+      "top": 110.67840000000001,
+      "width": 313.344
+    },
+    "glyph_focus_fraction": 0.64,
+    "message_band": {
+      "height": 44.452799999999996,
+      "left": 169.728,
+      "top": 342.9216,
+      "width": 313.344
+    },
+    "message_weight": 0.28,
+    "paint_box": {
+      "height": 453.59999999999997,
+      "left": 0.0,
+      "top": 0.0,
+      "width": 652.8000000000001
+    },
+    "safe_zone": {
+      "height": 362.88,
+      "left": 65.28000000000002,
+      "top": 45.36,
+      "width": 522.24
+    },
+    "safe_zone_inset_fraction": 0.1,
+    "transporter_beam_envelope": {
+      "bottom": 408.24,
+      "center_x": 326.40000000000003,
+      "center_y": 226.8,
+      "height": 362.88,
+      "left": 157.19424000000004,
+      "top": 45.360000000000014,
+      "width": 338.41152
+    },
+    "transporter_beam_height_multiplier": 1.5
+  },
+  "message": "Package parity golden",
+  "package_schema_version": 2,
+  "paint_box_screen": {
+    "height": 453.59999999999997,
+    "left": 633.5999999999999,
+    "paint_box_tier": "medium",
+    "placement_id": "upper_center",
+    "top": 129.60000000000002,
+    "width": 652.8000000000001
+  },
+  "placement_id": "upper_center",
+  "placement_mode": "preset",
+  "reference_viewport": {
+    "height": 1080,
+    "width": 1920
+  },
+  "size_tier": "medium"
+}

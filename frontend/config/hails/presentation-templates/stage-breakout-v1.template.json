@@ -1,0 +1,25 @@
+{
+  "template_id": "stage-breakout-v1",
+  "label": "Breakout card stage",
+  "stage_assets": {
+    "back": "presentation-templates/stage-breakout-v1/back.png",
+    "front": "presentation-templates/stage-breakout-v1/front.png"
+  },
+  "glyph_motion": {
+    "profile": "breakout_emerge",
+    "resolve_style": "overshoot_pop"
+  },
+  "choreography_anchors": {
+    "glyphResolveStart": 0.28,
+    "glyphImpactPeak": 0.46,
+    "glyphLockIn": 0.64,
+    "messageRevealStart": 0.66
+  },
+  "presentation_overlay": {
+    "kind": "css_burst",
+    "css_profile": "spark_radial_v1",
+    "anchor": "effect_field",
+    "start_anchor": "glyphImpactPeak",
+    "android": "deferred"
+  }
+}

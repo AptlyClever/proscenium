@@ -1,0 +1,75 @@
+{
+  "hails": [
+    {
+      "schema_version": 1,
+      "enabled": true,
+      "id": "hail.spoon_transporter.001",
+      "display_id": "001",
+      "name": "Spoon transporter test",
+      "category": "cute",
+      "icon": {
+        "kind": "glyph",
+        "value": "custom-spoon-transporter",
+        "label": "Spoon"
+      },
+      "message": {
+        "short_text": "Spoon transporter check",
+        "variants": [
+          "Spoon transporter check"
+        ]
+      },
+      "rooms": {
+        "allowed_source_room_ids": ["arcade"],
+        "allowed_target_room_ids": ["master_bedroom", "away_team", "arcade"],
+        "badge_policy": "source_room"
+      },
+      "delivery_policy": {
+        "routes": [
+          {
+            "id": "route.arcade.master_bedroom.001",
+            "launch_room_id": "arcade",
+            "destination_room_id": "master_bedroom",
+            "provider": "lcard",
+            "requires_confirmation": false,
+            "enabled": true
+          },
+          {
+            "id": "route.arcade.away_team.001",
+            "launch_room_id": "arcade",
+            "destination_room_id": "away_team",
+            "provider": "lcard",
+            "requires_confirmation": false,
+            "enabled": true
+          }
+        ]
+      },
+      "visual": {
+        "effect_id": "transporter",
+        "effect_variation_id": "spoon",
+        "palette_id": "axiom_dark_cyan",
+        "scale": "medium",
+        "duration_ms": 5000,
+        "placement_id": "upper_center",
+        "placement_mode": "preset",
+        "anchor": "top_end",
+        "reduced_motion_fallback": "static_toast"
+      },
+      "audio": {
+        "enabled": false,
+        "audio_id": "",
+        "mode": "future",
+        "volume": "soft",
+        "delay_ms": 350
+      },
+      "behavior": {
+        "cooldown_sec": 30,
+        "quiet_hours_policy": "respect",
+        "requires_confirmation": false
+      },
+      "advanced": {
+        "intensity": 2,
+        "particle_density": 1
+      }
+    }
+  ]
+}

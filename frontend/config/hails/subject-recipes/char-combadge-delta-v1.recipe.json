@@ -1,0 +1,50 @@
+{
+  "schema": "subject_recipe_v1",
+  "recipe_id": "char_combadge_delta_v1",
+  "status": "active",
+  "kind": "prop",
+  "lead_phrase": "delta combadge",
+  "character_type": "fleet-combadge",
+  "character_id": "combadge_delta",
+  "keyword_triggers": [
+    "combadge",
+    "communicator",
+    "starfleet",
+    "trek",
+    "federation",
+    "insignia",
+    "badge",
+    "delta",
+    "voyager",
+    "enterprise",
+    "picard"
+  ],
+  "operator_default": true,
+  "variation_policy": {
+    "stroke_jitter": true,
+    "coordinate_jitter": false,
+    "envelope_jitter": false,
+    "instance_jitter": false,
+    "focal_uplift": false,
+    "depth_shadow_pass": true,
+    "proof_mode_required_for_register": false
+  },
+  "composition": {
+    "schema": "char_v1",
+    "path_roles": ["mass", "ground", "accent"],
+    "max_primary_paths": 3
+  },
+  "module": {
+    "python": "hail_glyph_combadge",
+    "render_fn": "render_combadge_recipe"
+  },
+  "plot": {
+    "plot_id": "custom-combadge-plot",
+    "glyph_id": "custom-combadge",
+    "subject_phrase": "delta combadge"
+  },
+  "exit_criteria": {
+    "operator_p1": "24px thumbnail — name combadge without label",
+    "consumer_path": "derive-preview → glyph_render → APK ProceduralGlyphDisplay"
+  }
+}

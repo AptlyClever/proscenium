@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <title>combadge-tng-traced</title>
+  <path id="accent" data-combadge-role="accent" d="M 12.858 28.611 C 12.858 21.99 35.142 21.99 35.142 28.611 C 35.142 35.231 12.858 35.231 12.858 28.611 Z" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="0.72" fill-opacity="0.72"/>
+  <path id="mass" data-combadge-role="mass" d="M 15.777 35.603 C 16.762 29.208 18.618 22.958 20.992 16.946 C 21.792 14.89 22.783 12.922 23.862 11 C 25.054 12.047 25.544 13.982 26.33 15.433 C 28.775 21.18 30.796 27.155 31.857 33.321 C 32.038 34.034 32.364 37 31.416 35.073 C 29.784 32.048 28.368 28.874 26.34 26.086 C 25.132 24.832 23.671 26.565 22.817 27.42 C 20.255 29.963 18.282 33.02 16.036 35.833 C 15.837 35.986 15.694 35.744 15.777 35.603 Z" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="1"/>
+</svg>

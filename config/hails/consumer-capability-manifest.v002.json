@@ -1,0 +1,54 @@
+{
+  "manifest_id": "consumer-capability-manifest.v002",
+  "collective_version": "hails-2.0-beta",
+  "package_schema_version": 2,
+  "layout_contract_version": "v003-silhouette",
+  "render_contract_version": "v002-beta",
+  "note": "Beta 2.0 consumer gate — Axiom Save and Send must satisfy this manifest until v002-beta render contract ships (B0 cut).",
+  "consumers": {
+    "google_tv_apk": {
+      "label": "Hail overlay APK (Google TV)",
+      "deliverable_effects": ["transporter", "pop"],
+      "overlay_effect_aliases": {
+        "transporter": "transporter_beam",
+        "pop": "pop"
+      },
+      "glyph_render_kinds": ["registry", "procedural", "image", "image_layers"],
+      "presentation_overlay_kinds": ["lottie", "css_burst"],
+      "presentation_overlay_android": "deferred",
+      "procedural_graph_projection_id": "google_tv_v1",
+      "procedural_graph_features": {
+        "paths": ["d", "stroke_width", "opacity", "fill", "stroke_linecap", "stroke_linejoin"],
+        "circles_native": true,
+        "circles_projected_as_paths": true,
+        "max_paths": 8,
+        "palette_tint_on_glyph": true
+      },
+      "reject_glyph_kinds": ["emoji_fallback"],
+      "size_tiers": ["small", "medium", "large"],
+      "placement_ids": [
+        "top_right",
+        "top_left",
+        "bottom_right",
+        "bottom_left",
+        "upper_center",
+        "lower_center",
+        "center_soft"
+      ],
+      "message_max_length": 120,
+      "reference_viewport": { "width": 1920, "height": 1080 }
+    },
+    "lcard_catalog": {
+      "label": "LCARD hail chip catalog",
+      "requires_catalog_ready": true,
+      "catalog_schema_version": 2,
+      "chips_per_page": 6
+    }
+  },
+  "delivery": {
+    "owner": "axiom",
+    "queue_max": 1,
+    "cooldown_after_lifecycle_cleared_ms": 3000,
+    "cooldown_scope": "delivery_target_id"
+  }
+}

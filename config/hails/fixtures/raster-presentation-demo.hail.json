@@ -1,0 +1,16 @@
+{
+  "id": "hail.fleet_beacon.001",
+  "name": "Fleet Beacon (raster demo)",
+  "icon": { "kind": "glyph", "value": "custom-fleet-beacon" },
+  "message": { "short_text": "Achievement unlocked — fleet beacon online" },
+  "visual": {
+    "effect_id": "transporter",
+    "palette_id": "axiom_dark_cyan",
+    "scale": "medium",
+    "placement_id": "upper_center",
+    "priority_level": "yellow",
+    "duration_ms": 7000,
+    "effect_footprint_profile": "dramatic",
+    "presentation_template_id": "stage-breakout-v1"
+  }
+}

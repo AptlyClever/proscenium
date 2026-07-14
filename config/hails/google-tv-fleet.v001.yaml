@@ -1,0 +1,61 @@
+# Canonical Google TV fleet registry (Axiom SoT).
+# Sync: python3 scripts/sync-google-tv-fleet.py
+#
+# Add devices here first, then run sync and commit generated targets.
+# room_id must match KNOWN_ROOM_IDS / LCARD room registry.
+
+version: v001
+updated: "2026-06-18"
+
+defaults:
+  overlay:
+    show_path: /hail/show
+    health_path: /health
+    package: com.controlalt.hailoverlay
+  adb_port: 5555
+
+devices:
+  arcade:
+    label: Arcade Google TV
+    room_id: arcade
+    role: home
+    display_class: projector
+    overlay_url: http://192.168.68.105:8765
+    adb_target: 192.168.68.105:5555
+    hail_delivery: true
+    lcard_room: true
+    notes: Aurzen Boom 3 projector; hail-grid-silhouette-v2 projector-class defaults (Praxis).
+
+  master_bedroom:
+    label: Master Bedroom Google TV
+    room_id: master_bedroom
+    role: home
+    display_class: projector
+    overlay_url: http://192.168.68.101:8765
+    adb_target: 192.168.68.101:5555
+    hail_delivery: true
+    lcard_room: true
+    notes: Aurzen Boom 3 projector; hail-grid-silhouette-v2 projector-class defaults (Praxis).
+
+  away_team:
+    label: Away Team Google TV
+    room_id: away_team
+    role: travel
+    display_class: stick_oled
+    overlay_url: http://100.87.93.94:8765
+    adb_target: 100.87.93.94:5555
+    tailscale_hostname: away-team
+    hail_delivery: true
+    lcard_room: true
+    notes: ONN 4K travel stick; overlay reachable via Tailscale from homelab hub.
+
+# Planned devices — copy a block into `devices` when hardware is provisioned.
+# planned:
+#   guest_room:
+#     label: Guest Room Google TV
+#     room_id: guest_room
+#     role: home
+#     overlay_url: http://192.168.68.XXX:8765
+#     adb_target: 192.168.68.XXX:5555
+#     hail_delivery: true
+#     lcard_room: true

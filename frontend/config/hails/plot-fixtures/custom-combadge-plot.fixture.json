@@ -1,0 +1,47 @@
+{
+  "plot_id": "custom-combadge-plot",
+  "glyph_id": "custom-combadge",
+  "label": "Combadge",
+  "subject_phrase": "delta combadge",
+  "proof_mode": true,
+  "recipe_id": "char_combadge_delta_v1",
+  "reference_asset": "combadge-tng-reference.png",
+  "traced_svg": "combadge-tng-traced.svg",
+  "procedural_graph": {
+    "version": 1,
+    "generator_id": "char_combadge_delta_v1",
+    "paths": [
+      {
+        "d": "M 12.858 28.611 C 12.858 21.99 35.142 21.99 35.142 28.611 C 35.142 35.231 12.858 35.231 12.858 28.611 Z",
+        "stroke": "currentColor",
+        "stroke_width": 2.0,
+        "fill": "currentColor",
+        "opacity": 0.52,
+        "stroke_linecap": "round",
+        "stroke_linejoin": "round",
+        "role": "accent"
+      },
+      {
+        "d": "M 15.777 35.603 C 16.762 29.208 18.618 22.958 20.992 16.946 C 21.792 14.89 22.783 12.922 23.862 11 C 25.054 12.047 25.544 13.982 26.33 15.433 C 28.775 21.18 30.796 27.155 31.857 33.321 C 32.038 34.034 32.364 37 31.416 35.073 C 29.784 32.048 28.368 28.874 26.34 26.086 C 25.132 24.832 23.671 26.565 22.817 27.42 C 20.255 29.963 18.282 33.02 16.036 35.833 C 15.837 35.986 15.694 35.744 15.777 35.603 Z",
+        "stroke": "currentColor",
+        "stroke_width": 2.0,
+        "fill": "currentColor",
+        "opacity": 1.0,
+        "stroke_linecap": "round",
+        "stroke_linejoin": "round",
+        "role": "mass"
+      }
+    ],
+    "composition": {
+      "schema": "char_v1",
+      "character_id": "combadge_delta_tng",
+      "lead_phrase": "delta combadge",
+      "character_type": "fleet-combadge",
+      "anchor": {
+        "cx": 24,
+        "cy": 24
+      }
+    },
+    "signature": "0da42fe13dcc742a"
+  }
+}

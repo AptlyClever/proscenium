@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "glyph-image-layers.schema.v001.json",
+  "title": "Glyph Hero image layers (6b framework)",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "required": ["role", "path"],
+    "properties": {
+      "role": { "enum": ["mass", "accent", "ground"] },
+      "path": { "type": "string", "minLength": 1 },
+      "z_index": { "type": "integer" },
+      "pulse_anchor": {
+        "enum": ["glyphResolveStart", "glyphImpactPeak", "glyphLockIn", "messageRevealStart"]
+      }
+    },
+    "additionalProperties": false
+  }
+}

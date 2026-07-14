@@ -1,0 +1,153 @@
+{
+  "version": "v001",
+  "ownership": "axiom",
+  "canonicalLocation": "config/hails/glyph-registry.v001.json",
+  "selectableStatuses": ["approved"],
+  "glyphs": [
+    {
+      "glyph_id": "hail-summons",
+      "label": "Summons",
+      "semantic_intent": "Call / ping / get-attention identity — vertical signal emphasis without alarm clichés",
+      "description": "Vertical signal-post silhouette for summons and ping hails. Registry expansion v002 — Axiom inline SVG.",
+      "status": "deprecated",
+      "category": "hail",
+      "fallback_emoji": "▲",
+      "fallback_text": "Summons",
+      "surfaces": {
+        "axiom_ui": true,
+        "lcard_preview": true,
+        "android_drawable": true
+      },
+      "asset_refs": {
+        "axiom_inline_svg": "frontend/src/hailMedallions.tsx#HailSummonsGlyph",
+        "android_drawable": "glyph_hail_summons.xml",
+        "lcard_preview": "control-alt-lcard/app/js/hail-glyphs.js#hail-summons"
+      },
+      "generation_prompt": "Minimal vector hail glyph: vertical signal post with subtle radial ticks, 48x48 viewBox, strong vertical emphasis, Control Alt stroke language, no bell or alarm-clock clichés.",
+      "visual_constraints": {
+        "monochrome_friendly": true,
+        "min_viewbox": "48x48",
+        "silhouette": "vertical post + horizontal ticks",
+        "no_glow_dependency": true,
+        "tv_distance_readable": true
+      },
+      "review_notes": "Axiom UI only until Android/LCARD parity slice. Promote after operator review."
+    },
+    {
+      "glyph_id": "hail-alert",
+      "label": "Alert",
+      "semantic_intent": "Urgent / warning identity — angular stacked pulses, severity from palette not glyph clutter",
+      "description": "Stacked pulse bars with caution dot for alert and urgent hails. Registry expansion v002.",
+      "status": "deprecated",
+      "category": "hail",
+      "fallback_emoji": "▮",
+      "fallback_text": "Alert",
+      "surfaces": {
+        "axiom_ui": true,
+        "lcard_preview": true,
+        "android_drawable": true
+      },
+      "asset_refs": {
+        "axiom_inline_svg": "frontend/src/hailMedallions.tsx#HailAlertGlyph",
+        "android_drawable": "glyph_hail_alert.xml",
+        "lcard_preview": "control-alt-lcard/app/js/hail-glyphs.js#hail-alert"
+      },
+      "generation_prompt": "Minimal vector hail glyph: three stacked horizontal bars tapering inward with a caution stem below, 48x48, angular but readable at TV distance, no emoji or alarm icons.",
+      "visual_constraints": {
+        "monochrome_friendly": true,
+        "min_viewbox": "48x48",
+        "silhouette": "stacked bars + caution mark",
+        "no_glow_dependency": true,
+        "tv_distance_readable": true
+      },
+      "review_notes": "Axiom UI only until delivery parity. Severity carried by palette/effect, not glyph detail."
+    },
+    {
+      "glyph_id": "hail-route",
+      "label": "Route",
+      "semantic_intent": "Motion / transport / send identity — forward wave with direction cue",
+      "description": "Dual forward waves with direction tick for transporter and route hails. Registry expansion v002.",
+      "status": "deprecated",
+      "category": "hail",
+      "fallback_emoji": "↦",
+      "fallback_text": "Route",
+      "surfaces": {
+        "axiom_ui": true,
+        "lcard_preview": true,
+        "android_drawable": true
+      },
+      "asset_refs": {
+        "axiom_inline_svg": "frontend/src/hailMedallions.tsx#HailRouteGlyph",
+        "android_drawable": "glyph_hail_route.xml",
+        "lcard_preview": "control-alt-lcard/app/js/hail-glyphs.js#hail-route"
+      },
+      "generation_prompt": "Minimal vector hail glyph: two forward wave strokes with a subtle direction tick, 48x48, distinct from other registry marks, Control Alt stroke weight.",
+      "visual_constraints": {
+        "monochrome_friendly": true,
+        "min_viewbox": "48x48",
+        "silhouette": "forward waves + direction cue",
+        "no_glow_dependency": true,
+        "tv_distance_readable": true
+      },
+      "review_notes": "Axiom UI only until delivery parity. Pair with transporter effect presets."
+    },
+    {
+      "glyph_id": "hail-beacon",
+      "label": "Beacon",
+      "semantic_intent": "Gather / here / home-room identity — orbit node with center mark",
+      "description": "Orbit arc with center node for gather, home, and here hails. Registry expansion v002.",
+      "status": "deprecated",
+      "category": "hail",
+      "fallback_emoji": "◉",
+      "fallback_text": "Beacon",
+      "surfaces": {
+        "axiom_ui": true,
+        "lcard_preview": true,
+        "android_drawable": true
+      },
+      "asset_refs": {
+        "axiom_inline_svg": "frontend/src/hailMedallions.tsx#HailBeaconGlyph",
+        "android_drawable": "glyph_hail_beacon.xml",
+        "lcard_preview": "control-alt-lcard/app/js/hail-glyphs.js#hail-beacon"
+      },
+      "generation_prompt": "Minimal vector hail glyph: center node with subtle orbit arc and cardinal ticks, 48x48, gather/home tone without house clip-art.",
+      "visual_constraints": {
+        "monochrome_friendly": true,
+        "min_viewbox": "48x48",
+        "silhouette": "node + orbit arc",
+        "no_glow_dependency": true,
+        "tv_distance_readable": true
+      },
+      "review_notes": "Axiom UI only until delivery parity. Distinct from summons vertical post."
+    },
+    {
+      "glyph_id": "default",
+      "label": "Default",
+      "semantic_intent": "Neutral fallback hail mark when no dedicated glyph is mapped",
+      "description": "Diamond/star fallback used when glyph_id is unknown or unmapped. Contract emoji fallback ✦.",
+      "status": "approved",
+      "category": "placeholder",
+      "fallback_emoji": "✦",
+      "fallback_text": "Default",
+      "surfaces": {
+        "axiom_ui": true,
+        "lcard_preview": true,
+        "android_drawable": true
+      },
+      "asset_refs": {
+        "axiom_inline_svg": "frontend/src/hailMedallions.tsx#HailDefaultGlyph",
+        "android_drawable": "glyph_default.xml",
+        "lcard_preview": "emoji fallback per hail-render-contract.v001.json"
+      },
+      "generation_prompt": "Minimal neutral hail placeholder: simple diamond or four-point star, high contrast, 48x48, legible at 10-foot TV distance.",
+      "visual_constraints": {
+        "monochrome_friendly": true,
+        "min_viewbox": "48x48",
+        "silhouette": "simple geometric star/diamond",
+        "no_glow_dependency": true,
+        "tv_distance_readable": true
+      },
+      "review_notes": "Approved system placeholder. Refine for TV-distance legibility in a future polish slice — no asset replacement in registry v001."
+    }
+  ]
+}

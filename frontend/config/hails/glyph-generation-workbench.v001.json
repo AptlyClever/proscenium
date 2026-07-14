@@ -1,0 +1,43 @@
+{
+  "version": "v001",
+  "ownership": "axiom",
+  "canonicalLocation": "config/hails/glyph-generation-workbench.v001.json",
+  "note": "Metadata-only workbench — prepares generation briefs and tracks empty candidate slots. Does not generate images or store art assets in v001.",
+  "briefs": [
+    {
+      "brief_id": "brief-default-v001",
+      "glyph_id": "default",
+      "status": "draft",
+      "created_at": "2026-06-13",
+      "source_registry_version": "v001",
+      "registry_glyph_status": "approved",
+      "generation_prompt": "Minimal neutral hail placeholder: simple diamond or four-point star, high contrast, 48x48, legible at TV distance, Control Alt stroke language.",
+      "negative_prompt": "photorealistic, emoji, text labels, complex shading, photographic detail",
+      "visual_constraints": {
+        "monochrome_friendly": true,
+        "min_viewbox": "48x48",
+        "silhouette": "simple geometric star or diamond",
+        "no_glow_dependency": true,
+        "tv_distance_readable": true
+      },
+      "target_surfaces": ["axiom_ui", "lcard_preview", "android_drawable"],
+      "candidate_slots": [
+        {
+          "candidate_id": "candidate-default-001",
+          "status": "empty",
+          "asset_ref": null,
+          "notes": "Reserved slot — no candidate art in workbench v001"
+        },
+        {
+          "candidate_id": "candidate-default-002",
+          "status": "empty",
+          "asset_ref": null,
+          "notes": ""
+        }
+      ],
+      "review_notes": "Seed brief from Glyph Registry v001 for the system default glyph.",
+      "promotion_target": null,
+      "archived": false
+    }
+  ]
+}

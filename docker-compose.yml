@@ -12,6 +12,9 @@ services:
       AXIOM_EFFECTIVE_BASE_URL: ${AXIOM_EFFECTIVE_BASE_URL:-http://192.168.68.93:7895}
     volumes:
       - ./data:/app/data
+      # Binary Glyph Hero sources remain read-only from the former host until
+      # their restrictive host ownership is migrated; all mutable state is local.
+      - /mnt/temp/config/ctrl-alt-axiom/config/hails/glyph-hero-images:/app/config/hails/glyph-hero-images:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:

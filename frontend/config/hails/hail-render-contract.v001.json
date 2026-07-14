@@ -1,0 +1,1464 @@
+{
+  "version": "v001-integration",
+  "description": "Axiom-owned canonical Hails render contract — promoted from accepted preview v001 (presentation-polish-acceptance-candidate). LCARD and other Control Alt apps consume this artifact; they do not define the Hail visual model.",
+  "canonicalLocation": {
+    "repository": "AptlyClever/ctrl-alt-axiom",
+    "path": "config/hails/hail-render-contract.v001.json",
+    "module": "backend/hails_render_contract.py",
+    "api": "GET /api/hails/render-contract"
+  },
+  "ownership": {
+    "hails": "axiom",
+    "contractOwner": "axiom",
+    "consumers": ["lcard-preview", "lcard"],
+    "futureConsumers": ["lcard", "control-alt-apps"],
+    "note": "Axiom owns Hails and this shared contract. LCARD hosts/consumes the preview harness only — not the Hail visual model, Paint Box, named effects, or budget canon."
+  },
+  "runtimeModel": {
+    "note": "Runtime/end-user Hail selection uses size tier + named effect id — not raw beam width, particle density, glow radius, or similar workbench-only knobs.",
+    "selectionExample": {
+      "size": "M",
+      "effect_id": "burst"
+    },
+    "sizeCodes": ["S", "M", "L"],
+    "sizeTierMap": {
+      "S": "small",
+      "M": "medium",
+      "L": "large"
+    }
+  },
+  "lifecycleModel": {
+    "note": "duration_ms on hail records and runtime payloads maps to stable_hold_ms only. Entrance and exit animation ms are additive per named effect lifecycleTiming.",
+    "entrance_animation_ms": "Named effect entrance animation duration",
+    "stable_hold_ms": "Stable readable phase — duration_ms / presets map here",
+    "exit_animation_ms": "Named effect exit animation duration",
+    "holdMode": "entrance -> stable indefinitely -> Hide triggers exit -> clear",
+    "timedMode": "entrance -> stable_hold_ms -> exit -> clear"
+  },
+  "payloadFields": [
+    "hail_id",
+    "effect_id",
+    "effect_variation_id",
+    "effect_tuning",
+    "effect_tuning_projection",
+    "android_effect_tuning",
+    "capability_summary",
+    "glyph_id",
+    "palette_id",
+    "message",
+    "duration_ms",
+    "placement_id",
+    "placement_mode",
+    "x_percent",
+    "y_percent",
+    "size_tier",
+    "size_code"
+  ],
+  "message": {
+    "maxLength": 120,
+    "plainTextOnly": true
+  },
+  "placement": {
+    "modePreset": "preset",
+    "modeCustom": "custom",
+    "minPercent": 5,
+    "maxPercent": 95,
+    "presetIds": [
+      "center_soft",
+      "top_right",
+      "bottom_right",
+      "top_left",
+      "bottom_left",
+      "upper_center",
+      "lower_center"
+    ],
+    "edgeInsets": {
+      "horizontalFraction": 0.065,
+      "topFraction": 0.085,
+      "bottomFraction": 0.105,
+      "upperCenterExtraTopFraction": 0.035,
+      "centerSoftVerticalFraction": 0.07
+    },
+    "layoutFractions": {
+      "groupWidth": 0.32,
+      "groupHeight": 0.34
+    }
+  },
+  "glyphs": {
+    "allowlist": ["hail-summons", "hail-alert", "hail-route", "hail-beacon", "default"],
+    "emojiFallback": {
+      "default": "✦"
+    }
+  },
+  "effects": {
+    "allowlist": ["none", "pop", "burst", "transporter"],
+    "legacyAliases": {
+      "transporter_beam": "transporter"
+    },
+    "note": "Runtime named effect ids — not legacy transporter_beam"
+  },
+  "palettes": {
+    "axiom_dark_cyan": {
+      "beamCyan": "#32B5A0",
+      "beamWhite": "#D4F5EC",
+      "beamBase": "#0A2E24",
+      "messageColor": "#F0FAF6",
+      "backdropTint": "#0A2E24",
+      "glyphGlow": "#3AA890",
+      "roles": {
+        "primary": "#2FB89A",
+        "accent": "#D4F5EC",
+        "particle": "#E8FAF5",
+        "glow": "#3AA890",
+        "text": "#F0FAF6",
+        "messageBacking": "#121618",
+        "messageBackingOpacity": 0.5
+      }
+    },
+    "transporter_white": {
+      "beamCyan": "#8AA8B8",
+      "beamWhite": "#EEF4F4",
+      "beamBase": "#1A2430",
+      "messageColor": "#F4F8FA",
+      "backdropTint": "#161e28",
+      "glyphGlow": "#C8DCE8",
+      "roles": {
+        "primary": "#7A9AAA",
+        "accent": "#EEF4F4",
+        "particle": "#E8ECEE",
+        "glow": "#C8DCE8",
+        "text": "#F4F8FA",
+        "messageBacking": "#14181C",
+        "messageBackingOpacity": 0.52
+      }
+    },
+    "transporter_generation_next": {
+      "beamCyan": "#4A8CC8",
+      "beamWhite": "#D8ECFF",
+      "beamBase": "#0E1A2E",
+      "messageColor": "#EEF6FF",
+      "backdropTint": "#101C30",
+      "glyphGlow": "#6AAEE8",
+      "roles": {
+        "primary": "#4A8CC8",
+        "accent": "#D8ECFF",
+        "particle": "#B8D8F8",
+        "glow": "#6AAEE8",
+        "text": "#EEF6FF",
+        "messageBacking": "#101820",
+        "messageBackingOpacity": 0.5
+      }
+    },
+    "transporter_spoon": {
+      "beamCyan": "#B8923A",
+      "beamWhite": "#F5E6B8",
+      "beamBase": "#2A1E0C",
+      "messageColor": "#FFF8E8",
+      "backdropTint": "#241A0A",
+      "glyphGlow": "#D4A84A",
+      "roles": {
+        "primary": "#B8923A",
+        "accent": "#F5E6B8",
+        "particle": "#F0D890",
+        "glow": "#D4A84A",
+        "text": "#FFF8E8",
+        "messageBacking": "#1A1408",
+        "messageBackingOpacity": 0.52
+      }
+    },
+    "cute_purple": {
+      "beamCyan": "#9B5A8C",
+      "beamWhite": "#F4E0EE",
+      "beamBase": "#2E1048",
+      "messageColor": "#FCEEF8",
+      "backdropTint": "#2E1048",
+      "glyphGlow": "#C878A8",
+      "roles": {
+        "primary": "#9B5A8C",
+        "accent": "#F4E0EE",
+        "particle": "#F0D8EC",
+        "glow": "#C878A8",
+        "text": "#FCEEF8",
+        "messageBacking": "#140A1C",
+        "messageBackingOpacity": 0.5
+      }
+    }
+  },
+  "typography": {
+    "messageFontSizeFractionOfHeight": 0.021,
+    "glyphSizeFractionOfHeight": 0.048,
+    "messageBackingAlpha": 0.46,
+    "messageFontWeight": 500,
+    "anchorMessageGapFractionOfHeight": 0.016,
+    "messageShadow": "0 0 1px rgba(0,0,0,1), 0 1px 2px rgba(0,0,0,0.92), 0 2px 10px rgba(0,0,0,0.62), 0 0 18px rgba(0,0,0,0.38)"
+  },
+  "visual": {
+    "groupBackdropAlpha": 0.24,
+    "glyphGlowAlpha": 0.22
+  },
+  "previewVisual": {
+    "note": "Axiom-owned preview visual contract — consumed by LCARD preview workbench and future Control Alt apps. Workbench-only blocks (effectPresets, presetPresence, legacy effectPresetIds) exist for tuning; runtime model uses namedEffects + paintBox + effectsBudget.",
+    "defaultNamedEffect": "transporter",
+    "defaultEffectPreset": "transporter_soft",
+    "defaultHailScaleTier": "medium",
+    "paintBox": {
+      "note": "Paint Box = absolute maximum layout container. Safe Effect Zone = normal effect maximum (inset). Glyph Focus Region = primary effect anchor. Message Region = secondary readable support. Hierarchy: Paint Box -> Safe Effect Zone -> Glyph Focus Region -> Effect Envelope -> Message Support.",
+      "canon": "The Paint Box defines where the Hail may exist; the glyph defines what the Hail is. Glyph visual height = max(glyphVisualSizeFloorPx, paintBoxHeight × glyphVisualFraction). Effects render inside Safe Effect Zone and anchor to Glyph Focus Region.",
+      "glyphPresenceRule": "glyphPx = max(tier.glyphVisualSizeFloorPx, paintBoxHeightPx * tier.glyphVisualFraction)",
+      "debugOutlineWorkbenchOption": true,
+      "sizeAliases": {
+        "S": "small",
+        "M": "medium",
+        "L": "large"
+      },
+      "tiers": {
+        "small": {
+          "sizeCode": "S",
+          "label": "Ambient",
+          "widthFraction": 0.24,
+          "heightFraction": 0.26,
+          "glyphScale": 0.94,
+          "messageScale": 0.92,
+          "messageBackingGapFraction": 0.014,
+          "maxEffectFootprintFraction": 1,
+          "safeZoneInsetFraction": 0.12,
+          "glyphFocusFraction": 0.62,
+          "glyphVisualSizeFloorPx": 108,
+          "glyphVisualFraction": 0.46,
+          "glyphWeight": 0.68,
+          "messageWeight": 0.32,
+          "transporterBeamHeightMultiplier": 1.35
+        },
+        "medium": {
+          "sizeCode": "M",
+          "label": "Default",
+          "widthFraction": 0.32,
+          "heightFraction": 0.34,
+          "glyphScale": 1,
+          "messageScale": 1,
+          "messageBackingGapFraction": 0.016,
+          "maxEffectFootprintFraction": 1,
+          "safeZoneInsetFraction": 0.11,
+          "glyphFocusFraction": 0.64,
+          "glyphVisualSizeFloorPx": 152,
+          "glyphVisualFraction": 0.5,
+          "glyphWeight": 0.72,
+          "messageWeight": 0.28,
+          "transporterBeamHeightMultiplier": 1.5
+        },
+        "large": {
+          "sizeCode": "L",
+          "label": "Impact",
+          "widthFraction": 0.42,
+          "heightFraction": 0.44,
+          "glyphScale": 1.06,
+          "messageScale": 1.08,
+          "messageBackingGapFraction": 0.018,
+          "maxEffectFootprintFraction": 1,
+          "safeZoneInsetFraction": 0.1,
+          "glyphFocusFraction": 0.66,
+          "glyphVisualSizeFloorPx": 208,
+          "glyphVisualFraction": 0.54,
+          "glyphWeight": 0.76,
+          "messageWeight": 0.24,
+          "transporterBeamHeightMultiplier": 1.65
+        }
+      }
+    },
+    "namedEffects": {
+      "note": "Recallable named effect presets selected by id at runtime. Workbench may expose advanced tuning; end-user contract is effect id only.",
+      "defaultEffectId": "transporter",
+      "allowlist": ["none", "pop", "burst", "transporter"],
+      "futureAllowlist": ["scan"],
+      "identityModel": {
+        "note": "Named effects define how the glyph resolves, not just the surrounding field.",
+        "fields": {
+          "glyphResolveStyle": "How the glyph itself materializes (fade, overshoot_pop, center_snap, scan_resolve)",
+          "fieldStyle": "Field geometry (none, micro_flash, radial_bloom, vertical_phase)",
+          "particleStyle": "Particle behavior alias (none, tiny_sparks, radial_burst, scanfall)",
+          "messageRevealStyle": "Message timing relative to glyph (fade, quick_follow, post_impact_fade, secondary_scan_fade)"
+        }
+      },
+      "choreographyModel": {
+        "note": "Effect/glyph/message timing anchors as fractions of entrance_ms (0–1). Glyph resolve is a consequence of the effect timeline.",
+        "fields": {
+          "effectStart": "Field anticipation begins",
+          "glyphResolveStart": "Glyph resolve begins (partial/fragmented first frame)",
+          "glyphImpactPeak": "Perceptual peak — pop overshoot, burst snap, transporter scan midpoint",
+          "glyphLockIn": "Glyph sharpens to stable readable form",
+          "messageRevealStart": "Message reveal begins (after glyph focal moment)",
+          "stableReady": "Entrance choreography complete; stable hold begins"
+        }
+      },
+      "effects": {
+        "none": {
+          "label": "None",
+          "effectImpactFloor": 0,
+          "glyphResolveStyle": "fade",
+          "fieldStyle": "none",
+          "particleStyle": "none",
+          "messageRevealStyle": "fade",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.05,
+            "glyphImpactPeak": 0.6,
+            "glyphLockIn": 0.75,
+            "messageRevealStart": 0.2,
+            "stableReady": 0.85
+          },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 250,
+            "exit_animation_ms": 200
+          },
+          "timingMs": {
+            "entrance": { "min": 0, "max": 300, "default": 250 },
+            "exit": { "min": 0, "max": 250, "default": 200 },
+            "stable": "static"
+          },
+          "particles": { "entranceMax": 0, "exitMax": 0, "stableMax": 0 },
+          "stableResidual": "none"
+        },
+        "pop": {
+          "label": "Pop",
+          "effectImpactFloor": 0.72,
+          "glyphResolveStyle": "overshoot_pop",
+          "fieldStyle": "micro_flash",
+          "particleStyle": "tiny_sparks",
+          "messageRevealStyle": "quick_follow",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.05,
+            "glyphImpactPeak": 0.35,
+            "glyphLockIn": 0.55,
+            "messageRevealStart": 0.55,
+            "stableReady": 0.7
+          },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 400,
+            "exit_animation_ms": 300
+          },
+          "intent": "Quick punchy entrance/exit — obvious glyph-local pop moment",
+          "timingMs": {
+            "entrance": { "min": 300, "max": 450, "default": 400 },
+            "exit": { "min": 260, "max": 360, "default": 300 },
+            "stable": "static"
+          },
+          "particles": { "entranceMax": 8, "exitMax": 8, "stableMax": 0 },
+          "stableResidual": "none"
+        },
+        "burst": {
+          "label": "Burst",
+          "effectImpactFloor": 0.78,
+          "glyphResolveStyle": "center_snap",
+          "fieldStyle": "radial_bloom",
+          "particleStyle": "radial_burst",
+          "messageRevealStyle": "post_impact_fade",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.28,
+            "glyphImpactPeak": 0.52,
+            "glyphLockIn": 0.68,
+            "messageRevealStart": 0.7,
+            "stableReady": 0.88
+          },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 780,
+            "exit_animation_ms": 560
+          },
+          "intent": "Size-aware burst entrance/exit — visible contained flare/spark at glyph",
+          "timingMs": {
+            "entrance": { "min": 650, "max": 850, "default": 780 },
+            "exit": { "min": 450, "max": 650, "default": 560 },
+            "stable": "optional_glyph_local"
+          },
+          "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": "size_capped" },
+          "stableResidual": "optional_glyph_local"
+        },
+        "transporter": {
+          "label": "Transporter",
+          "effectImpactFloor": 0.85,
+          "glyphResolveStyle": "scan_resolve",
+          "fieldStyle": "vertical_phase",
+          "particleStyle": "scanfall",
+          "messageRevealStyle": "secondary_scan_fade",
+          "choreographyAnchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.42,
+            "glyphImpactPeak": 0.74,
+            "glyphLockIn": 0.9,
+            "messageRevealStart": 0.82,
+            "stableReady": 0.95
+          },
+          "lifecycleTiming": {
+            "entrance_animation_ms": 1900,
+            "exit_animation_ms": 1400,
+            "beam_in_seed_ms": 800,
+            "beam_out_seed_ms": 420
+          },
+          "intent": "Contained glyph-local transport field — establishes before glyph resolves; stable has no beam",
+          "timingMs": {
+            "entrance": { "min": 1600, "max": 2200, "default": 1900 },
+            "exit": { "min": 1200, "max": 1600, "default": 1400 },
+            "stable": "beam_fully_gone"
+          },
+          "particles": { "entranceMax": "size_capped", "exitMax": "size_capped", "stableMax": 0 },
+          "stableResidual": "none",
+          "sequence": "empty -> contained transport field in Paint Box -> glyph/message materialize -> field clears -> stable object -> exit field -> dematerialize -> clear"
+        }
+      }
+    },
+    "effectRegistry": {
+      "note": "Extensible effect catalog — identityRef pulls lifecycle/identity from namedEffects.effects during migration. Phase A foundation; tuning persisted in Phase C.",
+      "defaultEffectId": "transporter",
+      "entries": {
+        "none": {
+          "label": "None",
+          "status": "active",
+          "identityRef": "none",
+          "tuning": {
+            "variables": [
+              {
+                "key": "fade_speed",
+                "label": "Fade Speed",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "effectIntensity" }
+              },
+              {
+                "key": "message_backing_emphasis",
+                "label": "Message Backing Emphasis",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "message_backing_emphasis" }
+              }
+            ],
+            "defaults": {
+              "fade_speed": 1.0,
+              "message_backing_emphasis": 1.0
+            }
+          },
+          "capabilities": {
+            "axiom_preview": "full",
+            "lcard_preview": "full",
+            "android": "none"
+          },
+          "quality": { "rating": "usable", "recommendation": "keep" },
+          "templates": ["quiet-signal"]
+        },
+        "pop": {
+          "label": "Pop",
+          "status": "active",
+          "identityRef": "pop",
+          "defaultVariationId": "soft-tap",
+          "variations": {
+            "soft-tap": {
+              "label": "Soft Tap",
+              "status": "active",
+              "default": true,
+              "reference": "Gentle glyph-local ping — baseline micro flash and tiny sparks",
+              "recommended_palette_id": "cute_purple",
+              "identity": {
+                "fieldStyle": "micro_flash",
+                "particleStyle": "tiny_sparks",
+                "glyphResolveStyle": "overshoot_pop"
+              },
+              "preview": { "module": "pop", "profile": "soft-tap" },
+              "tuning": {
+                "defaults": {
+                  "pop_size": 0.92,
+                  "pop_impact": 0.82,
+                  "spark_density": 0.35
+                }
+              }
+            },
+            "snap-back": {
+              "label": "Snap Back",
+              "status": "active",
+              "reference": "Rubber-band overshoot — faster lock-in, sharper flash",
+              "recommended_palette_id": "axiom_dark_cyan",
+              "identity": {
+                "glyphResolveStyle": "overshoot_pop",
+                "choreographyAnchors": {
+                  "glyphResolveStart": 0.03,
+                  "glyphLockIn": 0.48,
+                  "messageRevealStart": 0.5
+                }
+              },
+              "preview": { "module": "pop", "profile": "snap-back" },
+              "tuning": {
+                "defaults": {
+                  "pop_size": 0.85,
+                  "pop_impact": 1.05,
+                  "spark_density": 0.22
+                }
+              }
+            },
+            "bubble-pop": {
+              "label": "Bubble Pop",
+              "status": "active",
+              "reference": "Wider soft bloom with extra spark scatter",
+              "recommended_palette_id": "transporter_white",
+              "identity": {
+                "fieldStyle": "micro_flash",
+                "particleStyle": "tiny_sparks",
+                "choreographyAnchors": {
+                  "glyphImpactPeak": 0.28,
+                  "messageRevealStart": 0.58
+                }
+              },
+              "preview": { "module": "pop", "profile": "bubble-pop" },
+              "tuning": {
+                "defaults": {
+                  "pop_size": 1.12,
+                  "pop_impact": 0.72,
+                  "spark_density": 0.55
+                }
+              }
+            }
+          },
+          "tuning": {
+            "variables": [
+              {
+                "key": "pop_size",
+                "label": "Pop Size",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "beamHeight" }
+              },
+              {
+                "key": "pop_impact",
+                "label": "Pop Impact",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "effectIntensity" }
+              },
+              {
+                "key": "spark_density",
+                "label": "Spark Density",
+                "type": "range",
+                "min": 0.0,
+                "max": 1.0,
+                "default": 0.5,
+                "step": 0.05,
+                "mapsTo": { "workbench": "particleDensity" }
+              }
+            ],
+            "defaults": {
+              "pop_size": 0.92,
+              "pop_impact": 0.82,
+              "spark_density": 0.35
+            }
+          },
+          "capabilities": {
+            "axiom_preview": "full",
+            "lcard_preview": "full",
+            "android": "none",
+            "android_note": "Harness-only — TV-safe defaults refined Phase D"
+          },
+          "quality": { "rating": "weak", "recommendation": "refactor", "phase_d_note": "TV-safe default tuning applied" },
+          "templates": ["soft-ping"]
+        },
+        "burst": {
+          "label": "Burst",
+          "status": "active",
+          "identityRef": "burst",
+          "defaultVariationId": "pulse",
+          "variations": {
+            "pulse": {
+              "label": "Pulse",
+              "status": "active",
+              "default": true,
+              "reference": "Contained radial bloom — baseline priority snap",
+              "recommended_palette_id": "axiom_dark_cyan",
+              "identity": {
+                "fieldStyle": "radial_bloom",
+                "particleStyle": "radial_burst",
+                "glyphResolveStyle": "center_snap"
+              },
+              "preview": { "module": "burst", "profile": "pulse" },
+              "tuning": {
+                "defaults": {
+                  "bloom_strength": 0.92,
+                  "snap_intensity": 0.88,
+                  "particle_spread": 0.88
+                }
+              }
+            },
+            "solar-flare": {
+              "label": "Solar Flare",
+              "status": "active",
+              "reference": "Hotter bloom with earlier impact peak",
+              "recommended_palette_id": "cute_purple",
+              "identity": {
+                "glyphResolveStyle": "center_snap",
+                "choreographyAnchors": {
+                  "glyphImpactPeak": 0.46,
+                  "glyphLockIn": 0.64,
+                  "messageRevealStart": 0.66
+                }
+              },
+              "preview": { "module": "burst", "profile": "solar-flare" },
+              "tuning": {
+                "defaults": {
+                  "bloom_strength": 1.12,
+                  "snap_intensity": 0.95,
+                  "particle_spread": 0.78
+                }
+              }
+            },
+            "rippler": {
+              "label": "Rippler",
+              "status": "active",
+              "reference": "Wide particle ring with softer bloom edge",
+              "recommended_palette_id": "transporter_white",
+              "identity": {
+                "fieldStyle": "radial_bloom",
+                "particleStyle": "radial_burst",
+                "choreographyAnchors": {
+                  "glyphResolveStart": 0.24,
+                  "messageRevealStart": 0.75
+                }
+              },
+              "preview": { "module": "burst", "profile": "rippler" },
+              "tuning": {
+                "defaults": {
+                  "bloom_strength": 0.85,
+                  "snap_intensity": 0.82,
+                  "particle_spread": 1.15
+                }
+              }
+            }
+          },
+          "tuning": {
+            "variables": [
+              {
+                "key": "bloom_strength",
+                "label": "Bloom Strength",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "glowIntensity" }
+              },
+              {
+                "key": "snap_intensity",
+                "label": "Snap Intensity",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "entrance_intensity" }
+              },
+              {
+                "key": "particle_spread",
+                "label": "Particle Spread",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "particleSpread" }
+              }
+            ],
+            "defaults": {
+              "bloom_strength": 0.92,
+              "snap_intensity": 0.88,
+              "particle_spread": 0.88
+            }
+          },
+          "capabilities": {
+            "axiom_preview": "full",
+            "lcard_preview": "full",
+            "android": "none",
+            "android_note": "Harness-only — TV-safe default tuning refined Phase D"
+          },
+          "quality": { "rating": "weak", "recommendation": "refactor", "phase_d_note": "TV-safe default tuning applied" },
+          "templates": ["priority-pulse"]
+        },
+        "transporter": {
+          "label": "Transporter",
+          "status": "active",
+          "default": true,
+          "identityRef": "transporter",
+          "defaultVariationId": "voyaging",
+          "variations": {
+            "voyaging": {
+              "label": "Voyaging",
+              "status": "active",
+              "default": true,
+              "reference": "Voyager-style transporter cycle — narrow filament column, scanfall, phased glyph scan-resolve",
+              "recommended_palette_id": "transporter_white",
+              "identity": {
+                "fieldStyle": "vertical_phase",
+                "particleStyle": "scanfall",
+                "beamProfile": "narrow_filament_column",
+                "vfxLayers": {
+                  "showerCurtain": false,
+                  "scanPulseCount": 3,
+                  "powerPellet": true,
+                  "swirlField": false
+                },
+                "choreographyAnchors": {
+                  "effectStart": 0,
+                  "glyphResolveStart": 0.42,
+                  "glyphImpactPeak": 0.74,
+                  "glyphLockIn": 0.9,
+                  "messageRevealStart": 0.82,
+                  "stableReady": 0.95
+                }
+              },
+              "preview": { "module": "transporter", "profile": "voyaging" }
+            },
+            "generation-next": {
+              "label": "Generation Next",
+              "status": "active",
+              "reference": "Blue-forward shimmer column with softer lock-in",
+              "recommended_palette_id": "transporter_generation_next",
+              "identity": {
+                "fieldStyle": "vertical_phase",
+                "particleStyle": "sparkle_rise",
+                "beamProfile": "wide_soft_column",
+                "vfxLayers": {
+                  "showerCurtain": true,
+                  "scanPulseCount": 0,
+                  "powerPellet": true,
+                  "swirlField": false
+                },
+                "choreographyAnchors": {
+                  "effectStart": 0,
+                  "glyphResolveStart": 0.38,
+                  "glyphImpactPeak": 0.7,
+                  "glyphLockIn": 0.88,
+                  "messageRevealStart": 0.8,
+                  "stableReady": 0.94
+                }
+              },
+              "preview": { "module": "transporter", "profile": "generation-next" }
+            },
+            "spoon": {
+              "label": "Spoon",
+              "status": "active",
+              "reference": "Golden amber dense column with harder edge",
+              "recommended_palette_id": "transporter_spoon",
+              "identity": {
+                "fieldStyle": "vertical_phase",
+                "particleStyle": "scanfall_dense",
+                "beamProfile": "amber_column",
+                "vfxLayers": {
+                  "showerCurtain": true,
+                  "scanPulseCount": 0,
+                  "powerPellet": true,
+                  "swirlField": true
+                },
+                "choreographyAnchors": {
+                  "effectStart": 0,
+                  "glyphResolveStart": 0.4,
+                  "glyphImpactPeak": 0.68,
+                  "glyphLockIn": 0.86,
+                  "messageRevealStart": 0.78,
+                  "stableReady": 0.92
+                }
+              },
+              "preview": { "module": "transporter", "profile": "spoon" }
+            }
+          },
+          "tuning": {
+            "variables": [
+              {
+                "key": "beam_intensity",
+                "label": "Beam Intensity",
+                "type": "range",
+                "min": 0.2,
+                "max": 1.0,
+                "default": 0.78,
+                "step": 0.02,
+                "mapsTo": { "workbench": "beamOpacity" }
+              },
+              {
+                "key": "beam_shape",
+                "label": "Beam Shape",
+                "type": "enum",
+                "options": ["column", "cone", "orb", "shimmer"],
+                "default": "column",
+                "mapsTo": { "workbench": "beamShape" }
+              },
+              {
+                "key": "beam_scale",
+                "label": "Beam Scale",
+                "type": "range",
+                "min": 0.5,
+                "max": 2.0,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "beam_field_scale" }
+              },
+              {
+                "key": "beam_color_emphasis",
+                "label": "Beam Color Emphasis",
+                "type": "range",
+                "min": 0.0,
+                "max": 1.0,
+                "default": 0.85,
+                "step": 0.05,
+                "mapsTo": { "workbench": "glowIntensity" }
+              }
+            ],
+            "defaults": {
+              "beam_intensity": 0.78,
+              "beam_shape": "column",
+              "beam_scale": 1.0,
+              "beam_color_emphasis": 0.85
+            }
+          },
+          "capabilities": {
+            "axiom_preview": "full",
+            "lcard_preview": "full",
+            "android": "partial",
+            "android_tuning_keys": ["beam_intensity", "beam_scale"],
+            "android_note": "TV transporter_beam consumes beam_intensity and beam_scale; beam_shape and beam_color_emphasis are preview-only on device"
+          },
+          "quality": { "rating": "usable", "recommendation": "keep" },
+          "templates": ["transporter-sweep", "scanner-pass"]
+        },
+        "scan": {
+          "label": "Scan",
+          "status": "planned",
+          "identity": {
+            "label": "Scan",
+            "glyphResolveStyle": "scan_resolve",
+            "fieldStyle": "vertical_phase",
+            "particleStyle": "scanfall",
+            "messageRevealStyle": "secondary_scan_fade",
+            "lifecycleTiming": {
+              "entrance_animation_ms": 1200,
+              "exit_animation_ms": 900
+            }
+          },
+          "tuning": {
+            "variables": [
+              {
+                "key": "scan_line_speed",
+                "label": "Scan Line Speed",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "effectIntensity" }
+              },
+              {
+                "key": "pass_width",
+                "label": "Pass Width",
+                "type": "range",
+                "min": 0.5,
+                "max": 1.5,
+                "default": 1.0,
+                "step": 0.05,
+                "mapsTo": { "workbench": "beamWidth" }
+              }
+            ],
+            "defaults": {
+              "scan_line_speed": 1.0,
+              "pass_width": 1.0
+            }
+          },
+          "capabilities": {
+            "axiom_preview": "none",
+            "lcard_preview": "none",
+            "android": "none"
+          },
+          "quality": { "rating": "unknown", "recommendation": "planned" },
+          "templates": []
+        }
+      }
+    },
+    "effectsBudget": {
+      "note": "Budget resolved by size + effect + lifecycle phase. hidden/cleared: zero animation, particle, and canvas work.",
+      "hardMaxActiveParticles": 60,
+      "hiddenCleared": {
+        "animationWork": 0,
+        "particleWork": 0,
+        "canvasWork": 0
+      },
+      "stable": {
+        "note": "Cheap and readable — no persistent transporter beam, full-screen glow, or ongoing field column",
+        "residualGlyphLocalOnly": true
+      },
+      "bySize": {
+        "S": {
+          "sizeCode": "S",
+          "tier": "small",
+          "stableResidualParticles": { "min": 0, "max": 4 },
+          "entranceExitActiveParticles": { "min": 12, "max": 20 }
+        },
+        "M": {
+          "sizeCode": "M",
+          "tier": "medium",
+          "stableResidualParticles": { "min": 0, "max": 8 },
+          "entranceExitActiveParticles": { "min": 20, "max": 36 }
+        },
+        "L": {
+          "sizeCode": "L",
+          "tier": "large",
+          "stableResidualParticles": { "min": 0, "max": 12 },
+          "entranceExitActiveParticles": { "min": 28, "max": 48 }
+        }
+      },
+      "hardNo": [
+        "hundreds_of_particles",
+        "viewport_sized_glow_fields",
+        "full_screen_blur_filter_storms",
+        "screen_level_transporter_beam",
+        "persistent_stable_transport_column"
+      ]
+    },
+    "legacyEffectPresets": {
+      "deprecated": true,
+      "workbenchOnly": true,
+      "note": "Legacy workbench preset ids (effectPresetIds) retained for tuning UI backward compatibility. Runtime/end-user model uses namedEffects.allowlist — map via aliasesToNamedEffects.",
+      "aliasesToNamedEffects": {
+        "clean_hail": "none",
+        "transporter_soft": "transporter",
+        "transporter_dense": "burst",
+        "subtle_ping": "pop",
+        "high_attention": "burst"
+      }
+    },
+    "presenceGrammar": {
+      "note": "Preview-only presence per S/M/L tier. object_scale (content_scale) sizes the stable Hail; transport_event_scale sizes beam-in/out only — not applied during stable_object. Canonical values live on scaleGrammar.tiers.",
+      "fields": {
+        "content_scale": "Object scale — glyph + content module layout (alias: object_scale)",
+        "object_scale": "Alias for content_scale — stable Hail object size",
+        "message_scale": "Message typography scale",
+        "transport_event_scale": "Beam-in/out transport envelope — dramatic during enter/exit, zeroed at stable_object",
+        "effect_field_scale": "Stable-state residual field (preview: 1.0 — transport uses transport_event_scale)",
+        "beam_field_scale": "Transport beam column/cone envelope (enter/exit only)",
+        "particle_travel_scale": "Transport particle drift/travel (enter/exit only)",
+        "glow_radius_scale": "Transport glow reach during materialization; modest stable glyph glow via renderer",
+        "anchor_weight": "Arrival anchor glyph visual weight",
+        "message_backing_emphasis": "Message backing pad prominence"
+      }
+    },
+    "scaleGrammar": {
+      "defaultTier": "medium",
+      "manualPercent": { "min": 50, "max": 150, "default": 100 },
+      "tiers": {
+        "small": {
+          "label": "Ambient",
+          "intent": "Compact Hail object with a small beam-in/out transport event",
+          "layoutScale": 0.88,
+          "glyphScale": 0.9,
+          "messageScale": 0.92,
+          "beamWidthMul": 0.82,
+          "beamHeightMul": 0.72,
+          "particleDensityMul": 0.65,
+          "particleSpreadMul": 0.62,
+          "glowIntensityMul": 0.68,
+          "effectIntensityMul": 0.82,
+          "entranceIntensityMul": 0.88,
+          "exitIntensityMul": 0.9,
+          "messagePaddingMul": 0.9,
+          "content_scale": 0.92,
+          "object_scale": 0.92,
+          "message_scale": 0.92,
+          "transport_event_scale": 0.7,
+          "effect_field_scale": 1,
+          "beam_field_scale": 0.72,
+          "particle_travel_scale": 0.62,
+          "glow_radius_scale": 0.68,
+          "anchor_weight": 0.88,
+          "message_backing_emphasis": 0.95
+        },
+        "medium": {
+          "label": "Default",
+          "intent": "Default readable Hail object with balanced transport event",
+          "layoutScale": 1,
+          "glyphScale": 1,
+          "messageScale": 1,
+          "beamWidthMul": 1,
+          "beamHeightMul": 1,
+          "particleDensityMul": 1,
+          "particleSpreadMul": 1,
+          "glowIntensityMul": 1,
+          "effectIntensityMul": 1,
+          "entranceIntensityMul": 1,
+          "exitIntensityMul": 1,
+          "messagePaddingMul": 1,
+          "content_scale": 1,
+          "object_scale": 1,
+          "message_scale": 1,
+          "transport_event_scale": 1,
+          "effect_field_scale": 1,
+          "beam_field_scale": 1,
+          "particle_travel_scale": 1,
+          "glow_radius_scale": 1,
+          "anchor_weight": 1,
+          "message_backing_emphasis": 1
+        },
+        "large": {
+          "label": "Impact",
+          "intent": "Larger Hail object and more dramatic transport — clean stable object after beam clears",
+          "layoutScale": 1.2,
+          "glyphScale": 1.15,
+          "messageScale": 1.08,
+          "beamWidthMul": 1.35,
+          "beamHeightMul": 1.95,
+          "particleDensityMul": 1.28,
+          "particleSpreadMul": 2.2,
+          "glowIntensityMul": 1.8,
+          "effectIntensityMul": 1.15,
+          "entranceIntensityMul": 1.32,
+          "exitIntensityMul": 1.25,
+          "messagePaddingMul": 1.06,
+          "content_scale": 1.22,
+          "object_scale": 1.22,
+          "message_scale": 1.08,
+          "transport_event_scale": 2.1,
+          "effect_field_scale": 1,
+          "beam_field_scale": 1.95,
+          "particle_travel_scale": 2.4,
+          "glow_radius_scale": 1.8,
+          "anchor_weight": 1.18,
+          "message_backing_emphasis": 1.12
+        }
+      }
+    },
+    "effectPresetIds": [
+      "clean_hail",
+      "transporter_soft",
+      "transporter_dense",
+      "subtle_ping",
+      "high_attention"
+    ],
+    "effectPresetIdsNote": "DEPRECATED workbench-only — prefer namedEffects.allowlist. Aliases in legacyEffectPresets.aliasesToNamedEffects.",
+    "presetPresence": {
+      "note": "Preview-only — per-preset transport presence; stacks with scaleGrammar tiers. transport_event_scale applies during beam-in/out only.",
+      "defaults": {
+        "transport_event_scale": 1,
+        "effect_field_scale": 1,
+        "beam_field_scale": 1,
+        "particle_travel_scale": 1,
+        "glow_radius_scale": 1,
+        "anchor_weight": 1,
+        "message_backing_emphasis": 1
+      },
+      "clean_hail": {
+        "label": "Compact",
+        "intent": "Minimal transport — tight beam-in/out, restrained glow",
+        "transport_event_scale": 0.72,
+        "effect_field_scale": 1,
+        "beam_field_scale": 0.66,
+        "particle_travel_scale": 0.72,
+        "glow_radius_scale": 0.68,
+        "anchor_weight": 0.9,
+        "message_backing_emphasis": 0.8
+      },
+      "transporter_soft": {
+        "label": "Standard",
+        "intent": "Default transporter — balanced transport, clean stable object",
+        "transport_event_scale": 1,
+        "effect_field_scale": 1,
+        "beam_field_scale": 1,
+        "particle_travel_scale": 1,
+        "glow_radius_scale": 1,
+        "anchor_weight": 1,
+        "message_backing_emphasis": 1
+      },
+      "transporter_dense": {
+        "label": "Impact",
+        "intent": "Stronger materialization transport — stable object still clean after arrival",
+        "transport_event_scale": 1.38,
+        "effect_field_scale": 1,
+        "beam_field_scale": 1.32,
+        "particle_travel_scale": 1.45,
+        "glow_radius_scale": 1.24,
+        "anchor_weight": 1.14,
+        "message_backing_emphasis": 1.06
+      },
+      "subtle_ping": {
+        "label": "Burst",
+        "intent": "Quick achievement transport — tight beam, punchy anchor",
+        "transport_event_scale": 0.86,
+        "effect_field_scale": 1,
+        "beam_field_scale": 0.8,
+        "particle_travel_scale": 1.18,
+        "glow_radius_scale": 1.02,
+        "anchor_weight": 1.16,
+        "message_backing_emphasis": 0.9
+      },
+      "high_attention": {
+        "label": "Visible",
+        "intent": "High-visibility transport in/out — stable object clear, not alarm styling",
+        "transport_event_scale": 1.22,
+        "effect_field_scale": 1,
+        "beam_field_scale": 1.2,
+        "particle_travel_scale": 1.1,
+        "glow_radius_scale": 1.3,
+        "anchor_weight": 1.08,
+        "message_backing_emphasis": 1.12
+      }
+    },
+    "beamShapes": ["column", "cone", "orb", "shimmer", "none"],
+    "effectPresets": {
+      "clean_hail": {
+        "beamEnabled": false,
+        "beamShape": "none",
+        "particleDensity": 14,
+        "particleSpread": 22,
+        "particleSpeed": 28,
+        "particleSize": 32,
+        "glowIntensity": 30,
+        "effectIntensity": 0.72,
+        "shimmerIntensity": 0.18
+      },
+      "transporter_soft": {
+        "beamEnabled": true,
+        "beamShape": "shimmer",
+        "beamWidth": 0.18,
+        "beamHeight": 0.48,
+        "beamOpacity": 0.78,
+        "particleDensity": 36,
+        "particleSpread": 32,
+        "particleSpeed": 38,
+        "particleSize": 42,
+        "glowIntensity": 40,
+        "shimmerIntensity": 0.38
+      },
+      "transporter_dense": {
+        "beamEnabled": true,
+        "beamShape": "column",
+        "beamWidth": 0.24,
+        "beamHeight": 0.58,
+        "beamOpacity": 0.88,
+        "particleDensity": 72,
+        "particleSpread": 44,
+        "particleSpeed": 52,
+        "particleSize": 54,
+        "glowIntensity": 56,
+        "shimmerIntensity": 0.5
+      },
+      "subtle_ping": {
+        "beamEnabled": true,
+        "beamShape": "orb",
+        "beamWidth": 0.16,
+        "beamHeight": 0.34,
+        "beamOpacity": 0.6,
+        "particleDensity": 18,
+        "particleSpread": 26,
+        "particleSpeed": 26,
+        "particleSize": 36,
+        "glowIntensity": 36,
+        "shimmerIntensity": 0.32
+      },
+      "high_attention": {
+        "beamEnabled": true,
+        "beamShape": "cone",
+        "beamWidth": 0.26,
+        "beamHeight": 0.64,
+        "beamOpacity": 0.9,
+        "beamBlur": 1.5,
+        "particleDensity": 80,
+        "particleSpread": 50,
+        "particleSpeed": 58,
+        "particleSize": 58,
+        "glowIntensity": 66,
+        "shimmerIntensity": 0.58,
+        "effectIntensity": 1.02
+      }
+    },
+    "groupBackground": {
+      "defaultEnabled": false,
+      "defaultShape": "rounded_rect",
+      "defaultSizePercent": 100,
+      "defaultOpacityPercent": 24,
+      "shapes": ["rounded_rect", "soft_panel", "circle_orb"],
+      "sizePercentMin": 50,
+      "sizePercentMax": 140
+    },
+    "animationProfiles": {
+      "note": "Per-preset animation. Optional overrides: beam_in_seed_ms, beam_out_seed_ms (defaults scale from lifecyclePhases.reference).",
+      "clean_hail": {
+        "entrance_style": "fade",
+        "entrance_ms": 380,
+        "entrance_intensity": 0.85,
+        "hold_motion": "drift",
+        "exit_style": "fade",
+        "exit_ms": 340,
+        "exit_intensity": 0.85,
+        "particle_mode_enter": "drift",
+        "particle_mode_hold": "drift",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "fade",
+        "glyph_overshoot": 0
+      },
+      "transporter_soft": {
+        "entrance_style": "scan_resolve",
+        "entrance_ms": 1900,
+        "entrance_intensity": 1,
+        "beam_in_seed_ms": 800,
+        "hold_motion": "drift",
+        "exit_style": "beam_dematerialize",
+        "exit_ms": 1400,
+        "exit_intensity": 1,
+        "beam_out_seed_ms": 420,
+        "particle_mode_enter": "scanfall",
+        "particle_mode_hold": "drift",
+        "particle_mode_exit": "scanfall",
+        "glyph_resolve_style": "scan_resolve",
+        "glyph_overshoot": 0.04
+      },
+      "transporter_dense": {
+        "entrance_style": "scan_resolve",
+        "entrance_ms": 1900,
+        "entrance_intensity": 1.08,
+        "beam_in_seed_ms": 800,
+        "hold_motion": "scanfall",
+        "exit_style": "beam_dematerialize",
+        "exit_ms": 1400,
+        "exit_intensity": 1.04,
+        "beam_out_seed_ms": 420,
+        "particle_mode_enter": "scanfall",
+        "particle_mode_hold": "scanfall",
+        "particle_mode_exit": "scanfall",
+        "glyph_resolve_style": "scan_resolve",
+        "glyph_overshoot": 0.02
+      },
+      "subtle_ping": {
+        "entrance_style": "pop_ping",
+        "entrance_ms": 420,
+        "entrance_intensity": 1.05,
+        "hold_motion": "pulse",
+        "exit_style": "snap_out",
+        "exit_ms": 280,
+        "exit_intensity": 1,
+        "particle_mode_enter": "spark_burst",
+        "particle_mode_hold": "drift",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "snap",
+        "glyph_overshoot": 0.12
+      },
+      "high_attention": {
+        "entrance_style": "scan_resolve",
+        "entrance_ms": 520,
+        "entrance_intensity": 1.18,
+        "hold_motion": "pulse",
+        "exit_style": "beam_dematerialize",
+        "exit_ms": 480,
+        "exit_intensity": 1.15,
+        "particle_mode_enter": "scanfall",
+        "particle_mode_hold": "scanfall",
+        "particle_mode_exit": "collapse",
+        "glyph_resolve_style": "resolve",
+        "glyph_overshoot": 0.06
+      }
+    },
+    "beamHandoff": {
+      "status": "locked_v001",
+      "operatorSignoff": "2026-06-14 — Arcade LCARD send + Voyager beam handoffs verified",
+      "note": "Beam_clear and beam_out_seed use easeInOutCubic crossfades — column reveal tapers during clear; exit seed ends at intensity 0.35 / scale 0.92 before dematerialize.",
+      "beamClearEasing": "easeInOutCubic",
+      "beamClearRevealTaper": 0.88,
+      "exitSeedEndBeamIntensity": 0.35,
+      "exitSeedEndBeamScale": 0.92,
+      "wallClockEasing": "linear — lifecycle fractions map 1:1 to entrance/exit ms on device"
+    },
+    "transporterVariationChoreography": {
+      "note": "Locked choreography anchors (fraction of entrance_ms) per transporter variation — VFX definitions v001.",
+      "voyaging": {
+        "glyphResolveStart": 0.42,
+        "glyphImpactPeak": 0.74,
+        "glyphLockIn": 0.9,
+        "messageRevealStart": 0.82,
+        "stableReady": 0.95
+      },
+      "generation-next": {
+        "glyphResolveStart": 0.38,
+        "glyphImpactPeak": 0.7,
+        "glyphLockIn": 0.88,
+        "messageRevealStart": 0.8,
+        "stableReady": 0.94
+      },
+      "spoon": {
+        "glyphResolveStart": 0.4,
+        "glyphImpactPeak": 0.68,
+        "glyphLockIn": 0.86,
+        "messageRevealStart": 0.78,
+        "stableReady": 0.92
+      }
+    },
+    "transporterVariationVfx": {
+      "status": "draft_v001",
+      "note": "Slice 4 — per-variation VFX layer toggles. APK TransporterVfxLayers + Axiom hailTransporterVfxLayers.ts.",
+      "reference": "reports/transporter-variation-vfx-definitions-v001.md",
+      "voyaging": {
+        "showerCurtain": false,
+        "scanPulseCount": 3,
+        "powerPellet": true,
+        "swirlField": false
+      },
+      "generation-next": {
+        "showerCurtain": true,
+        "scanPulseCount": 0,
+        "powerPellet": true,
+        "swirlField": false
+      },
+      "spoon": {
+        "showerCurtain": true,
+        "scanPulseCount": 0,
+        "powerPellet": true,
+        "swirlField": true
+      }
+    },
+    "lifecyclePhases": {
+      "note": "Object materialization lifecycle. entrance_ms splits into beam_in_seed + materializing_object; exit_ms splits into beam_out_seed + dematerializing_object. Reference values match transporter VFX canon (Dan Curry / LCARD animation-profile).",
+      "reference": {
+        "entrance_ms": 1900,
+        "beam_in_seed_ms": 800,
+        "exit_ms": 1400,
+        "beam_out_seed_ms": 420
+      }
+    },
+    "placementPresence": {
+      "note": "Preview-only — per-placement effect field caps, overflow allowance, and safe edge offsets. Applied after scale grammar; does not change tier base values.",
+      "defaultPlacementId": "top_right",
+      "customPlacement": {
+        "label": "Custom anchor",
+        "intent": "Neutral caps — placement chosen manually",
+        "effectFieldCapMul": 0.95,
+        "beamFieldCapMul": 0.95,
+        "particleTravelCapMul": 0.92,
+        "maxOverflowFraction": 0.32,
+        "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+      },
+      "placements": {
+        "top_right": {
+          "label": "Top right",
+          "intent": "Controlled medium/large — visible corner hail without screen domination",
+          "effectFieldCapMul": 0.88,
+          "beamFieldCapMul": 0.9,
+          "particleTravelCapMul": 0.84,
+          "maxOverflowFraction": 0.24,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "top_left": {
+          "label": "Top left",
+          "intent": "Mirror top_right — controlled corner field",
+          "effectFieldCapMul": 0.88,
+          "beamFieldCapMul": 0.9,
+          "particleTravelCapMul": 0.84,
+          "maxOverflowFraction": 0.24,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "bottom_right": {
+          "label": "Bottom right",
+          "intent": "Controlled medium — tighter beam and particle travel",
+          "effectFieldCapMul": 0.76,
+          "beamFieldCapMul": 0.8,
+          "particleTravelCapMul": 0.72,
+          "maxOverflowFraction": 0.18,
+          "safeOffsetFraction": { "top": 0, "bottom": 0.01, "start": 0, "end": 0 }
+        },
+        "bottom_left": {
+          "label": "Bottom left",
+          "intent": "Mirror bottom_right — controlled medium corner",
+          "effectFieldCapMul": 0.76,
+          "beamFieldCapMul": 0.8,
+          "particleTravelCapMul": 0.72,
+          "maxOverflowFraction": 0.18,
+          "safeOffsetFraction": { "top": 0, "bottom": 0.01, "start": 0, "end": 0 }
+        },
+        "upper_center": {
+          "label": "Upper center",
+          "intent": "Large event-like field — achievement arrival zone",
+          "effectFieldCapMul": 1.32,
+          "beamFieldCapMul": 1.36,
+          "particleTravelCapMul": 1.38,
+          "maxOverflowFraction": 0.58,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "center_soft": {
+          "label": "Center soft",
+          "intent": "Largest presentation field — restrained event, not full-screen chaos",
+          "effectFieldCapMul": 1.48,
+          "beamFieldCapMul": 1.52,
+          "particleTravelCapMul": 1.55,
+          "maxOverflowFraction": 0.72,
+          "safeOffsetFraction": { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+        },
+        "lower_center": {
+          "label": "Lower center",
+          "intent": "Restrained subtitle-safe — compact effect envelope above lower third",
+          "effectFieldCapMul": 0.7,
+          "beamFieldCapMul": 0.74,
+          "particleTravelCapMul": 0.68,
+          "maxOverflowFraction": 0.14,
+          "safeOffsetFraction": { "top": 0, "bottom": 0.045, "start": 0, "end": 0 }
+        }
+      }
+    },
+    "previewTiming": {
+      "note": "Workbench-only — preset duration maps to stable_hold_ms only. Entrance and exit animation ms are additive (not crammed into preset).",
+      "lifecycleModel": {
+        "entrance_animation_ms": "Named effect entrance animation duration",
+        "stable_hold_ms": "Stable readable phase — duration presets map here",
+        "exit_animation_ms": "Named effect exit animation duration",
+        "beam_in_seed_ms": "Beam establishes before glyph materialize (transporter: 800)",
+        "beam_out_seed_ms": "Beam re-engages before dematerialize (transporter: 420)"
+      },
+      "authoringReplay": {
+        "status": "locked_v001",
+        "note": "Hails / Forge preview loop — shorter stable slice so operators see full entrance → stable → exit without waiting operator duration_ms. TV delivery still uses duration_ms as stable_hold_ms.",
+        "transporter": { "stable_ms": 3200, "gap_ms": 900 },
+        "default": { "stable_ms": 5000, "gap_ms": 5000 }
+      },
+      "defaultPreset": "5s",
+      "defaultHold": false,
+      "presets": {
+        "5s": 5000,
+        "10s": 10000,
+        "30s": 30000,
+        "60s": 60000
+      },
+      "customMs": { "min": 1000, "max": 120000 }
+    }
+  },
+  "animation": {
+    "beamPhaseMs": 2400,
+    "glyphAlphaMs": 2400,
+    "enterMs": 1900,
+    "exitMs": 1400
+  },
+  "previewDefaults": {
+    "hail_id": "hail.spoon_transporter.001",
+    "effect_id": "transporter",
+    "glyph_id": "default",
+    "palette_id": "axiom_dark_cyan",
+    "message": "Spoon transporter check",
+    "duration_ms": 5500,
+    "placement_id": "top_right",
+    "placement_mode": "preset",
+    "hail_scale_tier": "medium"
+  },
+  "recommendedTvDefaults": {
+    "placement_id": "top_right",
+    "placement_mode": "preset",
+    "palette_id": "axiom_dark_cyan",
+    "effect_preset": "transporter_soft",
+    "hail_scale_tier": "medium",
+    "note": "Medium default hail at top_right — visible, elegant, Control Alt-native."
+  }
+}

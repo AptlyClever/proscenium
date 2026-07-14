@@ -1,0 +1,36 @@
+{
+  "hail.spoon_transporter.001": {
+    "primary_renderer": "hail_overlay",
+    "platform_scope": "google_tv_android_tv",
+    "operator_note": "Animated overlay via Control Alt Hails APK on Google TV streamers. TvOverlay retired from LCARD Hail delivery — hail_overlay only.",
+    "rooms": {
+      "arcade": {
+        "overlay_ready": true,
+        "package": "com.controlalt.hailoverlay",
+        "launcher_name": "Control Alt Hails"
+      },
+      "master_bedroom": {
+        "overlay_ready": true,
+        "package": "com.controlalt.hailoverlay",
+        "launcher_name": "Control Alt Hails"
+      },
+      "away_team": {
+        "overlay_ready": true,
+        "package": "com.controlalt.hailoverlay",
+        "launcher_name": "Control Alt Hails"
+      }
+    }
+  },
+  "hail.away_team.001": {
+    "primary_renderer": "hail_overlay",
+    "platform_scope": "google_tv_android_tv",
+    "operator_note": "Away Team device proof hail — Phase E transporter + message sidekick.",
+    "rooms": {
+      "away_team": {
+        "overlay_ready": true,
+        "package": "com.controlalt.hailoverlay",
+        "launcher_name": "Control Alt Hails"
+      }
+    }
+  }
+}

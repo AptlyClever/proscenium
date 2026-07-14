@@ -1,0 +1,18 @@
+{
+  "id": "hail.warden_alert.001",
+  "name": "Warden Alert (raster demo)",
+  "icon": { "kind": "glyph", "value": "custom-warden-sigil" },
+  "message": { "short_text": "Perimeter alert — warden sigil active" },
+  "visual": {
+    "effect_id": "pop",
+    "palette_id": "axiom_dark_cyan",
+    "scale": "medium",
+    "placement_id": "upper_center",
+    "duration_ms": 9000,
+    "priority_level": "red",
+    "message_tuning": {
+      "entrance_speed_tier": "normal"
+    },
+    "presentation_template_id": "stage-medallion-v1"
+  }
+}

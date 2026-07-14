@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ctrl-alt.local/schemas/glyph-subject-recipe.v001.json",
+  "title": "Glyph subject recipe v1",
+  "description": "Representation-layer contract — subject intent to procedural_graph authorship. See docs/hails/glyph-subject-recipe-v001.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "recipe_id",
+    "status",
+    "kind",
+    "lead_phrase",
+    "character_id",
+    "keyword_triggers",
+    "variation_policy",
+    "composition",
+    "module"
+  ],
+  "properties": {
+    "schema": {
+      "const": "subject_recipe_v1"
+    },
+    "recipe_id": {
+      "type": "string",
+      "pattern": "^(char|prop|place|person)_[a-z0-9_]+_v[0-9]+$",
+      "description": "Matches procedural_graph.generator_id for fleet recipes."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "retired"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["prop", "character", "place", "person"]
+    },
+    "lead_phrase": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80,
+      "description": "Operator subject phrase — one nameable thing at thumbnail distance."
+    },
+    "character_type": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "character_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Stable slug inside procedural_graph.composition."
+    },
+    "keyword_triggers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 32
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "operator_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, Forge Reset uses this recipe if no keyword matches."
+    },
+    "variation_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stroke_jitter",
+        "coordinate_jitter",
+        "envelope_jitter",
+        "instance_jitter",
+        "focal_uplift",
+        "depth_shadow_pass"
+      ],
+      "properties": {
+        "stroke_jitter": { "type": "boolean" },
+        "coordinate_jitter": { "type": "boolean" },
+        "envelope_jitter": { "type": "boolean" },
+        "instance_jitter": { "type": "boolean" },
+        "focal_uplift": { "type": "boolean" },
+        "depth_shadow_pass": { "type": "boolean" },
+        "proof_mode_required_for_register": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "path_roles", "max_primary_paths"],
+      "properties": {
+        "schema": {
+          "const": "char_v1"
+        },
+        "path_roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["mass", "ground", "accent", "charge", "shadow"]
+          },
+          "minItems": 1,
+          "maxItems": 5
+        },
+        "max_primary_paths": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["python", "render_fn"],
+      "properties": {
+        "python": {
+          "type": "string",
+          "pattern": "^hail_glyph_[a-z0-9_]+$",
+          "description": "Python module under backend/."
+        },
+        "render_fn": {
+          "type": "string",
+          "pattern": "^render_[a-z0-9_]+_recipe$"
+        }
+      }
+    },
+    "plot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plot_id", "glyph_id", "subject_phrase"],
+      "properties": {
+        "plot_id": {
+          "type": "string",
+          "pattern": "^custom-[a-z0-9-]+-plot$"
+        },
+        "glyph_id": {
+          "type": "string",
+          "pattern": "^custom-[a-z0-9-]+$"
+        },
+        "subject_phrase": {
+          "type": "string",
+          "minLength": 3
+        }
+      }
+    },
+    "exit_criteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operator_p1": { "type": "string" },
+        "consumer_path": { "type": "string" }
+      }
+    }
+  }
+}

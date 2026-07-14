@@ -1,0 +1,61 @@
+{
+  "id": "hail.combadge.001",
+  "name": "Combadge",
+  "category": "cute",
+  "icon": { "kind": "glyph", "value": "custom-combadge", "label": "Combadge" },
+  "message": { "short_text": "Combadge" },
+  "visual": {
+    "anchor": "top_end",
+    "duration_ms": 3500,
+    "effect_footprint_profile": "standard",
+    "effect_id": "transporter",
+    "effect_tuning": {
+      "beam_color_emphasis": 0.85,
+      "beam_intensity": 0.78,
+      "beam_scale": 1.0,
+      "beam_shape": "column"
+    },
+    "effect_variation_id": "voyaging",
+    "message_sidekick_id": "secondary_fade",
+    "message_tuning": {
+      "entrance_speed_tier": "normal",
+      "exit_speed_tier": "normal",
+      "opacity": 0.92
+    },
+    "palette_id": "axiom_dark_cyan",
+    "placement_id": "upper_center",
+    "priority_level": "green",
+    "reduced_motion_fallback": "static_toast",
+    "scale": "large",
+    "presentation_template_id": "stage-medallion-v1"
+  },
+  "delivery_policy": {
+    "routes": [
+      {
+        "id": "route.arcade.master_bedroom.combadge",
+        "launch_room_id": "arcade",
+        "destination_room_id": "master_bedroom",
+        "provider": "lcard",
+        "requires_confirmation": false,
+        "enabled": true
+      }
+    ],
+    "effective_by_launch_room": {
+      "arcade": {
+        "configured_target": {
+          "id": "master_bedroom",
+          "route_id": "route.arcade.master_bedroom.combadge"
+        },
+        "routes": [
+          {
+            "destination_room_id": "master_bedroom",
+            "enabled": true,
+            "provider": "lcard",
+            "requires_confirmation": false,
+            "route_id": "route.arcade.master_bedroom.combadge"
+          }
+        ]
+      }
+    }
+  }
+}

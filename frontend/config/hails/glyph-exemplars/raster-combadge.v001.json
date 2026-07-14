@@ -1,0 +1,23 @@
+{
+  "glyph_id": "custom-combadge",
+  "label": "Combadge",
+  "source": "raster_exemplar",
+  "style_base": "ca-badge-medallion-v1",
+  "representation_kind": "image",
+  "image_asset": {
+    "path": "custom-combadge.png",
+    "width": 512,
+    "height": 512
+  },
+  "visual": {
+    "effect_id": "transporter",
+    "palette_id": "axiom_dark_cyan",
+    "scale": "large",
+    "placement_id": "upper_center",
+    "presentation_template_id": "stage-medallion-v1"
+  },
+  "fallback_emoji": "✦",
+  "animation_enabled": true,
+  "speed_tier": "normal",
+  "transition_style": "fade"
+}

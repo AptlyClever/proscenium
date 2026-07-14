@@ -1,0 +1,35 @@
+{
+  "glyph_id": "custom-fleet-beacon",
+  "label": "Fleet Beacon",
+  "source": "raster_exemplar",
+  "representation_kind": "image",
+  "image_asset": {
+    "path": "custom-fleet-beacon.png",
+    "width": 192,
+    "height": 192
+  },
+  "image_layers": [
+    {
+      "role": "mass",
+      "path": "custom-fleet-beacon-mass.png",
+      "z_index": 0
+    },
+    {
+      "role": "accent",
+      "path": "custom-fleet-beacon-accent.png",
+      "z_index": 1,
+      "pulse_anchor": "glyphImpactPeak"
+    }
+  ],
+  "visual": {
+    "effect_id": "transporter",
+    "palette_id": "axiom_dark_cyan",
+    "scale": "medium",
+    "placement_id": "upper_center",
+    "presentation_template_id": "stage-breakout-v1"
+  },
+  "fallback_emoji": "✦",
+  "animation_enabled": true,
+  "speed_tier": "normal",
+  "transition_style": "fade"
+}

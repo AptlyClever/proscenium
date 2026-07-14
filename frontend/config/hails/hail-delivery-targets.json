@@ -1,0 +1,31 @@
+{
+  "version": "v001",
+  "note": "Axiom-owned overlay POST targets \u2014 generated from config/hails/google-tv-fleet.v001.yaml; not exposed in browser catalog.",
+  "default_target_id": "arcade",
+  "targets": {
+    "arcade": {
+      "delivery_target_id": "arcade",
+      "label": "Arcade Google TV",
+      "base_url": "http://192.168.68.105:8765",
+      "show_path": "/hail/show",
+      "health_path": "/health",
+      "display_class": "projector"
+    },
+    "master_bedroom": {
+      "delivery_target_id": "master_bedroom",
+      "label": "Master Bedroom Google TV",
+      "base_url": "http://192.168.68.101:8765",
+      "show_path": "/hail/show",
+      "health_path": "/health",
+      "display_class": "projector"
+    },
+    "away_team": {
+      "delivery_target_id": "away_team",
+      "label": "Away Team Google TV",
+      "base_url": "http://100.87.93.94:8765",
+      "show_path": "/hail/show",
+      "health_path": "/health",
+      "display_class": "stick_oled"
+    }
+  }
+}

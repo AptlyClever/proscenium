@@ -1,0 +1,16 @@
+{
+  "template_id": "stage-medallion-v1",
+  "label": "Medallion plate",
+  "stage_assets": {
+    "back": "presentation-templates/stage-medallion-v1/plate.png"
+  },
+  "glyph_motion": {
+    "profile": "medallion_pulse",
+    "resolve_style": "center_snap"
+  },
+  "choreography_anchors": {
+    "glyphResolveStart": 0.32,
+    "glyphLockIn": 0.72,
+    "messageRevealStart": 0.74
+  }
+}

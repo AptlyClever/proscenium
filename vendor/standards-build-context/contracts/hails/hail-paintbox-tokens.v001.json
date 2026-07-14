@@ -1,0 +1,167 @@
+{
+  "$description": "Hails Paint Box tokens (DTCG 2025.10). Canonical export for tier envelope, lifecycle durations, choreography anchors, and default palette roles. Runtime SoT for full render contract remains ctrl-alt-axiom hail-render-contract.v002-beta; these tokens are the standards-promoted subset for cross-consumer parity.",
+  "meta": {
+    "bundle_contract": "hail-paintbox-tokens.v001",
+    "dtcg_format": "2025.10",
+    "source_contract": "ctrl-alt-axiom/config/hails/hail-render-contract.v002-beta.json",
+    "updated": "2026-06-17"
+  },
+  "hail": {
+    "lifecycle": {
+      "entrance": {
+        "$type": "duration",
+        "$value": "1900ms",
+        "$description": "Default named-effect entrance (transporter reference)"
+      },
+      "exit": {
+        "$type": "duration",
+        "$value": "1400ms",
+        "$description": "Default named-effect exit (transporter reference)"
+      },
+      "glyphResolve": {
+        "$type": "duration",
+        "$value": "2400ms",
+        "$description": "Glyph alpha / resolve window (animation.glyphAlphaMs)"
+      },
+      "beamInSeed": {
+        "$type": "duration",
+        "$value": "800ms",
+        "$description": "Beam establishes before glyph materialize"
+      },
+      "beamOutSeed": {
+        "$type": "duration",
+        "$value": "420ms",
+        "$description": "Beam re-engages before dematerialize"
+      }
+    },
+    "authoring": {
+      "delivery": {
+        "glyphBoost": {
+          "$type": "number",
+          "$value": 3.2,
+          "$description": "Legibility boost for delivery preview inside locked authoring viewport"
+        },
+        "envelopeScale": {
+          "$type": "number",
+          "$value": 1.14,
+          "$description": "Delivery tier envelope scale inside authoring viewport"
+        },
+        "designGlyphScale": {
+          "$type": "number",
+          "$value": 1,
+          "$description": "Glyph focus scale in design mode"
+        }
+      }
+    },
+    "paintbox": {
+      "tier": {
+        "small": {
+          "widthFraction": { "$type": "number", "$value": 0.24 },
+          "heightFraction": { "$type": "number", "$value": 0.26 },
+          "glyphVisualFraction": { "$type": "number", "$value": 0.46 },
+          "safeZoneInsetFraction": { "$type": "number", "$value": 0.12 },
+          "glyphFocusFraction": { "$type": "number", "$value": 0.62 },
+          "transporterBeamHeightMultiplier": { "$type": "number", "$value": 1.35 }
+        },
+        "medium": {
+          "widthFraction": { "$type": "number", "$value": 0.32 },
+          "heightFraction": { "$type": "number", "$value": 0.34 },
+          "glyphVisualFraction": { "$type": "number", "$value": 0.5 },
+          "safeZoneInsetFraction": { "$type": "number", "$value": 0.11 },
+          "glyphFocusFraction": { "$type": "number", "$value": 0.64 },
+          "transporterBeamHeightMultiplier": { "$type": "number", "$value": 1.5 }
+        },
+        "large": {
+          "widthFraction": { "$type": "number", "$value": 0.42 },
+          "heightFraction": { "$type": "number", "$value": 0.44 },
+          "glyphVisualFraction": { "$type": "number", "$value": 0.54 },
+          "safeZoneInsetFraction": { "$type": "number", "$value": 0.1 },
+          "glyphFocusFraction": { "$type": "number", "$value": 0.66 },
+          "transporterBeamHeightMultiplier": { "$type": "number", "$value": 1.65 }
+        }
+      }
+    },
+    "choreography": {
+      "anchorFields": {
+        "effectStart": "Field anticipation begins",
+        "glyphResolveStart": "Glyph resolve begins (partial/fragmented first frame)",
+        "glyphImpactPeak": "Perceptual peak — pop overshoot, burst snap, transporter scan midpoint",
+        "glyphLockIn": "Glyph sharpens to stable readable form",
+        "messageRevealStart": "Message reveal begins (after glyph focal moment)",
+        "stableReady": "Entrance choreography complete; stable hold begins"
+      },
+      "effect": {
+        "none": {
+          "entrance": { "$type": "duration", "$value": "250ms" },
+          "exit": { "$type": "duration", "$value": "200ms" },
+          "glyphResolveStart": { "$type": "number", "$value": 0.05 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.6 },
+          "glyphLockIn": { "$type": "number", "$value": 0.75 },
+          "messageRevealStart": { "$type": "number", "$value": 0.2 },
+          "stableReady": { "$type": "number", "$value": 0.85 }
+        },
+        "pop": {
+          "entrance": { "$type": "duration", "$value": "400ms" },
+          "exit": { "$type": "duration", "$value": "300ms" },
+          "glyphResolveStart": { "$type": "number", "$value": 0.05 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.35 },
+          "glyphLockIn": { "$type": "number", "$value": 0.55 },
+          "messageRevealStart": { "$type": "number", "$value": 0.55 },
+          "stableReady": { "$type": "number", "$value": 0.7 }
+        },
+        "burst": {
+          "entrance": { "$type": "duration", "$value": "780ms" },
+          "exit": { "$type": "duration", "$value": "560ms" },
+          "glyphResolveStart": { "$type": "number", "$value": 0.28 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.52 },
+          "glyphLockIn": { "$type": "number", "$value": 0.68 },
+          "messageRevealStart": { "$type": "number", "$value": 0.7 },
+          "stableReady": { "$type": "number", "$value": 0.88 }
+        },
+        "transporter": {
+          "entrance": { "$type": "duration", "$value": "1900ms" },
+          "exit": { "$type": "duration", "$value": "1400ms" },
+          "glyphResolveStart": { "$type": "number", "$value": 0.42 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.74 },
+          "glyphLockIn": { "$type": "number", "$value": 0.9 },
+          "messageRevealStart": { "$type": "number", "$value": 0.82 },
+          "stableReady": { "$type": "number", "$value": 0.95 }
+        }
+      },
+      "transporterVariation": {
+        "voyaging": {
+          "glyphResolveStart": { "$type": "number", "$value": 0.42 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.74 },
+          "glyphLockIn": { "$type": "number", "$value": 0.9 },
+          "messageRevealStart": { "$type": "number", "$value": 0.82 },
+          "stableReady": { "$type": "number", "$value": 0.95 }
+        },
+        "spoon": {
+          "glyphResolveStart": { "$type": "number", "$value": 0.4 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.68 },
+          "glyphLockIn": { "$type": "number", "$value": 0.86 },
+          "messageRevealStart": { "$type": "number", "$value": 0.78 },
+          "stableReady": { "$type": "number", "$value": 0.92 }
+        },
+        "generation-next": {
+          "glyphResolveStart": { "$type": "number", "$value": 0.38 },
+          "glyphImpactPeak": { "$type": "number", "$value": 0.7 },
+          "glyphLockIn": { "$type": "number", "$value": 0.88 },
+          "messageRevealStart": { "$type": "number", "$value": 0.8 },
+          "stableReady": { "$type": "number", "$value": 0.94 }
+        }
+      }
+    },
+    "palette": {
+      "defaultPaletteId": "axiom_dark_cyan",
+      "role": {
+        "beamBase": { "$type": "color", "$value": "#0A2E24" },
+        "beamCyan": { "$type": "color", "$value": "#32B5A0" },
+        "beamWhite": { "$type": "color", "$value": "#D4F5EC" },
+        "glyphGlow": { "$type": "color", "$value": "#3AA890" },
+        "messageColor": { "$type": "color", "$value": "#F0FAF6" },
+        "backdropTint": { "$type": "color", "$value": "#0A2E24" }
+      }
+    }
+  }
+}

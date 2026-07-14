@@ -1,0 +1,14 @@
+{
+  "hail.spoon_transporter.001": {
+    "arcade:master_bedroom": "wired",
+    "arcade:away_team": "wired",
+    "master_bedroom:arcade": "wired"
+  },
+  "hail.platform_test.001": {
+    "arcade:arcade": "wired",
+    "arcade:away_team": "wired"
+  },
+  "hail.away_team.001": {
+    "arcade:away_team": "wired"
+  }
+}

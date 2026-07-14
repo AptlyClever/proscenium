@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "gallery_id": "hail-effects-gallery-v001",
+  "presets": [
+    {
+      "id": "transporter-sweep",
+      "label": "Transporter Sweep",
+      "description": "Cyan beam sweep with a steady operational sci-fi feel.",
+      "mood": "operational",
+      "reduced_motion": false,
+      "animation_enabled": true,
+      "transition_style": "beam",
+      "effect_id": "transporter",
+      "effect_tuning": {
+        "beam_intensity": 0.78,
+        "beam_shape": "shimmer",
+        "beam_scale": 1.0,
+        "beam_color_emphasis": 0.85
+      },
+      "visual": {
+        "effect_id": "transporter",
+        "palette_id": "axiom_dark_cyan",
+        "scale": "medium",
+        "duration_ms": 5000,
+        "placement_id": "upper_center"
+      }
+    },
+    {
+      "id": "priority-pulse",
+      "label": "Priority Pulse",
+      "description": "Bright burst pulse for urgent Hails that need attention fast.",
+      "mood": "urgent",
+      "reduced_motion": false,
+      "animation_enabled": true,
+      "transition_style": "pulse",
+      "effect_id": "burst",
+      "effect_tuning": {
+        "bloom_strength": 1.12,
+        "snap_intensity": 1.1,
+        "particle_spread": 1.15
+      },
+      "visual": {
+        "effect_id": "burst",
+        "palette_id": "transporter_white",
+        "scale": "large",
+        "duration_ms": 3000,
+        "placement_id": "upper_center"
+      }
+    },
+    {
+      "id": "soft-ping",
+      "label": "Soft Ping",
+      "description": "Gentle pop and fade with a casual, friendly palette.",
+      "mood": "casual",
+      "reduced_motion": false,
+      "animation_enabled": true,
+      "transition_style": "fade",
+      "effect_id": "pop",
+      "effect_tuning": {
+        "pop_size": 0.95,
+        "pop_impact": 0.88,
+        "spark_density": 0.45
+      },
+      "visual": {
+        "effect_id": "pop",
+        "palette_id": "cute_purple",
+        "scale": "medium",
+        "duration_ms": 5500,
+        "placement_id": "upper_center"
+      }
+    },
+    {
+      "id": "scanner-pass",
+      "label": "Scanner Pass",
+      "description": "Cool transporter sweep at larger scale — a scanning pass vibe.",
+      "mood": "cool",
+      "reduced_motion": false,
+      "animation_enabled": true,
+      "transition_style": "slide_up",
+      "effect_id": "transporter",
+      "effect_tuning": {
+        "beam_intensity": 0.88,
+        "beam_shape": "column",
+        "beam_scale": 1.25,
+        "beam_color_emphasis": 0.92
+      },
+      "visual": {
+        "effect_id": "transporter",
+        "palette_id": "transporter_white",
+        "scale": "large",
+        "duration_ms": 4500,
+        "placement_id": "upper_center"
+      }
+    },
+    {
+      "id": "quiet-signal",
+      "label": "Quiet Signal",
+      "description": "Minimal motion and restrained palette — low-distraction presentation.",
+      "mood": "calm",
+      "reduced_motion": true,
+      "animation_enabled": false,
+      "transition_style": "fade",
+      "effect_id": "none",
+      "effect_tuning": {
+        "fade_speed": 0.9,
+        "message_backing_emphasis": 1.0
+      },
+      "visual": {
+        "effect_id": "none",
+        "palette_id": "axiom_dark_cyan",
+        "scale": "small",
+        "duration_ms": 4000,
+        "placement_id": "upper_center"
+      }
+    }
+  ]
+}

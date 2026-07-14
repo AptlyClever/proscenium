@@ -1,0 +1,33 @@
+{
+  "schema": "subject_recipe_v1",
+  "recipe_id": "char_chunky_guardian_v1",
+  "status": "active",
+  "kind": "character",
+  "lead_phrase": "chunky round guardian",
+  "character_type": "mascot-character",
+  "character_id": "chunky_guardian",
+  "keyword_triggers": ["guardian", "mascot", "chunky", "round"],
+  "operator_default": false,
+  "variation_policy": {
+    "stroke_jitter": true,
+    "coordinate_jitter": false,
+    "envelope_jitter": false,
+    "instance_jitter": false,
+    "focal_uplift": false,
+    "depth_shadow_pass": true,
+    "proof_mode_required_for_register": false
+  },
+  "composition": {
+    "schema": "char_v1",
+    "path_roles": ["mass", "ground", "accent"],
+    "max_primary_paths": 3
+  },
+  "module": {
+    "python": "hail_glyph_character",
+    "render_fn": "render_character_recipe"
+  },
+  "exit_criteria": {
+    "operator_p1": "24px thumbnail — name guardian without label",
+    "consumer_path": "derive-preview → glyph_render → APK ProceduralGlyphDisplay"
+  }
+}

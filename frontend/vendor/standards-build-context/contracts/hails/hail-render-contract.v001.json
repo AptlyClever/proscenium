@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://standards.ctrl-alt/contracts/hails/hail-render-contract.v001.json",
+  "title": "Axiom Hails Render Contract v001",
+  "description": "Cross-program reference schema for Axiom-owned Hails visual contract. Canonical instance lives in ctrl-alt-axiom config/hails/. LCARD and other apps consume; they do not define the model.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["version", "ownership"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "v001-integration"
+    },
+    "ownership": {
+      "type": "object",
+      "required": ["hails"],
+      "properties": {
+        "hails": { "type": "string", "const": "axiom" },
+        "contractOwner": { "type": "string" },
+        "consumers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "lifecycleModel": {
+      "type": "object",
+      "description": "Entrance, stable hold, and exit are separate timing concepts."
+    },
+    "runtimeModel": {
+      "type": "object",
+      "properties": {
+        "sizeCodes": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["S", "M", "L"] }
+        }
+      }
+    },
+    "previewVisual": {
+      "type": "object",
+      "properties": {
+        "namedEffects": {
+          "type": "object",
+          "properties": {
+            "allowlist": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["none", "pop", "burst", "transporter"]
+              },
+              "minItems": 4
+            }
+          }
+        }
+      }
+    }
+  }
+}

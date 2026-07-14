@@ -1,0 +1,251 @@
+{
+  "version": "v001",
+  "source_hail_id": "hail.spoon_transporter.001",
+  "capture_phase_progress": 0.42,
+  "note": "Canonical Axiom consumer render-payloads for transporter parity harness (Phase G2).",
+  "fixtures": [
+    {
+      "variation_id": "voyaging",
+      "label": "Voyaging",
+      "render_payload": {
+        "hail_id": "hail.spoon_transporter.001",
+        "effect_id": "transporter",
+        "effect_variation_id": "voyaging",
+        "effect_tuning": {
+          "beam_intensity": 0.78,
+          "beam_shape": "column",
+          "beam_scale": 1.0,
+          "beam_color_emphasis": 0.85
+        },
+        "effect_tuning_projection": {
+          "beamOpacity": 0.78,
+          "beamShape": "column",
+          "beam_field_scale": 1,
+          "glowIntensity": 0.8500000000000001
+        },
+        "android_effect_tuning": {
+          "beam_scale": 1,
+          "beam_intensity": 0.78
+        },
+        "capability_summary": {
+          "effect_id": "transporter",
+          "status": "active",
+          "axiom_preview": "full",
+          "lcard_preview": "full",
+          "android": "partial",
+          "android_note": "TV transporter_beam consumes beam_intensity and beam_scale; beam_shape and beam_color_emphasis are preview-only on device",
+          "android_tuning_keys": [
+            "beam_intensity",
+            "beam_scale"
+          ]
+        },
+        "effect_variation": {
+          "id": "voyaging",
+          "label": "Voyaging",
+          "recommended_palette_id": "transporter_white",
+          "preview": {
+            "module": "transporter",
+            "profile": "voyaging"
+          }
+        },
+        "glyph_id": "default",
+        "palette_id": "axiom_dark_cyan",
+        "message": "Spoon transporter check",
+        "duration_ms": 5000,
+        "placement_id": "upper_center",
+        "placement_mode": "preset",
+        "x_percent": null,
+        "y_percent": null,
+        "size_tier": "large",
+        "size_code": "L",
+        "lifecycle_timing": {
+          "effect_id": "transporter",
+          "entrance_animation_ms": 1900,
+          "stable_hold_ms": 5000,
+          "exit_animation_ms": 1400,
+          "total_timed_lifecycle_ms": 8300,
+          "note": "stable_hold_ms is additive \u2014 not crammed into duration preset"
+        },
+        "effect_identity": {
+          "glyph_resolve_style": "scan_resolve",
+          "field_style": "vertical_phase",
+          "particle_style": "scanfall",
+          "message_reveal_style": "secondary_scan_fade",
+          "choreography_anchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.42,
+            "glyphImpactPeak": 0.74,
+            "glyphLockIn": 0.9,
+            "messageRevealStart": 0.82,
+            "stableReady": 0.95
+          }
+        },
+        "contract_version": "v001-integration",
+        "ownership": "axiom",
+        "note": "Axiom-owned render payload \u2014 LCARD consumes; does not define Hails"
+      }
+    },
+    {
+      "variation_id": "generation-next",
+      "label": "Generation Next",
+      "render_payload": {
+        "hail_id": "hail.spoon_transporter.001",
+        "effect_id": "transporter",
+        "effect_variation_id": "generation-next",
+        "effect_tuning": {
+          "beam_intensity": 0.78,
+          "beam_shape": "column",
+          "beam_scale": 1.0,
+          "beam_color_emphasis": 0.85
+        },
+        "effect_tuning_projection": {
+          "beamOpacity": 0.78,
+          "beamShape": "column",
+          "beam_field_scale": 1,
+          "glowIntensity": 0.8500000000000001
+        },
+        "android_effect_tuning": {
+          "beam_scale": 1,
+          "beam_intensity": 0.78
+        },
+        "capability_summary": {
+          "effect_id": "transporter",
+          "status": "active",
+          "axiom_preview": "full",
+          "lcard_preview": "full",
+          "android": "partial",
+          "android_note": "TV transporter_beam consumes beam_intensity and beam_scale; beam_shape and beam_color_emphasis are preview-only on device",
+          "android_tuning_keys": [
+            "beam_intensity",
+            "beam_scale"
+          ]
+        },
+        "effect_variation": {
+          "id": "generation-next",
+          "label": "Generation Next",
+          "recommended_palette_id": "transporter_generation_next",
+          "preview": {
+            "module": "transporter",
+            "profile": "generation-next"
+          }
+        },
+        "glyph_id": "default",
+        "palette_id": "axiom_dark_cyan",
+        "message": "Spoon transporter check",
+        "duration_ms": 5000,
+        "placement_id": "upper_center",
+        "placement_mode": "preset",
+        "x_percent": null,
+        "y_percent": null,
+        "size_tier": "large",
+        "size_code": "L",
+        "lifecycle_timing": {
+          "effect_id": "transporter",
+          "entrance_animation_ms": 1900,
+          "stable_hold_ms": 5000,
+          "exit_animation_ms": 1400,
+          "total_timed_lifecycle_ms": 8300,
+          "note": "stable_hold_ms is additive \u2014 not crammed into duration preset"
+        },
+        "effect_identity": {
+          "glyph_resolve_style": "scan_resolve",
+          "field_style": "vertical_phase",
+          "particle_style": "sparkle_rise",
+          "message_reveal_style": "secondary_scan_fade",
+          "choreography_anchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.38,
+            "glyphImpactPeak": 0.7,
+            "glyphLockIn": 0.88,
+            "messageRevealStart": 0.8,
+            "stableReady": 0.94
+          }
+        },
+        "contract_version": "v001-integration",
+        "ownership": "axiom",
+        "note": "Axiom-owned render payload \u2014 LCARD consumes; does not define Hails"
+      }
+    },
+    {
+      "variation_id": "spoon",
+      "label": "Spoon",
+      "render_payload": {
+        "hail_id": "hail.spoon_transporter.001",
+        "effect_id": "transporter",
+        "effect_variation_id": "spoon",
+        "effect_tuning": {
+          "beam_intensity": 0.78,
+          "beam_shape": "column",
+          "beam_scale": 1.0,
+          "beam_color_emphasis": 0.85
+        },
+        "effect_tuning_projection": {
+          "beamOpacity": 0.78,
+          "beamShape": "column",
+          "beam_field_scale": 1,
+          "glowIntensity": 0.8500000000000001
+        },
+        "android_effect_tuning": {
+          "beam_scale": 1,
+          "beam_intensity": 0.78
+        },
+        "capability_summary": {
+          "effect_id": "transporter",
+          "status": "active",
+          "axiom_preview": "full",
+          "lcard_preview": "full",
+          "android": "partial",
+          "android_note": "TV transporter_beam consumes beam_intensity and beam_scale; beam_shape and beam_color_emphasis are preview-only on device",
+          "android_tuning_keys": [
+            "beam_intensity",
+            "beam_scale"
+          ]
+        },
+        "effect_variation": {
+          "id": "spoon",
+          "label": "Spoon",
+          "recommended_palette_id": "transporter_spoon",
+          "preview": {
+            "module": "transporter",
+            "profile": "spoon"
+          }
+        },
+        "glyph_id": "default",
+        "palette_id": "axiom_dark_cyan",
+        "message": "Spoon transporter check",
+        "duration_ms": 5000,
+        "placement_id": "upper_center",
+        "placement_mode": "preset",
+        "x_percent": null,
+        "y_percent": null,
+        "size_tier": "large",
+        "size_code": "L",
+        "lifecycle_timing": {
+          "effect_id": "transporter",
+          "entrance_animation_ms": 1900,
+          "stable_hold_ms": 5000,
+          "exit_animation_ms": 1400,
+          "total_timed_lifecycle_ms": 8300,
+          "note": "stable_hold_ms is additive \u2014 not crammed into duration preset"
+        },
+        "effect_identity": {
+          "glyph_resolve_style": "scan_resolve",
+          "field_style": "vertical_phase",
+          "particle_style": "scanfall_dense",
+          "message_reveal_style": "secondary_scan_fade",
+          "choreography_anchors": {
+            "effectStart": 0,
+            "glyphResolveStart": 0.4,
+            "glyphImpactPeak": 0.68,
+            "glyphLockIn": 0.86,
+            "messageRevealStart": 0.78,
+            "stableReady": 0.92
+          }
+        },
+        "contract_version": "v001-integration",
+        "ownership": "axiom",
+        "note": "Axiom-owned render payload \u2014 LCARD consumes; does not define Hails"
+      }
+    }
+  ]
+}
