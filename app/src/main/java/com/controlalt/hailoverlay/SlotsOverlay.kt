@@ -71,8 +71,13 @@ fun SlotsOverlay(
                             if (request?.isForMainFrame == true) {
                                 Log.e(
                                     TAG,
-                                    "Bandit overlay load failed: ${request.url} ${error?.description}",
+                                    "Bandit overlay load failed: ${request.url} ${error?.description}; retrying in ${RETRY_DELAY_MS}ms",
                                 )
+                                // Never park Chrome's opaque error page over live
+                                // TV content: go transparent and retry until the
+                                // Bandit server is reachable again.
+                                view?.loadUrl("about:blank")
+                                view?.postDelayed({ view.loadUrl(httpUrl) }, RETRY_DELAY_MS)
                             }
                         }
                     }
@@ -98,3 +103,4 @@ fun SlotsOverlay(
 }
 
 private const val TAG = "SlotsOverlay"
+private const val RETRY_DELAY_MS = 3_000L
