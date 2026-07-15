@@ -90,11 +90,19 @@ def test_message_entity_stable_phase_fields() -> None:
     assert entity["entrance_offset_ms"] == 0
 
 
-def test_validate_rejects_pop_effect() -> None:
+def test_validate_accepts_pop_effect() -> None:
+    """pop is a deliverable overlay effect per consumer-capability-manifest v002."""
     hail = _sample_hail(visual={**_sample_hail()["visual"], "effect_id": "pop"})
     payload = build_consumer_render_payload(hail)
     errors = validate_hail_package_for_consumers(payload)
-    assert any("effect" in e["message"] for e in errors)
+    assert errors == []
+
+
+def test_validate_rejects_unknown_effect() -> None:
+    hail = _sample_hail(visual={**_sample_hail()["visual"], "effect_id": "not-an-effect"})
+    payload = build_consumer_render_payload(hail)
+    errors = validate_hail_package_for_consumers(payload)
+    assert any(e["path"] == "/effect_id" and "not deliverable" in e["message"] for e in errors)
 
 
 def test_validate_rejects_emoji_fallback() -> None:

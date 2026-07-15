@@ -12,7 +12,7 @@
 ## Remaining cutover
 
 1. Copy the remaining read-only Glyph Hero binaries into Proscenium after correcting their host ownership, then remove the compatibility mount.
-2. Add **Bandit pathing** as the first dedicated per-product delivery path once the base platform is live.
+2. **Done (2026-07-15):** Bandit is the first dedicated per-product delivery path through the shared presentation target registry.
 
 Done in the follow-on cutover: Axiom unmounted `#/axiom/hails*` and `routers/hails.py`; LCARD catalog/render/send now target Proscenium (`LCARD_PROSCENIUM_BASE_URL`).
 

@@ -160,6 +160,20 @@ def next_display_id(hails: list[dict[str, Any]]) -> str:
     return f"{(max(numbers) + 1) if numbers else 1:03d}"
 
 
+def default_hail_glyph_allowlist() -> tuple[str, ...]:
+    """Registry selectable glyphs plus seed-provided custom glyph specs.
+
+    Built-in seed hails (e.g. spoon transporter) reference custom glyphs the
+    seed itself materializes, so they must validate even on a fresh store.
+    """
+    from hails.hails_composer import (
+        effective_hail_glyph_allowlist_for_custom,
+        seed_custom_glyphs,
+    )
+
+    return effective_hail_glyph_allowlist_for_custom(seed_custom_glyphs())
+
+
 def _validate_incoming_boolean_scalars(record: dict[str, Any], errors: list[dict[str, str]]) -> None:
     """Reject non-boolean enabled/archived on the raw request body before coercion."""
     for flag in ("enabled", "archived"):
@@ -232,7 +246,7 @@ def _validate_common(
 
     icon = record.get("icon") if isinstance(record.get("icon"), dict) else {}
     glyph = _trimmed(icon.get("value"))
-    selectable = set(glyph_allowlist or hail_glyph_allowlist())
+    selectable = set(glyph_allowlist or default_hail_glyph_allowlist())
     prev_icon = previous.get("icon") if isinstance(previous, dict) and isinstance(previous.get("icon"), dict) else {}
     prev_glyph = _trimmed(prev_icon.get("value"))
     if glyph:
@@ -465,6 +479,11 @@ def _finalize_hail_for_save(
         return ensure_hail_delivery_policy(normalized)
 
     from hails.hail_package_v2 import stamp_hail_package_metadata, validate_hail_record_for_save
+    from hails.hails_composer import seed_custom_glyphs
+
+    merged_glyphs = seed_custom_glyphs()
+    merged_glyphs.update(custom_glyphs or {})
+    custom_glyphs = merged_glyphs
 
     payload = build_consumer_render_payload(normalized, custom_glyphs=custom_glyphs)
     errors = validate_hail_record_for_save(normalized, payload)
@@ -555,12 +574,14 @@ def restore_hail(
     current_hails: list[dict[str, Any]],
     *,
     glyph_allowlist: tuple[str, ...] | None = None,
+    custom_glyphs: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return update_hail(
         hail_id,
         {"archived": False, "enabled": True},
         current_hails,
         glyph_allowlist=glyph_allowlist,
+        custom_glyphs=custom_glyphs,
     )
 
 
@@ -585,15 +606,19 @@ def effective_lcard_hails(
     from hails.hails_composer import (
         companion_hails_for_orphan_glyphs,
         custom_glyphs_from_settings,
+        effective_custom_glyphs,
         effective_hail_glyph_allowlist,
     )
 
-    custom_glyphs = custom_glyphs_from_settings(st)
+    # Companions only for operator-registered glyphs; enrichment resolves
+    # seed-provided specs too so built-in hails stay deliverable.
+    operator_glyphs = custom_glyphs_from_settings(st)
+    custom_glyphs = effective_custom_glyphs(st)
     allowlist = effective_hail_glyph_allowlist(st)
 
     def _project(hails: list[dict[str, Any]]) -> list[dict[str, Any]]:
         active = [h for h in hails if h.get("archived") is not True]
-        orphans = companion_hails_for_orphan_glyphs(active, custom_glyphs, glyph_allowlist=allowlist)
+        orphans = companion_hails_for_orphan_glyphs(active, operator_glyphs, glyph_allowlist=allowlist)
         merged = active + orphans
         return [
             enrich_hail_for_lcard_effective(

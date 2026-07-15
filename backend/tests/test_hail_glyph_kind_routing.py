@@ -25,7 +25,9 @@ def test_default_reset_uses_kind_generators_not_slots() -> None:
     assert graph["generator_id"] == COMBADGE_DELTA_V1
 
 
-def test_keyword_routes_place_kind() -> None:
+def test_unregistered_subject_routes_operator_default() -> None:
+    """Subject-recipe registry owns routing (glyph-subject-recipe-v001 §6):
+    'Ohio' has no registered recipe, so it falls to the shaped operator default."""
     digest = _digest("ohio", "place")
     graph, _ = generate_procedural_graph(
         glyph_name="Ohio",
@@ -33,10 +35,25 @@ def test_keyword_routes_place_kind() -> None:
         seed=7,
         digest=digest,
     )
+    from hails.hail_glyph_operator_seed import OPERATOR_SHAPED_DEFAULT_FAMILY
+
+    assert graph["generator_id"] == OPERATOR_SHAPED_DEFAULT_FAMILY
+
+
+def test_explicit_place_family_still_renders() -> None:
+    digest = _digest("ohio", "place")
+    graph, _ = generate_procedural_graph(
+        glyph_name="Ohio",
+        hail_name="",
+        seed=7,
+        digest=digest,
+        glyph_family_id="place_state_outline_v1",
+    )
     assert graph["generator_id"] in PLACE_RECIPE_IDS
 
 
 def test_keyword_routes_character_kind() -> None:
+    """Guardian keywords route to the registered guardian character recipe."""
     digest = _digest("guardian", "char")
     graph, _ = generate_procedural_graph(
         glyph_name="Guardian",
@@ -44,9 +61,7 @@ def test_keyword_routes_character_kind() -> None:
         seed=3,
         digest=digest,
     )
-    from hails.hail_glyph_combadge import COMBADGE_DELTA_V1
-
-    assert graph["generator_id"] == COMBADGE_DELTA_V1
+    assert graph["generator_id"] == HERO_GLYPH_PROOF_FAMILY_ID
 
 
 def test_variation_only_keeps_character_family() -> None:

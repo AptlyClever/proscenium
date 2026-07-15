@@ -77,16 +77,19 @@ def test_generate_procedural_graph_seed_produces_many_unique_signatures() -> Non
 
 
 def test_generate_procedural_graph_operator_keywords_pick_shaped_families() -> None:
+    """Registry keyword triggers pick distinct shaped recipes; unregistered
+    subjects fall to the shaped operator default (glyph-subject-recipe-v001)."""
     digest = _digest("open", "composer")
+    from hails.hail_glyph_character import HERO_GLYPH_PROOF_FAMILY_ID
     from hails.hail_glyph_combadge import COMBADGE_DELTA_V1
-    from hails.hail_glyph_places import PLACE_STATE_OUTLINE_V1
 
     trek, _ = generate_procedural_graph(glyph_name="Star Trek", hail_name="", seed=1, digest=digest)
-    ohio, _ = generate_procedural_graph(glyph_name="Ohio", hail_name="", seed=1, digest=digest)
+    guardian, _ = generate_procedural_graph(glyph_name="Guardian", hail_name="", seed=1, digest=digest)
     neutral, _ = generate_procedural_graph(glyph_name="Alpha", hail_name="", seed=1, digest=digest)
     assert trek["generator_id"] == COMBADGE_DELTA_V1
-    assert ohio["generator_id"] == PLACE_STATE_OUTLINE_V1
+    assert guardian["generator_id"] == HERO_GLYPH_PROOF_FAMILY_ID
     assert neutral["generator_id"] == COMBADGE_DELTA_V1
+    assert guardian["generator_id"] != trek["generator_id"]
 
 
 def test_variation_only_keeps_family() -> None:

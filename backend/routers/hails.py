@@ -52,6 +52,7 @@ from hails.hail_effects_gallery import effects_gallery_summary
 from hails.hails_composer import (
     ComposerValidationError,
     custom_glyphs_from_settings,
+    effective_custom_glyphs,
     effective_hail_glyph_allowlist,
     effective_hail_glyph_allowlist_for_custom,
     merge_custom_glyph_overlays,
@@ -133,7 +134,7 @@ async def list_hails() -> dict:
     hails, source = resolve_hails_with_source(st)
     catalog = merge_glyph_catalog(st, registry_selector_entries())
     allowlist = _glyph_allowlist(st)
-    custom = custom_glyphs_from_settings(st)
+    custom = effective_custom_glyphs(st)
     from hails.hail_package_v2 import project_hail_stale_components
 
     projected_hails = [
@@ -279,7 +280,7 @@ async def get_glyph_image_asset(glyph_id: str) -> FileResponse:
 
     st = read_settings(settings.settings_path)
     needle = glyph_id if glyph_id.startswith("custom-") else f"custom-{glyph_id}"
-    spec = custom_glyphs_from_settings(st).get(needle)
+    spec = effective_custom_glyphs(st).get(needle)
     image_asset = spec.get("image_asset") if isinstance(spec, dict) and isinstance(spec.get("image_asset"), dict) else None
     asset_path = str(image_asset.get("path") or "").strip() if image_asset else ""
     if not asset_path:
@@ -520,7 +521,7 @@ async def derive_hail_preview(body: dict) -> Any:
     hail_id = (body.get("hail_id") or record.get("id") or "").strip()
     st = read_settings(settings.settings_path)
     custom_glyphs = merge_custom_glyph_overlays(
-        custom_glyphs_from_settings(st),
+        effective_custom_glyphs(st),
         body.get("custom_glyphs"),
     )
     glyph_allowlist = effective_hail_glyph_allowlist_for_custom(custom_glyphs)
@@ -557,7 +558,7 @@ async def get_hail_render_payload(hail_id: str) -> Any:
     record = next((h for h in hails if (h.get("id") or "").strip() == hail_id), None)
     if record is None:
         raise HTTPException(status_code=404, detail=f"Unknown hail id: {hail_id}")
-    return build_consumer_render_payload(record, custom_glyphs=custom_glyphs_from_settings(st))
+    return build_consumer_render_payload(record, custom_glyphs=effective_custom_glyphs(st))
 
 
 @router.get("/api/hails/{hail_id}/chip-glyph-thumb")
@@ -572,7 +573,7 @@ async def get_hail_chip_glyph_thumb(hail_id: str) -> Response:
         raise HTTPException(status_code=404, detail=f"Unknown hail id: {hail_id}")
     icon = record.get("icon") if isinstance(record.get("icon"), dict) else {}
     glyph_id = str(icon.get("value") or "default")
-    custom_glyphs = custom_glyphs_from_settings(st)
+    custom_glyphs = effective_custom_glyphs(st)
     glyph_render = resolve_glyph_render(glyph_id, custom_glyphs=custom_glyphs)
     procedural_graph = (
         glyph_render.get("procedural_graph")
@@ -610,7 +611,7 @@ async def send_hail_endpoint(hail_id: str, body: dict | None = None) -> Any:
             status_code=400,
             content={"ok": False, "code": "HAIL_DISABLED", "error": "Disabled hails cannot be sent"},
         )
-    package = build_consumer_render_payload(record, custom_glyphs=custom_glyphs_from_settings(st))
+    package = build_consumer_render_payload(record, custom_glyphs=effective_custom_glyphs(st))
     delivery_target_id = payload_body.get("delivery_target_id")
     source = str(payload_body.get("source") or "proscenium")
     result = send_hail_package(
@@ -776,7 +777,7 @@ async def create_hail_endpoint(body: dict) -> Any:
             body,
             hails,
             glyph_allowlist=allowlist,
-            custom_glyphs=custom_glyphs_from_settings(st),
+            custom_glyphs=effective_custom_glyphs(st),
         )
     except HailValidationError as exc:
         return _hail_validation_response(exc)
@@ -797,7 +798,7 @@ async def update_hail_endpoint(hail_id: str, body: dict) -> Any:
             body,
             hails,
             glyph_allowlist=allowlist,
-            custom_glyphs=custom_glyphs_from_settings(st),
+            custom_glyphs=effective_custom_glyphs(st),
         )
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Unknown hail id: {hail_id}")
@@ -826,7 +827,12 @@ async def restore_hail_endpoint(hail_id: str) -> dict:
     st = read_settings(settings.settings_path)
     hails, _source = resolve_hails_with_source(st)
     try:
-        restored = restore_hail(hail_id, hails, glyph_allowlist=_glyph_allowlist(st))
+        restored = restore_hail(
+            hail_id,
+            hails,
+            glyph_allowlist=_glyph_allowlist(st),
+            custom_glyphs=effective_custom_glyphs(st),
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Unknown hail id: {hail_id}")
     except HailValidationError as exc:

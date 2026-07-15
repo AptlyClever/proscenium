@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from functools import lru_cache
 from pathlib import Path
+
+from presentation.delivery import load_delivery_registry
 from typing import Any
 
 from hails.hails_priority import normalize_priority_level
@@ -17,7 +18,6 @@ VALID_DISPLAY_CLASSES = frozenset({DISPLAY_CLASS_STICK_OLED, DISPLAY_CLASS_PROJE
 # in Docker (where readiness config is copied to /config).
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FLEET_YAML = REPO_ROOT / "config" / "hails" / "google-tv-fleet.v001.yaml"
-DELIVERY_TARGETS_JSON = REPO_ROOT / "config" / "hails" / "hail-delivery-targets.json"
 
 
 def normalize_display_class(value: Any) -> str:
@@ -45,19 +45,17 @@ def _fleet_display_class_by_room() -> dict[str, str]:
                         mapping[str(room_id)] = normalize_display_class(dc)
         except Exception:
             pass
-    if DELIVERY_TARGETS_JSON.is_file():
-        try:
-            doc = json.loads(DELIVERY_TARGETS_JSON.read_text(encoding="utf-8"))
-            targets = doc.get("targets") if isinstance(doc, dict) else None
-            if isinstance(targets, dict):
-                for room_id, target in targets.items():
-                    if not isinstance(target, dict):
-                        continue
-                    dc = target.get("display_class")
-                    if dc:
-                        mapping[str(room_id)] = normalize_display_class(dc)
-        except Exception:
-            pass
+    try:
+        targets = load_delivery_registry().get("targets")
+        if isinstance(targets, dict):
+            for room_id, target in targets.items():
+                if not isinstance(target, dict):
+                    continue
+                dc = target.get("display_class")
+                if dc:
+                    mapping[str(room_id)] = normalize_display_class(dc)
+    except Exception:
+        pass
     return mapping
 
 

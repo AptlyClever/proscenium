@@ -4,7 +4,7 @@
 
 **Hails is Proscenium's flagship product**: themed notifications with Glyph Heroes, Paintbox authoring, effects/choreography. The platform grows from there — per-product delivery pathing (**Bandit** first), TV/LCARD overlays, and eventually audio cues.
 
-It doesn't do all of that yet — it's built to **grow** that way. Today it carries the Hails domain extracted from **ctrl-alt-axiom** (Axiom Rework Program, 2026-07-14).
+Hails now runs as a resident product and Bandit is the first dedicated non-Hail delivery path. Proscenium selects display targets and invokes product adapters; products retain their own state and renderers.
 
 > **Naming:** plain product name, no `ctrl-alt-*` prefix (convention retired 2026-07-14). Formerly scaffolded as `ctrl-alt-hail` / `hails-platform`.
 
@@ -21,7 +21,7 @@ It doesn't do all of that yet — it's built to **grow** that way. Today it carr
 
 - **Hails** — flagship product: themed notifications with glyphs, effects, message sidekicks
 - **Presentation surfaces** — Paintbox authoring, presentation templates, TV/LCARD delivery
-- **Product pathing** — dedicated visual/audio delivery paths per product (Bandit first)
+- **Product pathing** — shared target registry and dedicated adapters (`hails`, `bandit`)
 - **Audio** — future: sound cues/choreography alongside visual delivery
 
 ## Stack
@@ -38,3 +38,8 @@ Axiom `app_id`: **`proscenium`**. LAN URL env: `AXIOM_PROSCENIUM_BASE_URL` (defa
 ## Migration notes
 
 See [EXTRACTION.md](EXTRACTION.md). Axiom now links to this app; old Axiom Hails bookmarks resolve to the Proscenium app hub.
+
+
+## Product delivery
+
+See [`docs/presentation-delivery.md`](docs/presentation-delivery.md) for the shared target registry, APIs, and ownership boundary.

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { fetchGlyphPlotFixture, fetchGlyphPlotFixtures, type GlyphPlotFixtureDetail } from "../../api";
+import { FrozenPlotNotice } from "../components/FrozenPlotNotice";
 import { GlyphPlotEditor } from "../components/glyph-plot/GlyphPlotEditor";
 import { GlyphPlotImportControl } from "../components/glyph-plot/GlyphPlotImportControl";
 import { GlyphPlotRetraceControl } from "../components/glyph-plot/GlyphPlotRetraceControl";
@@ -248,6 +249,7 @@ export function GlyphPlotView({ plotId = "custom-combadge-plot", edit = false }:
       />
 
       <SurfaceRegion regionId="page_content" as="div" className="space-y-6">
+      <FrozenPlotNotice surfaceLabel="Procedural glyph plot proofing" />
       <section className="ca-panel space-y-3 p-4" data-glyph-plot-p1-instructions data-page-template-region="operator_p1_instructions">
         <h2 className="text-ca-sm font-semibold text-[color:var(--ca-text-primary)]">P1 operator check</h2>
         <p className="text-ca-sm text-[color:var(--ca-text-secondary)]">

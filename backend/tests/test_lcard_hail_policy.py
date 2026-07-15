@@ -43,7 +43,7 @@ def test_sanitize_preserves_baseline_identity_and_enabled() -> None:
     hail = _seed_hail_from_result(result)
     assert hail["enabled"] is False
     assert hail["message"]["short_text"] == "Spoon transporter check"
-    assert hail["icon"]["value"] == "default"
+    assert hail["icon"]["value"] == "custom-spoon-transporter"
 
 
 def test_sanitize_updates_room_policy() -> None:

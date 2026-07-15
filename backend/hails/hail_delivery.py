@@ -10,14 +10,16 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
 from typing import Any, Callable
 
 from hails.hail_package_v2 import build_delivery_envelope, recompose_package_layout_for_delivery
 from hails.hails_palette_presentation import resolve_delivery_palette_for_overlay
 from hails.hails_consumer_capability import load_consumer_capability_manifest
+from presentation.delivery import (
+    get_product_delivery_target,
+    load_delivery_registry,
+)
 
-DELIVERY_TARGETS_REL = Path("config") / "hails" / "hail-delivery-targets.json"
 COOLDOWN_AFTER_CLEARED_MS = 3000
 QUEUE_MAX = 1
 
@@ -27,28 +29,32 @@ _cooldown_until: dict[str, float] = {}
 _queued: dict[str, str | None] = {}
 
 
-def _repo_root() -> Path:
-    module_dir = Path(__file__).resolve().parent
-    # Package lives in backend/hails; walk up to find config/ (repo root in dev,
-    # /app in Docker where backend is copied flat).
-    for candidate in (module_dir, *module_dir.parents):
-        if (candidate / "config" / "hails").is_dir():
-            return candidate
-    return module_dir.parents[1]
-
-
 def load_delivery_targets() -> dict[str, Any]:
-    path = _repo_root() / DELIVERY_TARGETS_REL
-    with path.open(encoding="utf-8") as fh:
-        return json.load(fh)
+    """Compatibility projection from the shared presentation registry."""
+    registry = load_delivery_registry()
+    targets: dict[str, Any] = {}
+    for target_id, target in (registry.get("targets") or {}).items():
+        if not isinstance(target, dict):
+            continue
+        products = target.get("products")
+        adapter = products.get("hails") if isinstance(products, dict) else None
+        if not isinstance(adapter, dict) or adapter.get("enabled") is False:
+            continue
+        targets[target_id] = {
+            **adapter,
+            "delivery_target_id": target_id,
+            "label": target.get("label"),
+            "display_class": target.get("display_class"),
+        }
+    return {
+        "version": "presentation-registry-v001",
+        "default_target_id": registry.get("default_target_id"),
+        "targets": targets,
+    }
 
 
 def get_delivery_target(target_id: str | None = None) -> dict[str, Any] | None:
-    doc = load_delivery_targets()
-    key = (target_id or doc.get("default_target_id") or "arcade").strip()
-    targets = doc.get("targets") if isinstance(doc.get("targets"), dict) else {}
-    entry = targets.get(key)
-    return entry if isinstance(entry, dict) else None
+    return get_product_delivery_target("hails", target_id)
 
 
 def _broker_secret() -> str | None:

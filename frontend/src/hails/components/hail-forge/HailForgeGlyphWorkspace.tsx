@@ -18,6 +18,7 @@ import {
 } from "../../hailAuthoringIntent";
 import { hailAuthoringPreviewLoadoutGridClass } from "../../hailAuthoringPreviewLayout";
 import { ComposerSaveErrors } from "../../../components/ComposerSaveErrors";
+import { FrozenPlotNotice } from "../FrozenPlotNotice";
 import { GlyphHeroQualityGate } from "../GlyphHeroQualityGate";
 import { HailForgeAuthoringPreviewStack } from "./HailForgeAuthoringPreviewStack";
 import type { HailForgeSelection } from "./HailForgeLibrary";
@@ -304,6 +305,7 @@ export function HailForgeGlyphWorkspace({
   return (
     <section className="min-w-0" data-hail-forge-glyph-workspace data-hail-glyph-forge>
       <div className={`space-y-5 ${WORKSPACE_GUTTER}`} data-hail-forge-workspace-gutter>
+        <FrozenPlotNotice surfaceLabel="Procedural glyph seeding and Re-encode" />
         <Region as="div" regionId="authoring_preview_loadout" data-hail-forge-preview-loadout-row>
           <div className={previewLoadoutGridClass} data-hail-authoring-preview-loadout-grid>
             <HailForgeAuthoringPreviewStack
@@ -401,12 +403,15 @@ export function HailForgeGlyphWorkspace({
                 </p>
               ) : null}
               {customSpec.glyph_family_id === "char_combadge_delta_v1" ? (
-                <a
-                  href="#/hails/plot/custom-combadge-plot"
-                  className="text-[color:var(--ca-brand-400)] hover:underline"
-                >
-                  Open combadge plot judgment
-                </a>
+                <p className="flex flex-wrap items-center gap-2">
+                  <a
+                    href="#/hails/plot/custom-combadge-plot"
+                    className="text-[color:var(--ca-brand-400)] hover:underline"
+                  >
+                    Open combadge plot judgment
+                  </a>
+                  <FrozenPlotNotice compact />
+                </p>
               ) : null}
             </div>
           ) : null}

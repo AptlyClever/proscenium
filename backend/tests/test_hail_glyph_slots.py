@@ -133,14 +133,17 @@ def test_pick_weighted_slot_respects_bucket() -> None:
 
 
 def test_operator_keywords_pick_distinct_shaped_families() -> None:
+    """Registered keyword subjects route to their own shaped family, distinct
+    from the neutral operator default (subject recipe registry routing)."""
     digest = _digest("reset", "spread")
+    from hails.hail_glyph_character import HERO_GLYPH_PROOF_FAMILY_ID
     from hails.hail_glyph_combadge import COMBADGE_DELTA_V1
-    from hails.hail_glyph_places import PLACE_STATE_OUTLINE_V1
 
     neutral, _ = generate_procedural_graph(glyph_name="Glyph", hail_name="", seed=1, digest=digest)
-    ohio, _ = generate_procedural_graph(glyph_name="Ohio", hail_name="", seed=1, digest=digest)
+    guardian, _ = generate_procedural_graph(glyph_name="Guardian", hail_name="", seed=1, digest=digest)
     assert neutral["generator_id"] == COMBADGE_DELTA_V1
-    assert ohio["generator_id"] == PLACE_STATE_OUTLINE_V1
+    assert guardian["generator_id"] == HERO_GLYPH_PROOF_FAMILY_ID
+    assert guardian["generator_id"] != neutral["generator_id"]
 
 
 def test_regenerate_variation_spreads_signatures() -> None:

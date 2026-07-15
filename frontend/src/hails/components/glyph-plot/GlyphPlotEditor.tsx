@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { fetchGlyphPlotFixture, putGlyphPlotFixture, type GlyphPlotFixtureDetail } from "../../../api";
+import { FrozenPlotNotice } from "../FrozenPlotNotice";
 import { GlyphPlotImportControl } from "./GlyphPlotImportControl";
 import { HailConsumerGlyph } from "../../hailConsumerGlyph";
 import { parseGlyphRender } from "../../hailConsumerRender";
@@ -77,6 +78,7 @@ export function GlyphPlotEditor({
         <h1 className="text-xl font-bold text-[color:var(--ca-text-primary)]">
           {fixtureState.label ?? plotId}
         </h1>
+        <FrozenPlotNotice surfaceLabel="Procedural glyph plot editing" />
         <div
           className="rounded-md border border-[color:var(--ca-status-warning-fg)]/40 bg-[color:var(--ca-status-warning-muted)] p-3 text-ca-sm text-[color:var(--ca-text-secondary)]"
           data-glyph-plot-editor-warning

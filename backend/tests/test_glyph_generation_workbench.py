@@ -41,13 +41,17 @@ def test_workbench_seed_valid_and_includes_default_brief() -> None:
 
 
 def test_seed_glyphs_represented_in_registry() -> None:
+    """Every seed hail glyph resolves from the registry or the seed-provided custom specs."""
+    from hails.hails_composer import seed_custom_glyphs
+
     seed_glyph_ids = {
         h.get("icon", {}).get("value")
         for h in load_lcard_hail_seed()
         if isinstance(h.get("icon"), dict)
     }
     seed_glyph_ids.discard(None)
-    assert seed_glyph_ids <= set(registry_delivery_glyph_ids())
+    resolvable = set(registry_delivery_glyph_ids()) | set(seed_custom_glyphs().keys())
+    assert seed_glyph_ids <= resolvable
 
 
 def test_brief_from_registry_seeds_default_glyph() -> None:

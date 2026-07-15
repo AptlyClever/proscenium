@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "default_target_id": "arcade",
+  "targets": {
+    "arcade": {
+      "label": "Arcade Google TV",
+      "display_class": "projector",
+      "products": {
+        "hails": {
+          "enabled": true,
+          "renderer": "hail_overlay",
+          "base_url": "http://192.168.68.105:8765",
+          "show_path": "/hail/show",
+          "health_path": "/health"
+        },
+        "bandit": {
+          "enabled": true,
+          "renderer": "bandit_webview",
+          "base_url": "http://192.168.68.105:8767",
+          "show_path": "/bandit/show",
+          "dismiss_path": "/bandit/dismiss",
+          "health_path": "/health",
+          "default_payload": {
+            "ws_url": "ws://192.168.68.93:8766/api/games/slots/stream"
+          }
+        }
+      }
+    },
+    "master_bedroom": {
+      "label": "Master Bedroom Google TV",
+      "display_class": "projector",
+      "products": {
+        "hails": {
+          "enabled": true,
+          "renderer": "hail_overlay",
+          "base_url": "http://192.168.68.101:8765",
+          "show_path": "/hail/show",
+          "health_path": "/health"
+        }
+      }
+    },
+    "away_team": {
+      "label": "Away Team Google TV",
+      "display_class": "stick_oled",
+      "products": {
+        "hails": {
+          "enabled": true,
+          "renderer": "hail_overlay",
+          "base_url": "http://100.87.93.94:8765",
+          "show_path": "/hail/show",
+          "health_path": "/health"
+        }
+      }
+    }
+  }
+}

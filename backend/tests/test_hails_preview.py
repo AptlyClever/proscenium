@@ -84,7 +84,7 @@ def test_derive_preview_includes_lifecycle_and_effect_identity() -> None:
 def test_hail_list_contract_summary_fields() -> None:
     seed = next(h for h in load_lcard_hail_seed() if h["id"] == "hail.spoon_transporter.001")
     summary = hail_list_contract_summary(seed)
-    assert summary["glyph_id"] == "default"
+    assert summary["glyph_id"] == "custom-spoon-transporter"
     assert summary["effect_id"] == "transporter"
     assert summary["size_tier"] == "medium"
     assert summary["source_room_id"] == "arcade"

@@ -29,14 +29,17 @@ def test_registry_file_exists_and_parses() -> None:
 
 
 def test_registry_covers_all_seed_glyph_ids() -> None:
+    """Every seed hail glyph resolves from the registry or the seed-provided custom specs."""
+    from hails.hails_composer import seed_custom_glyphs
+
     seed_glyph_ids = {
         h.get("icon", {}).get("value")
         for h in load_lcard_hail_seed()
         if isinstance(h.get("icon"), dict)
     }
     seed_glyph_ids.discard(None)
-    delivery = set(registry_delivery_glyph_ids())
-    assert seed_glyph_ids <= delivery
+    resolvable = set(registry_delivery_glyph_ids()) | set(seed_custom_glyphs().keys())
+    assert seed_glyph_ids <= resolvable
 
 
 def test_hail_glyph_allowlist_matches_domain_constant() -> None:

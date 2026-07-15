@@ -16,6 +16,7 @@ import {
 } from "../../api";
 import { RouteSurfaceHeader } from "../../components/RouteSurfaceHeader";
 import { AxiomSurfacePage, SurfaceRegion } from "../../axiomSurfacePageTemplate";
+import { FrozenPlotNotice } from "../components/FrozenPlotNotice";
 import { glyphSelectorLabel, type GlyphCatalogEntry } from "../hailGlyphRegistry";
 
 const BRIEF_STATUSES = [
@@ -474,9 +475,11 @@ export function GlyphGenerationWorkbenchView() {
                             })
                           }
                           data-glyph-workbench-import-plot
+                          title="Imports to the frozen combadge plot proof (char_combadge_delta_v1) — procedural plot work is paused."
                         >
                           Import to plot
                         </button>
+                        <FrozenPlotNotice compact />
                         <button
                           type="button"
                           className="ca-focusable rounded-md bg-[color:var(--ca-brand-600)] px-2 py-1 text-ca-2xs font-medium text-[color:var(--ca-on-brand)] disabled:opacity-50"

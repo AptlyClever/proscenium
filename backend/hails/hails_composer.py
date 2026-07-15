@@ -95,6 +95,27 @@ def merge_custom_glyph_overlays(
     return merged
 
 
+def seed_custom_glyphs() -> dict[str, dict[str, Any]]:
+    """Seed-provided glyph specs — the same source merge_lcard_hail_seed materializes."""
+    from lcard_hail_seed import load_lcard_glyph_seed
+
+    out: dict[str, dict[str, Any]] = {}
+    for spec in load_lcard_glyph_seed():
+        if not isinstance(spec, dict):
+            continue
+        glyph_id = _trimmed(spec.get("glyph_id"))
+        if glyph_id:
+            out[glyph_id] = copy.deepcopy(spec)
+    return out
+
+
+def effective_custom_glyphs(st: AxiomStoredSettings) -> dict[str, dict[str, Any]]:
+    """Seed glyph specs overlaid by operator-registered store glyphs."""
+    merged = seed_custom_glyphs()
+    merged.update(custom_glyphs_from_settings(st))
+    return merged
+
+
 def effective_hail_glyph_allowlist_for_custom(
     custom_glyphs: dict[str, dict[str, Any]],
 ) -> tuple[str, ...]:
@@ -107,7 +128,7 @@ def effective_hail_glyph_allowlist_for_custom(
 
 
 def effective_hail_glyph_allowlist(st: AxiomStoredSettings) -> tuple[str, ...]:
-    return effective_hail_glyph_allowlist_for_custom(custom_glyphs_from_settings(st))
+    return effective_hail_glyph_allowlist_for_custom(effective_custom_glyphs(st))
 
 
 def slugify_custom_glyph_id(name: str, existing: set[str]) -> str:

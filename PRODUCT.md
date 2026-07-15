@@ -15,6 +15,7 @@ Control Alt operators and room-facing consumers (LCARD / TV / speakers) that pre
 3. Paintbox ↔ consumer parity remains binding (`docs/hails/hails-render-parity-v002.md`).
 4. No new procedural generation while plot-proof is frozen — raster presentation pivot first.
 5. Grow by adding delivery paths and media kinds — not by absorbing hub responsibilities (registry, themes SoT, deploy).
+6. Product delivery is adapter-based: Proscenium owns target/action routing; Bandit and other products retain domain state and renderer semantics.
 
 ## Naming
 

@@ -8,7 +8,7 @@ from hails.hail_package_v2 import (
     project_hail_stale_components,
     stamp_hail_package_metadata,
 )
-from hails.hails_composer import normalize_custom_glyph_spec, patch_custom_glyph, register_custom_glyph
+from hails.hails_composer import build_fixture_glyph_spec, patch_custom_glyph, register_custom_glyph
 from hails.hails_domain import create_hail, update_hail
 from hails.hails_render_contract import build_consumer_render_payload
 from schemas import AxiomStoredSettings
@@ -46,27 +46,21 @@ def _sample_hail(**overrides) -> dict:
     return hail
 
 
-def _glyph_spec() -> dict:
-    return normalize_custom_glyph_spec(
-        {
-            "glyph_id": "custom-star",
-            "label": "Star",
-            "source": "composer",
-            "procedural_graph": {
-                "version": 1,
-                "generator_id": "star",
-                "paths": [{"d": "M24 8 L38 40 H10 Z", "stroke": "currentColor"}],
-            },
-            "visual": {
-                "effect_id": "transporter",
-                "palette_id": "axiom_dark_cyan",
-                "scale": "medium",
-                "duration_ms": 5000,
-                "placement_id": "upper_center",
-                "placement_mode": "preset",
-            },
-        }
+def _glyph_spec(seed: int = 11) -> dict:
+    """Pipeline-produced spec — hand-built graphs no longer pass the hero grammar gate."""
+    return build_fixture_glyph_spec(
+        glyph_name="Star",
+        glyph_id="custom-star",
+        seed=seed,
+        scale="medium",
+        palette_id="axiom_dark_cyan",
+        effect_id="transporter",
     )
+
+
+def _drifted_graph() -> dict:
+    """Valid graph from the same recipe at a different seed — Forge drift stand-in."""
+    return _glyph_spec(seed=99)["procedural_graph"]
 
 
 def test_saved_hail_not_stale_without_forge_drift(tmp_path, monkeypatch) -> None:
@@ -93,15 +87,10 @@ def test_forge_glyph_patch_flags_stale_components(tmp_path, monkeypatch) -> None
         glyph_allowlist=("custom-star", "default", "default"),
         custom_glyphs=st.custom_glyphs,
     )
-    patched_graph = {
-        "version": 1,
-        "generator_id": "star",
-        "paths": [{"d": "M12 12 L36 36", "stroke": "currentColor"}],
-    }
     patch_custom_glyph(
         st,
         "custom-star",
-        {"procedural_graph": patched_graph},
+        {"procedural_graph": _drifted_graph()},
     )
     projected = project_hail_stale_components(hail, custom_glyphs=st.custom_glyphs)
     assert projected["stale_components"] is True
@@ -122,13 +111,7 @@ def test_re_save_clears_stale_components(tmp_path, monkeypatch) -> None:
     patch_custom_glyph(
         st,
         "custom-star",
-        {
-            "procedural_graph": {
-                "version": 1,
-                "generator_id": "star",
-                "paths": [{"d": "M4 4 L44 44", "stroke": "currentColor"}],
-            },
-        },
+        {"procedural_graph": _drifted_graph()},
     )
     assert hail_has_stale_components(hail, custom_glyphs=st.custom_glyphs) is True
     refreshed = update_hail(

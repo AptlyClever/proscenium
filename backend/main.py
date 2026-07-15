@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from routers.hails import router as hails_router
+from routers.presentation import router as presentation_router
 from settings import _resolve_repo_root, settings
 
 
@@ -20,13 +21,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(hails_router)
+    app.include_router(presentation_router)
 
     @app.get("/api/health")
     async def health() -> dict[str, str]:
         return {
             "status": "ok",
             "app": "proscenium",
-            "product": "hails",
+            "product": "presentation",
         }
 
     # Staged glyph candidate assets (workbench brief slots reference
