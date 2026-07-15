@@ -2,8 +2,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SERVICE_ROOT="$(cd "$ROOT/../service" && pwd)"
-REPO_ROOT="$(cd "$ROOT/.." && pwd)"
+SERVICE_ROOT="${LCARD_SERVICE_ROOT:-$(cd "$ROOT/../../control-alt-lcard/service" 2>/dev/null && pwd || true)}"
+if [[ -z "$SERVICE_ROOT" ]]; then
+  echo "ERROR: LCARD service not found. Set LCARD_SERVICE_ROOT to a control-alt-lcard/service checkout." >&2
+  exit 1
+fi
+# Operator runbook lives in the LCARD repo alongside its service.
+LCARD_REPO_ROOT="$(cd "$SERVICE_ROOT/.." && pwd)"
 
 echo "==> verify-android-size-tier-device-v001"
 echo "    overlay: $ROOT"
@@ -20,7 +25,7 @@ cd "$ROOT"
   --tests com.controlalt.hailoverlay.PaintBoxLayoutTest \
   -q
 
-REPORT="$REPO_ROOT/reports/lcard-android-size-tier-device-v001.md"
+REPORT="$LCARD_REPO_ROOT/reports/lcard-android-size-tier-device-v001.md"
 if [[ ! -f "$REPORT" ]]; then
   echo "ERROR: missing operator runbook $REPORT" >&2
   exit 1

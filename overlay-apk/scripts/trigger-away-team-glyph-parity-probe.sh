@@ -58,7 +58,11 @@ fi
 ADB="${ROOT}/.tools/android-sdk/platform-tools/adb"
 HEALTH_URL="http://${TV_HOST}:${TV_PORT}/health"
 SHOW_URL="http://${TV_HOST}:${TV_PORT}/hail/show"
-SERVICE_ROOT="$(cd "$ROOT/../service" && pwd)"
+SERVICE_ROOT="${LCARD_SERVICE_ROOT:-$(cd "$ROOT/../../control-alt-lcard/service" 2>/dev/null && pwd || true)}"
+if [[ -z "$SERVICE_ROOT" ]]; then
+  echo "ERROR: LCARD service not found. Set LCARD_SERVICE_ROOT to a control-alt-lcard/service checkout." >&2
+  exit 1
+fi
 PROBE_NODE="$ROOT/scripts/lib/glyph-parity-probe-cases.js"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 

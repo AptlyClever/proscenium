@@ -84,7 +84,11 @@ if [[ "$WAIT_FOR_ENTER" -eq 1 ]]; then
 fi
 
 export VARIATION MESSAGE PARTICLE CHOREO SHOW_URL SERVICE_ROOT
-SERVICE_ROOT="$(cd "$ROOT/../service" && pwd)"
+SERVICE_ROOT="${LCARD_SERVICE_ROOT:-$(cd "$ROOT/../../control-alt-lcard/service" 2>/dev/null && pwd || true)}"
+if [[ -z "$SERVICE_ROOT" ]]; then
+  echo "ERROR: LCARD service not found. Set LCARD_SERVICE_ROOT to a control-alt-lcard/service checkout." >&2
+  exit 1
+fi
 node <<'NODE'
 const crypto = require("crypto");
 const path = require("path");

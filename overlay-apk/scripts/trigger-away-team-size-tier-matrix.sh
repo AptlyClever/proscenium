@@ -45,7 +45,11 @@ fi
 
 HEALTH_URL="http://${TV_HOST}:${TV_PORT}/health"
 SHOW_URL="http://${TV_HOST}:${TV_PORT}/hail/show"
-SERVICE_ROOT="$(cd "$ROOT/../service" && pwd)"
+SERVICE_ROOT="${LCARD_SERVICE_ROOT:-$(cd "$ROOT/../../control-alt-lcard/service" 2>/dev/null && pwd || true)}"
+if [[ -z "$SERVICE_ROOT" ]]; then
+  echo "ERROR: LCARD service not found. Set LCARD_SERVICE_ROOT to a control-alt-lcard/service checkout." >&2
+  exit 1
+fi
 
 echo "Room: away_team (Tailscale)"
 echo "Checking overlay health at $HEALTH_URL ..."
