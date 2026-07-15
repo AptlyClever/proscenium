@@ -84,7 +84,7 @@ export function GlyphPlotEditor({
           <strong className="text-[color:var(--ca-text-primary)]">You probably do not need this page.</strong> P1 is
           answered on{" "}
           <a
-            href={`#/axiom/hails/plot/${encodeURIComponent(plotId)}`}
+            href={`#/hails/plot/${encodeURIComponent(plotId)}`}
             className="text-[color:var(--ca-brand-400)] underline-offset-2 hover:underline"
           >
             plot proof
@@ -111,7 +111,7 @@ export function GlyphPlotEditor({
         </div>
         <div className="flex flex-wrap gap-2">
           <a
-            href={`#/axiom/hails/plot/${encodeURIComponent(plotId)}`}
+            href={`#/hails/plot/${encodeURIComponent(plotId)}`}
             className="rounded-md border border-[color:var(--ca-surface-border)] px-3 py-1.5 text-ca-sm"
           >
             Back to judgment

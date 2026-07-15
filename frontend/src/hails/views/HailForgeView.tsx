@@ -99,7 +99,7 @@ export function HailForgeView({ forgeIntent }: HailForgeViewProps) {
       data-hail-forge-page
     >
       <RouteSurfaceHeader
-        hash="#/axiom/hails/forge"
+        hash="#/hails/forge"
         fallbackTitle="Hail Forge"
         fallbackLead={FORGE_PAGE_HELPER}
         regionId="ownership_summary"

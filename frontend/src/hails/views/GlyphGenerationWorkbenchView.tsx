@@ -146,7 +146,7 @@ export function GlyphGenerationWorkbenchView() {
     onSuccess: (data) => {
       invalidate();
       if (data.plot_id) {
-        window.location.hash = `#/axiom/hails/plot/${encodeURIComponent(data.plot_id)}`;
+        window.location.hash = `#/hails/plot/${encodeURIComponent(data.plot_id)}`;
       }
     },
   });
@@ -177,7 +177,7 @@ export function GlyphGenerationWorkbenchView() {
     return (
       <AxiomSurfacePage className="mx-auto max-w-6xl space-y-6" state="loading">
         <RouteSurfaceHeader
-          hash="#/axiom/hails/glyph-workbench"
+          hash="#/hails/glyph-workbench"
           fallbackTitle="Glyph generation workbench"
           fallbackLead="Prepare generation briefs and track candidate slots."
           regionId="ownership_summary"
@@ -192,7 +192,7 @@ export function GlyphGenerationWorkbenchView() {
     return (
       <AxiomSurfacePage className="mx-auto max-w-6xl space-y-6" state="load-error">
         <RouteSurfaceHeader
-          hash="#/axiom/hails/glyph-workbench"
+          hash="#/hails/glyph-workbench"
           fallbackTitle="Glyph generation workbench"
           fallbackLead="Prepare generation briefs and track candidate slots."
           regionId="ownership_summary"
@@ -209,7 +209,7 @@ export function GlyphGenerationWorkbenchView() {
   return (
     <AxiomSurfacePage className="mx-auto max-w-6xl space-y-6" state="ready">
       <RouteSurfaceHeader
-        hash="#/axiom/hails/glyph-workbench"
+        hash="#/hails/glyph-workbench"
         fallbackTitle="Glyph generation workbench"
         fallbackLead="Prepare generation briefs and track candidate slots from the Axiom Glyph Registry."
         regionId="ownership_summary"

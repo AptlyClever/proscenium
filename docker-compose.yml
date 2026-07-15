@@ -10,6 +10,8 @@ services:
     environment:
       CTRL_ALT_APP_ID: proscenium
       AXIOM_EFFECTIVE_BASE_URL: ${AXIOM_EFFECTIVE_BASE_URL:-http://192.168.68.93:7895}
+      PROSCENIUM_HAIL_DELIVERY_BROKER_SECRET: ${PROSCENIUM_HAIL_DELIVERY_BROKER_SECRET:-}
+      LCARD_OVERLAY_BROKER_SECRET: ${LCARD_OVERLAY_BROKER_SECRET:-}
     volumes:
       - ./data:/app/data
       # Binary Glyph Hero sources remain read-only from the former host until

@@ -612,7 +612,7 @@ async def send_hail_endpoint(hail_id: str, body: dict | None = None) -> Any:
         )
     package = build_consumer_render_payload(record, custom_glyphs=custom_glyphs_from_settings(st))
     delivery_target_id = payload_body.get("delivery_target_id")
-    source = str(payload_body.get("source") or "axiom")
+    source = str(payload_body.get("source") or "proscenium")
     result = send_hail_package(
         package,
         delivery_target_id=str(delivery_target_id).strip() if delivery_target_id else None,

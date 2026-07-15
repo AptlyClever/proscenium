@@ -218,7 +218,7 @@ export function GlyphPlotView({ plotId = "custom-combadge-plot", edit = false }:
             answer whether the 24px TV thumbnail reads as a combadge.
           </p>
           <a
-            href={`#/axiom/hails/plot/${encodeURIComponent(plotId)}`}
+            href={`#/hails/plot/${encodeURIComponent(plotId)}`}
             className="ca-focusable mt-3 inline-flex rounded-md bg-[color:var(--ca-brand-600)] px-4 py-2 text-ca-sm font-medium text-[color:var(--ca-on-brand)]"
           >
             Go to P1 judgment page
@@ -241,7 +241,7 @@ export function GlyphPlotView({ plotId = "custom-combadge-plot", edit = false }:
       data-glyph-plot-view
     >
       <RouteSurfaceHeader
-        hash="#/axiom/hails/plot"
+        hash="#/hails/plot"
         fallbackTitle="Plot before deliver"
         fallbackLead="Validate glyph subjects at judgment scale inside Axiom — consumer TV path for P1."
         regionId="ownership_summary"
@@ -277,7 +277,7 @@ export function GlyphPlotView({ plotId = "custom-combadge-plot", edit = false }:
         {(list.data?.fixtures ?? []).map((row) => (
           <a
             key={row.plot_id}
-            href={`#/axiom/hails/plot/${encodeURIComponent(row.plot_id)}`}
+            href={`#/hails/plot/${encodeURIComponent(row.plot_id)}`}
             className={`rounded-md border px-3 py-1.5 text-ca-sm ${
               row.plot_id === plotId
                 ? "border-[color:var(--ca-brand-400)] text-[color:var(--ca-text-primary)]"

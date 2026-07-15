@@ -54,6 +54,17 @@ export function isComposerGlyphDeliverableOnGoogleTv(
 
   if (raw.startsWith("custom-")) {
     const spec = customGlyph;
+    const kind = (spec?.representation_kind ?? "").trim();
+    if (
+      kind === "image" ||
+      (Array.isArray((spec as { image_layers?: unknown })?.image_layers) &&
+        ((spec as { image_layers?: unknown[] }).image_layers?.length ?? 0) > 0)
+    ) {
+      return true;
+    }
+    if (spec?.image_asset && typeof spec.image_asset === "object") {
+      return true;
+    }
     const graph = spec?.procedural_graph;
     if (isProceduralGraph(graph)) {
       return true;
@@ -69,9 +80,12 @@ export function undeliverableEffectReason(_effectId: string): string {
   return `Not deliverable on Google TV overlay (allowed: ${allowed})`;
 }
 
-export function undeliverableGlyphReason(glyphId: string): string {
+export function undeliverableGlyphReason(glyphId: string, customGlyph?: ComposerGlyphSpec | null): string {
   if (glyphId.startsWith("custom-")) {
-    return "Custom glyph needs a procedural vector mark for Google TV delivery";
+    if (isComposerGlyphDeliverableOnGoogleTv(glyphId, customGlyph)) {
+      return "";
+    }
+    return "Custom glyph needs a raster image, image layers, or procedural vector mark for Google TV delivery";
   }
   return "This glyph is not approved for Google TV overlay delivery";
 }

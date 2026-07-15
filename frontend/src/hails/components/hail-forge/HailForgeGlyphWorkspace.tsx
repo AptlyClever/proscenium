@@ -402,7 +402,7 @@ export function HailForgeGlyphWorkspace({
               ) : null}
               {customSpec.glyph_family_id === "char_combadge_delta_v1" ? (
                 <a
-                  href="#/axiom/hails/plot/custom-combadge-plot"
+                  href="#/hails/plot/custom-combadge-plot"
                   className="text-[color:var(--ca-brand-400)] hover:underline"
                 >
                   Open combadge plot judgment

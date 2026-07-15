@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from routers.hails import router as hails_router
-from settings import settings
+from settings import _resolve_repo_root, settings
 
 
 def create_app() -> FastAPI:
@@ -28,6 +28,25 @@ def create_app() -> FastAPI:
             "app": "proscenium",
             "product": "hails",
         }
+
+    # Staged glyph candidate assets (workbench brief slots reference
+    # staged/glyphs/... asset_refs) — must precede the SPA catch-all.
+    staged_glyphs_root = _resolve_repo_root() / "staged" / "glyphs"
+
+    if staged_glyphs_root.is_dir():
+
+        @app.get("/staged/glyphs/{asset_path:path}")
+        async def staged_glyph_asset(asset_path: str) -> FileResponse:
+            if ".." in asset_path.split("/"):
+                raise HTTPException(status_code=404, detail="Not found")
+            candidate = (staged_glyphs_root / asset_path).resolve()
+            try:
+                candidate.relative_to(staged_glyphs_root.resolve())
+            except ValueError:
+                raise HTTPException(status_code=404, detail="Not found")
+            if not candidate.is_file():
+                raise HTTPException(status_code=404, detail="Not found")
+            return FileResponse(candidate)
 
     static_root = settings.static_root
     assets_root = static_root / "assets"

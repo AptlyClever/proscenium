@@ -168,7 +168,7 @@ export function HailGlyphStripPicker({
               onClick={() => onSelectGlyph(spec.glyph_id)}
               title={
                 !deliverable
-                  ? undeliverableGlyphReason(spec.glyph_id)
+                  ? undeliverableGlyphReason(spec.glyph_id, spec)
                   : text
                     ? `${name} — ${text}`
                     : name

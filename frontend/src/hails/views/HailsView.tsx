@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { archiveHail, deleteHail, fetchHails, putHail, restoreHail, type EffectRegistryPayload, type MessageRegistryPayload } from "../../api";
+import { archiveHail, deleteHail, fetchHails, putHail, restoreHail, sendHail, type EffectRegistryPayload, type MessageRegistryPayload } from "../../api";
 import {
   derivePageTemplateState,
   normalizeRouteForSave,
@@ -297,7 +297,7 @@ export function HailsView() {
   }
 
   function openGlyphForge() {
-    window.location.hash = "#/axiom/hails/forge/new-glyph";
+    window.location.hash = "#/hails/forge/new-glyph";
   }
 
   function openNewHail() {
@@ -367,6 +367,21 @@ export function HailsView() {
     onError: (error) => {
       setLibraryActionError(error instanceof Error ? error.message : "Could not archive Hail");
     },
+  });
+
+  const [sendResult, setSendResult] = useState<string | null>(null);
+  const mutSend = useMutation({
+    mutationFn: () => sendHail(String(selectedId), { source: "proscenium" }),
+    onSuccess: (result) => {
+      setSendResult(
+        typeof result.status === "string"
+          ? `Sent (${result.status})`
+          : result.ok
+            ? "Sent"
+            : "Send finished",
+      );
+    },
+    onError: () => setSendResult(null),
   });
 
   const mutRestore = useMutation({
@@ -464,7 +479,6 @@ export function HailsView() {
 
   const saveBlocked = routeValidationErrors.length > 0;
   const savePending = mutSave.isPending;
-  const sendDisabledReason = "Live send isn't available in this build. Preview below, or send from a room launcher when routes are active.";
 
   return (
     <PageTemplate
@@ -488,7 +502,7 @@ export function HailsView() {
           data-hails-page-mode={selectedHail && selectedId ? "studio" : "browse"}
         >
           <RouteSurfaceHeader
-            hash="#/axiom/hails"
+            hash="#/hails"
             fallbackTitle="Hails"
             fallbackLead={HAILS_PAGE_HELPER}
             regionId="ownership_summary"
@@ -496,7 +510,7 @@ export function HailsView() {
               <div className="flex flex-wrap items-center gap-2">
                 <AxiomBuildPill surface="hails" />
                 <a
-                  href="#/axiom/hails/forge"
+                  href="#/hails/forge"
                   className="ca-focusable rounded-full border border-[color:var(--ca-brand-600)]/40 px-3 py-1.5 text-ca-2xs font-medium uppercase tracking-wide text-[color:var(--ca-brand-600)] hover:border-[color:var(--ca-brand-600)] hover:bg-[color:var(--ca-brand-600)]/5"
                   data-hail-forge-launch
                 >
@@ -593,7 +607,13 @@ export function HailsView() {
                     onDisableAdvancedEdit={() => setAdvancedVisualEditEnabled(false)}
                     saveStatus={saveState}
                     saveError={mutSave.error as Error | null}
-                    sendDisabledReason={sendDisabledReason}
+                    sendPending={mutSend.isPending}
+                    sendError={mutSend.error as Error | null}
+                    sendResult={sendResult}
+                    onSend={() => {
+                      setSendResult(null);
+                      mutSend.mutate();
+                    }}
                   />
                 </>
               ) : (

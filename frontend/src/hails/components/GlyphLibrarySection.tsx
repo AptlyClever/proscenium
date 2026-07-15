@@ -134,7 +134,7 @@ function CustomGlyphCard({
             <p className="text-ca-2xs text-[color:var(--ca-text-muted)]">{customGlyphStyleSummary(spec)}</p>
             {!deliverable ? (
               <p className="text-ca-2xs text-[color:var(--ca-status-warning-fg)]">
-                {undeliverableGlyphReason(spec.glyph_id)}
+                {undeliverableGlyphReason(spec.glyph_id, spec)}
               </p>
             ) : null}
             {updated ? <p className="text-ca-2xs text-[color:var(--ca-text-muted)]">Updated {updated}</p> : null}
@@ -152,7 +152,7 @@ function CustomGlyphCard({
                   : "border border-[color:var(--ca-surface-border)] text-[color:var(--ca-text-muted)]")
             }
             disabled={!deliverable && !selected}
-            title={!deliverable ? undeliverableGlyphReason(spec.glyph_id) : undefined}
+            title={!deliverable ? undeliverableGlyphReason(spec.glyph_id, spec) : undefined}
             onClick={onSelect}
           >
             {selected ? "Selected" : deliverable ? "Use Glyph" : "Not on Google TV"}

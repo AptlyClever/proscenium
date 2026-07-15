@@ -52,7 +52,9 @@ def get_delivery_target(target_id: str | None = None) -> dict[str, Any] | None:
 
 
 def _broker_secret() -> str | None:
-    secret = (os.environ.get("AXIOM_HAIL_DELIVERY_BROKER_SECRET") or "").strip()
+    secret = (os.environ.get("PROSCENIUM_HAIL_DELIVERY_BROKER_SECRET") or "").strip()
+    if len(secret) < 16:
+        secret = (os.environ.get("AXIOM_HAIL_DELIVERY_BROKER_SECRET") or "").strip()
     if len(secret) < 16:
         secret = (os.environ.get("LCARD_OVERLAY_BROKER_SECRET") or "").strip()
     return secret if len(secret) >= 16 else None

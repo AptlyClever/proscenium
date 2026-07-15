@@ -13,18 +13,18 @@ It doesn't do all of that yet — it's built to **grow** that way. Today it carr
 | Layer | State |
 | --- | --- |
 | Product docs | Live here under `docs/hails/` (Hails product docs) |
-| Domain package | Seeded from Axiom (`backend/hails/`, `frontend/src/hails/`) |
-| Runtime | **Axiom still hosts** the live API/UI until cutover (see `EXTRACTION.md`) |
+| Domain package | Owned here (`backend/hails/`, `frontend/src/hails/`) |
+| Runtime | Hails API, SPA, state, and delivery run here on port 8788 |
 | Themes | Consumes Axiom `GET /api/effective/proscenium` when running as a leaf |
 
-## Scope (target)
+## Scope
 
 - **Hails** — flagship product: themed notifications with glyphs, effects, message sidekicks
 - **Presentation surfaces** — Paintbox authoring, presentation templates, TV/LCARD delivery
 - **Product pathing** — dedicated visual/audio delivery paths per product (Bandit first)
 - **Audio** — future: sound cues/choreography alongside visual delivery
 
-## Stack (target)
+## Stack
 
 - Backend: FastAPI (`backend/main.py`)
 - Frontend: Vite + React (`frontend/`)
@@ -35,6 +35,6 @@ It doesn't do all of that yet — it's built to **grow** that way. Today it carr
 
 Axiom `app_id`: **`proscenium`**. LAN URL env: `AXIOM_PROSCENIUM_BASE_URL` (default `http://192.168.68.93:8788`).
 
-## Cutover
+## Migration notes
 
-See [EXTRACTION.md](EXTRACTION.md). Until cutover completes, operators open Hails inside Axiom (`#/axiom/hails`).
+See [EXTRACTION.md](EXTRACTION.md). Axiom now links to this app; old Axiom Hails bookmarks resolve to the Proscenium app hub.

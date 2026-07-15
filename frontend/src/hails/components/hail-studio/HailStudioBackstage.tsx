@@ -59,7 +59,10 @@ type HailStudioBackstageProps = {
   onDisableAdvancedEdit: () => void;
   saveStatus?: string;
   saveError?: Error | null;
-  sendDisabledReason?: string;
+  sendPending?: boolean;
+  sendError?: Error | null;
+  sendResult?: string | null;
+  onSend?: () => void;
 };
 
 export function HailStudioBackstage({
@@ -97,7 +100,10 @@ export function HailStudioBackstage({
   onDisableAdvancedEdit,
   saveStatus,
   saveError,
-  sendDisabledReason,
+  sendPending = false,
+  sendError = null,
+  sendResult = null,
+  onSend,
 }: HailStudioBackstageProps) {
   const archived = selectedHail?.archived === true;
 
@@ -312,7 +318,7 @@ export function HailStudioBackstage({
             Validate subjects at 48 / 96 / 24px inside Axiom before registering to the delivery engine.
           </p>
           <a
-            href="#/axiom/hails/plot"
+            href="#/hails/plot"
             className="ca-focusable mt-2 inline-flex text-ca-xs font-medium text-[color:var(--ca-brand-600)] hover:underline"
           >
             Open glyph plot
@@ -328,7 +334,7 @@ export function HailStudioBackstage({
             Prepare briefs, stage glyph assets, accept, and promote staged bindings.
           </p>
           <a
-            href="#/axiom/hails/glyph-workbench"
+            href="#/hails/glyph-workbench"
             className="ca-focusable mt-2 inline-flex text-ca-xs font-medium text-[color:var(--ca-brand-600)] hover:underline"
           >
             Open glyph workbench
@@ -346,19 +352,32 @@ export function HailStudioBackstage({
           </summary>
           <div className="space-y-2 border-t border-[color:var(--ca-surface-border)] p-3">
             <p className="text-ca-xs text-[color:var(--ca-text-secondary)]">
-              {sendDisabledReason ?? "Manual sending is not enabled in this build."}
+              Sends the saved Hail package to its configured delivery route.
+              {dirty ? " Save first — unsaved edits are not included." : null}
             </p>
+            {sendError ? (
+              <p className="text-ca-2xs text-[color:var(--ca-status-error-fg)]" role="alert">
+                {sendError.message}
+              </p>
+            ) : null}
+            {sendResult ? (
+              <p className="text-ca-2xs text-[color:var(--ca-status-success-fg)]">{sendResult}</p>
+            ) : null}
             <button
               type="button"
               className="ca-focusable rounded-md border border-[color:var(--ca-brand-600)] bg-[color:var(--ca-surface)] px-3 py-1.5 text-ca-xs font-medium text-[color:var(--ca-brand-600)] disabled:opacity-50"
-              disabled
-              title={sendDisabledReason}
+              disabled={!selectedId || !onSend || sendPending || dirty || Boolean(selectedHail?.archived)}
+              title={
+                dirty
+                  ? "Save before sending"
+                  : selectedHail?.archived
+                    ? "Archived hails cannot be sent"
+                    : "Send Hail to configured route"
+              }
               data-hail-studio-send
+              onClick={() => onSend?.()}
             >
-              Send Hail
-            </button>
-            <button type="button" className="ca-focusable rounded-md border border-[color:var(--ca-status-warning-fg)] px-3 py-1.5 text-ca-xs text-[color:var(--ca-status-warning-fg)]" disabled>
-              Send configured Hail (manual override)
+              {sendPending ? "Sending…" : "Send Hail"}
             </button>
           </div>
         </Region>

@@ -133,7 +133,7 @@ export function HailsNewDialog({
 
   const openForge = () => {
     onLibraryChanged?.();
-    window.location.hash = "#/axiom/hails/forge/new-glyph";
+    window.location.hash = "#/hails/forge/new-glyph";
   };
 
   if (!open) return null;
