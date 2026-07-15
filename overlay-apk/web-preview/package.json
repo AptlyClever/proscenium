@@ -1,0 +1,23 @@
+{
+  "name": "control-alt-hails-web-preview",
+  "private": true,
+  "description": "Local browser harness for Control Alt Hails overlay visual tuning",
+  "scripts": {
+    "preview": "node server.js",
+    "preview:lan": "HAIL_PREVIEW_HOST=0.0.0.0 HAIL_PREVIEW_PORT=8196 node server.js",
+    "preview:dev": "HAIL_PREVIEW_DEV=1 node server.js",
+    "preview:dev:lan": "HAIL_PREVIEW_DEV=1 HAIL_PREVIEW_HOST=0.0.0.0 HAIL_PREVIEW_PORT=8197 node server.js",
+    "dev:start": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:stop": "docker compose -f docker-compose.dev.yml down",
+    "stable:rebuild": "docker compose build && docker compose up -d",
+    "smoke": "node smoke.js",
+    "smoke:contract-loader": "node smoke-contract-loader.mjs",
+    "smoke:lan": "node smoke-lan.js",
+    "smoke:dev": "HAIL_PREVIEW_SMOKE_PORT=8197 node smoke-lan.js",
+    "smoke:workbench": "node smoke-workbench.js",
+    "smoke:workbench:dev": "HAIL_PREVIEW_SMOKE_PORT=8197 node smoke-workbench.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

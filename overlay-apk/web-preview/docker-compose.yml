@@ -1,0 +1,13 @@
+services:
+  control-alt-hails-preview:
+    build:
+      context: ..
+      dockerfile: web-preview/Dockerfile
+    image: control-alt-hails-preview:local
+    container_name: control-alt-hails-preview
+    restart: unless-stopped
+    ports:
+      - "8196:8196"
+    environment:
+      HAIL_PREVIEW_HOST: "0.0.0.0"
+      HAIL_PREVIEW_PORT: "8196"

@@ -1,0 +1,26 @@
+# Fast visual tuning — bind-mounts source; no image rebuild per edit.
+# Stable accepted preview stays on docker-compose.yml port 8196.
+services:
+  control-alt-hails-preview-dev:
+    image: node:20-alpine
+    container_name: control-alt-hails-preview-dev
+    working_dir: /srv/hail-overlay-poc/web-preview
+    restart: unless-stopped
+    ports:
+      - "8197:8197"
+    environment:
+      HAIL_PREVIEW_HOST: "0.0.0.0"
+      HAIL_PREVIEW_PORT: "8197"
+      HAIL_PREVIEW_DEV: "1"
+      HAIL_AXIOM_BASE_URL: "${HAIL_AXIOM_BASE_URL:-}"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Mount hail-overlay-poc root so ../shared resolves reliably (split web-preview + shared mounts can appear empty on some hosts).
+      - ..:/srv/hail-overlay-poc:cached
+      - hails-preview-dev-node-modules:/srv/hail-overlay-poc/web-preview/node_modules
+    command: ["node", "server.js"]
+
+volumes:
+  hails-preview-dev-node-modules:

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hail</string>
+    <string name="service_channel_name">Hail overlay listener</string>
+    <string name="service_channel_description">Keeps the local HTTP hail endpoint available.</string>
+    <string name="service_notification_title">Hail overlay listener active</string>
+    <string name="service_notification_body">POST /hail/show on port 8765</string>
+    <string name="service_notification_starting">Starting hail listener…</string>
+    <string name="service_notification_listener_error">Hail listener not ready — open diagnostics</string>
+</resources>
