@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Build context: hail-overlay-poc/ (parent of web-preview)
+# Build context: overlay-apk/ (parent of web-preview)
 FROM node:20-alpine
 
 WORKDIR /srv/web-preview

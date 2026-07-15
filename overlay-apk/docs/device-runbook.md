@@ -10,7 +10,7 @@
 Preferred — Arcade deploy script (install + launcher trampoline + health):
 
 ```bash
-cd hail-overlay-poc
+cd overlay-apk
 ./scripts/deploy-arcade-apk.sh           # existing debug APK
 ./scripts/deploy-arcade-apk.sh --build # assembleDebug then deploy
 ```
@@ -19,7 +19,7 @@ Manual equivalent:
 
 ```bash
 adb connect <tv-ip>
-adb install -r hail-overlay-poc/artifacts/control-alt-hail-overlay-v1.0.0-v001-debug.apk
+adb install -r overlay-apk/artifacts/control-alt-hail-overlay-v1.0.0-v001-debug.apk
 adb shell am start -n com.controlalt.hailoverlay/.LauncherStartActivity
 adb shell appops set com.controlalt.hailoverlay SYSTEM_ALERT_WINDOW allow
 adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay
@@ -56,7 +56,7 @@ Normal launcher entry is `com.controlalt.hailoverlay/.LauncherStartActivity` (vi
 ## Size-tier device matrix (step 10 gate — Away Team only)
 
 ```bash
-cd hail-overlay-poc
+cd overlay-apk
 ./scripts/trigger-away-team-size-tier-matrix.sh
 ./scripts/verify-android-size-tier-device-v001.sh
 ```
@@ -88,7 +88,7 @@ adb shell am start -a com.controlalt.hailoverlay.action.OPEN_DIAGNOSTICS \
 ### Option B — dev-ubuntu script (waits for you)
 
 ```bash
-cd hail-overlay-poc
+cd overlay-apk
 ./scripts/trigger-arcade-transporter.sh voyaging          # Enter when ready
 ./scripts/trigger-arcade-transporter.sh generation-next   # TNG
 ./scripts/trigger-arcade-transporter.sh spoon --now       # skip Enter prompt

@@ -1,6 +1,16 @@
-# Control Alt Hail Overlay PoC
+# Control Alt Overlay APK
 
-Minimal Google TV / Android TV proof-of-capability APK for true Hail visual overlay.
+Google TV / Android TV overlay renderer host, owned by Proscenium as its
+physical presentation delivery runtime. One APK
+(`com.controlalt.hailoverlay`) hosts the product adapters Proscenium invokes:
+
+- **Hails** — `POST /hail/show`, `GET /health` on port `8765`
+- **Bandit** — `POST /bandit/show`, `POST /bandit/dismiss`, `GET /health` on
+  port `8767` (mounts Bandit's `/overlay?embed=apk` WebView)
+
+Moved from `control-alt-lcard/hail-overlay-poc/` on 2026-07-15
+(history-preserving subtree; see proscenium#1). The Android package name is
+unchanged to avoid reinstall/permission churn on the TVs.
 
 ## Build (Android Studio or CLI)
 
@@ -22,7 +32,7 @@ export LCARD_OVERLAY_BROKER_SECRET="dev-local-test-secret-only-not-for-prod"
 ```
 
 ```bash
-cd hail-overlay-poc
+cd overlay-apk
 ./gradlew assembleDebug
 ```
 
@@ -30,7 +40,7 @@ Debug APK output:
 
 `app/build/outputs/apk/debug/app-debug.apk`
 
-**v0.1.1-poc artifact (Compose overlay crash fix):**
+**Historical v0.1.1-poc artifact (Compose overlay crash fix, POC era):**
 
 `artifacts/control-alt-hail-overlay-poc-v0.1.1-poc-debug.apk`
 
@@ -47,7 +57,7 @@ Release (unsigned):
 **Arcade (recommended):**
 
 ```bash
-cd hail-overlay-poc
+cd overlay-apk
 ./scripts/deploy-arcade-apk.sh           # install + start listener + health check
 ./scripts/deploy-arcade-apk.sh --build   # build then deploy
 ```

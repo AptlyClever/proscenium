@@ -4,7 +4,7 @@ services:
   control-alt-hails-preview-dev:
     image: node:20-alpine
     container_name: control-alt-hails-preview-dev
-    working_dir: /srv/hail-overlay-poc/web-preview
+    working_dir: /srv/overlay-apk/web-preview
     restart: unless-stopped
     ports:
       - "8197:8197"
@@ -17,9 +17,9 @@ services:
       - path: .env
         required: false
     volumes:
-      # Mount hail-overlay-poc root so ../shared resolves reliably (split web-preview + shared mounts can appear empty on some hosts).
-      - ..:/srv/hail-overlay-poc:cached
-      - hails-preview-dev-node-modules:/srv/hail-overlay-poc/web-preview/node_modules
+      # Mount overlay-apk root so ../shared resolves reliably (split web-preview + shared mounts can appear empty on some hosts).
+      - ..:/srv/overlay-apk:cached
+      - hails-preview-dev-node-modules:/srv/overlay-apk/web-preview/node_modules
     command: ["node", "server.js"]
 
 volumes:

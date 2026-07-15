@@ -22,6 +22,9 @@ Hails now runs as a resident product and Bandit is the first dedicated non-Hail 
 - **Hails** — flagship product: themed notifications with glyphs, effects, message sidekicks
 - **Presentation surfaces** — Paintbox authoring, presentation templates, TV/LCARD delivery
 - **Product pathing** — shared target registry and dedicated adapters (`hails`, `bandit`)
+- **Overlay APK** — the Google TV / Android TV renderer host (`overlay-apk/`),
+  owned here since 2026-07-15 (moved from `control-alt-lcard/hail-overlay-poc/`,
+  history preserved). Hosts the on-device Hails and Bandit adapters.
 - **Audio** — future: sound cues/choreography alongside visual delivery
 
 ## Stack

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "control-alt-hail-overlay-poc"
+rootProject.name = "control-alt-overlay-apk"
 include(":app")

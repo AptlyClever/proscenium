@@ -53,6 +53,8 @@ server-side target registry.
 - Proscenium: target inventory, product adapter selection, delivery action.
 - Hails: resident Proscenium product and package/choreography domain.
 - Bandit: game/session authority and machine renderer.
-- Overlay APK: physical renderer host and product adapters.
+- Overlay APK: physical renderer host and product adapters. Source lives in
+  this repo at [`overlay-apk/`](../overlay-apk/) (moved from
+  `control-alt-lcard/hail-overlay-poc/` on 2026-07-15, history preserved).
 - LCARD: operator controls that trigger Proscenium actions.
 - Vellum: media conversion and game-ready catalog.

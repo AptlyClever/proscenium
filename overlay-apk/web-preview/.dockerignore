@@ -1,4 +1,4 @@
-# Context is hail-overlay-poc/; only shared + web-preview are copied via Dockerfile.
+# Context is overlay-apk/; only shared + web-preview are copied via Dockerfile.
 app/
 .gradle/
 .tools/

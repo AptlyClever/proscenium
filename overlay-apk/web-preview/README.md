@@ -18,7 +18,7 @@ Fast dev bind-mounts source into a lightweight Node container, watches files, an
 ### Fast dev — start / stop
 
 ```bash
-cd /mnt/temp/config/control-alt-lcard/hail-overlay-poc/web-preview
+cd /mnt/temp/config/proscenium/overlay-apk/web-preview
 
 # Start (Docker, LAN :8197)
 npm run dev:start
@@ -58,7 +58,7 @@ Rebuild copies current source into the image and restarts `:8196`. Expect severa
 Build and start:
 
 ```bash
-cd /mnt/temp/config/control-alt-lcard/hail-overlay-poc/web-preview
+cd /mnt/temp/config/proscenium/overlay-apk/web-preview
 docker compose build
 docker compose up -d
 ```
@@ -131,7 +131,7 @@ npm run smoke:dev      # dev HTTP (:8197)
 | Dev + stable both running | OK — different ports (8197 vs 8196) |
 | Blank page | Use LAN URL not `file://` |
 | Wrong machine IP | Homelab host is usually `192.168.68.93` |
-| `/shared/hail-render-contract.json` 404 in **dev** | Recreate dev container after compose changes: `npm run dev:stop && npm run dev:start`. Dev compose bind-mounts `hail-overlay-poc/` as one tree so `../shared` is visible inside the container. |
+| `/shared/hail-render-contract.json` 404 in **dev** | Recreate dev container after compose changes: `npm run dev:stop && npm run dev:start`. Dev compose bind-mounts `overlay-apk/` as one tree so `../shared` is visible inside the container. |
 
 ## Scope
 

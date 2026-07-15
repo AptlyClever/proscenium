@@ -7,7 +7,7 @@
 
 | Field | Source | Purpose |
 | --- | --- | --- |
-| `versionName` | `hail-overlay-poc/app/build.gradle.kts` | Operator-facing semver string; echoed by `GET /health` |
+| `versionName` | `overlay-apk/app/build.gradle.kts` | Operator-facing semver string; echoed by `GET /health` |
 | `versionCode` | same | Monotonic Android install ordering (`adb install` downgrade guard) |
 
 Current G2 baseline:
