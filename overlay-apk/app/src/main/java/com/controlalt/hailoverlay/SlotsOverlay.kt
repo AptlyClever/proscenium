@@ -13,6 +13,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
@@ -37,6 +39,18 @@ fun SlotsOverlay(
         "$baseHttpUrl?_cb=${System.currentTimeMillis()}"
     }
 
+    // Keep an explicit handle so dismiss / composition disposal always destroys
+    // the Chromium target. Without this, show/dismiss stacks live WebViews that
+    // keep consuming the Bandit session stream and layer stop audio.
+    val webViewRef = remember { arrayOfNulls<WebView>(1) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            destroyBanditWebView(webViewRef[0])
+            webViewRef[0] = null
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -45,6 +59,7 @@ fun SlotsOverlay(
         AndroidView(
             factory = { context ->
                 WebView(context).apply {
+                    webViewRef[0] = this
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
@@ -56,14 +71,16 @@ fun SlotsOverlay(
                                 view?.evaluateJavascript(
                                     """
                                     (() => {
-                                      const video = document.querySelector("#presentation-vfx-video");
-                                      if (!video || video.dataset.apkVfxProbe) return;
-                                      video.dataset.apkVfxProbe = "true";
-                                      video.addEventListener("playing", () => {
-                                        console.info("Bandit APK VFX playing: " + video.currentSrc);
-                                      });
-                                      video.addEventListener("error", () => {
-                                        console.error("Bandit APK VFX error: " + (video.error?.code || "unknown"));
+                                      const videos = document.querySelectorAll("#presentation-vfx-video, #presentation-vfx-tv-video");
+                                      videos.forEach((video) => {
+                                        if (!video || video.dataset.apkVfxProbe) return;
+                                        video.dataset.apkVfxProbe = "true";
+                                        video.addEventListener("playing", () => {
+                                          console.info("Bandit APK VFX playing: " + video.currentSrc);
+                                        });
+                                        video.addEventListener("error", () => {
+                                          console.error("Bandit APK VFX error: " + (video.error?.code || "unknown"));
+                                        });
                                       });
                                     })();
                                     """.trimIndent(),
@@ -86,7 +103,11 @@ fun SlotsOverlay(
                                 // TV content: go transparent and retry until the
                                 // Bandit server is reachable again.
                                 view?.loadUrl("about:blank")
-                                view?.postDelayed({ view.loadUrl(httpUrl) }, RETRY_DELAY_MS)
+                                view?.postDelayed({
+                                    if (view === webViewRef[0]) {
+                                        view.loadUrl(httpUrl)
+                                    }
+                                }, RETRY_DELAY_MS)
                             }
                         }
                     }
@@ -108,10 +129,34 @@ fun SlotsOverlay(
                     loadUrl(httpUrl)
                 }
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            onRelease = { webView ->
+                if (webViewRef[0] === webView) {
+                    webViewRef[0] = null
+                }
+                destroyBanditWebView(webView)
+            },
         )
     }
 }
 
+internal fun destroyBanditWebView(webView: WebView?) {
+    if (webView == null) return
+    if (webView.tag == DESTROYED_TAG) return
+    webView.tag = DESTROYED_TAG
+    runCatching {
+        webView.stopLoading()
+        webView.handler?.removeCallbacksAndMessages(null)
+        webView.loadUrl("about:blank")
+        (webView.parent as? ViewGroup)?.removeView(webView)
+        webView.removeAllViews()
+        webView.destroy()
+        Log.i(TAG, "Bandit WebView destroyed")
+    }.onFailure { error ->
+        Log.w(TAG, "Bandit WebView destroy failed: ${error.message}")
+    }
+}
+
 private const val TAG = "SlotsOverlay"
+private const val DESTROYED_TAG = "bandit-webview-destroyed"
 private const val RETRY_DELAY_MS = 3_000L

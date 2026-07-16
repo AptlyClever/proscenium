@@ -7,7 +7,9 @@ import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
+import android.webkit.WebView
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
@@ -63,7 +65,10 @@ class BanditOverlayController(
 
     fun show(wsUrlOverride: String? = null) {
         mainHandler.post {
-            dismissInternal(removeOnly = false)
+            // Always fully tear down the prior Bandit surface first. A soft
+            // removeView without WebView.destroy left Chromium targets alive,
+            // stacking session listeners and stop audio across show cycles.
+            dismissInternal()
             isShowing.value = true
 
             val view = ComposeView(context).apply {
@@ -74,7 +79,7 @@ class BanditOverlayController(
                 setContent {
                     SlotsOverlay(
                         wsUrlOverride = wsUrlOverride,
-                        onDismiss = { dismissInternal(removeOnly = true) },
+                        onDismiss = { dismissInternal() },
                     )
                 }
             }
@@ -103,18 +108,34 @@ class BanditOverlayController(
     }
 
     fun dismiss() {
-        mainHandler.post { dismissInternal(removeOnly = true) }
+        mainHandler.post { dismissInternal() }
     }
 
-    private fun dismissInternal(removeOnly: Boolean) {
+    private fun dismissInternal() {
         composeView?.let { view ->
+            destroyWebViewsIn(view)
+            runCatching { view.disposeComposition() }
             runCatching { windowManager.removeView(view) }
             composeView = null
         }
         isShowing.value = false
-        if (removeOnly) {
+        if (lifecycleRegistry.currentState != Lifecycle.State.INITIALIZED) {
             lifecycleRegistry.currentState = Lifecycle.State.CREATED
-            overlayViewModelStore.clear()
+        }
+        overlayViewModelStore.clear()
+    }
+
+    private fun destroyWebViewsIn(root: View) {
+        if (root is WebView) {
+            destroyBanditWebView(root)
+            return
+        }
+        if (root is ViewGroup) {
+            val children = ArrayList<View>(root.childCount)
+            for (i in 0 until root.childCount) {
+                children.add(root.getChildAt(i))
+            }
+            children.forEach { destroyWebViewsIn(it) }
         }
     }
 
