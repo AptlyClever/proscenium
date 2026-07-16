@@ -69,10 +69,23 @@ adb connect <tv-ip>
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.controlalt.hailoverlay/.LauncherStartActivity
 adb shell appops set com.controlalt.hailoverlay SYSTEM_ALERT_WINDOW allow
-adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay   # optional
+adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay   # recommended for idle residency
 ```
 
-`adb install` alone does **not** start the HTTP listener (Praxis #173). The launcher trampoline step is required after every install.
+`adb install` alone does **not** start the HTTP listener (Praxis #173). The launcher trampoline step is required after every install. After boot, alpha.41+ `BootReceiver` starts the service without requiring overlay permission first.
+
+**Residency (alpha.41+):** `BootReceiver` starts the foreground adapter host on
+`BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` even without overlay permission (HTTP
+bind does not need it). A 60s in-service watchdog re-binds Hails `8765` and
+Bandit `8767` if they drop. Deploy health checks **both** ports. Battery /
+`deviceidle` whitelist is still recommended for long-idle TVs:
+
+```bash
+adb shell dumpsys deviceidle whitelist +com.controlalt.hailoverlay
+```
+
+Bandit WebView loads use `LOAD_NO_CACHE` plus a cache-bust query so Bandit
+server redeploys reach the TV without a manual DevTools reload.
 
 ## Trigger hail
 

@@ -6,6 +6,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -23,10 +24,18 @@ fun SlotsOverlay(
 ) {
     val rawUrl = wsUrlOverride?.trim()?.ifBlank { null } ?: "ws://192.168.68.93:8766/api/games/slots/stream"
 
-    val httpUrl = rawUrl
+    val baseHttpUrl = rawUrl
         .replace("ws://", "http://")
         .replace("wss://", "https://")
         .replace("/api/games/slots/stream", "/overlay?embed=apk")
+
+    // Cache-bust so Bandit redeploys reach the TV WebView without a manual
+    // DevTools reload. Server also sends no-cache headers for HTML/JS/CSS.
+    val httpUrl = if (baseHttpUrl.contains("?")) {
+        "$baseHttpUrl&_cb=${System.currentTimeMillis()}"
+    } else {
+        "$baseHttpUrl?_cb=${System.currentTimeMillis()}"
+    }
 
     Box(
         modifier = Modifier
@@ -92,6 +101,8 @@ fun SlotsOverlay(
                     settings.useWideViewPort = true
                     settings.loadWithOverviewMode = true
                     settings.mediaPlaybackRequiresUserGesture = false
+                    settings.cacheMode = WebSettings.LOAD_NO_CACHE
+                    clearCache(true)
                     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
                     setBackgroundColor(0) // Set transparent background
                     loadUrl(httpUrl)

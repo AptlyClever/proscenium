@@ -4,8 +4,11 @@ object HailOverlayServiceHolder {
     data class Readiness(
         val serviceRunning: Boolean = false,
         val listenerListening: Boolean = false,
+        val banditListening: Boolean = false,
         val port: Int = HailRegistry.HTTP_PORT,
+        val banditPort: Int = BanditHttpServer.HTTP_PORT,
         val lastStartupError: String? = null,
+        val lastBanditError: String? = null,
     )
 
     @Volatile
@@ -22,8 +25,11 @@ object HailOverlayServiceHolder {
         readiness = Readiness(
             serviceRunning = true,
             listenerListening = false,
+            banditListening = false,
             port = HailRegistry.HTTP_PORT,
+            banditPort = BanditHttpServer.HTTP_PORT,
             lastStartupError = null,
+            lastBanditError = null,
         )
     }
 
@@ -40,6 +46,22 @@ object HailOverlayServiceHolder {
             serviceRunning = true,
             listenerListening = false,
             lastStartupError = message,
+        )
+    }
+
+    internal fun markBanditListening() {
+        readiness = readiness.copy(
+            serviceRunning = true,
+            banditListening = true,
+            lastBanditError = null,
+        )
+    }
+
+    internal fun markBanditFailed(message: String) {
+        readiness = readiness.copy(
+            serviceRunning = true,
+            banditListening = false,
+            lastBanditError = message,
         )
     }
 

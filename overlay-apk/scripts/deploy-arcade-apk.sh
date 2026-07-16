@@ -93,13 +93,23 @@ adb -s "$ADB_TARGET" shell am start -n "$LAUNCHER_COMPONENT" >/dev/null
 sleep 5
 
 HEALTH_URL="http://${TV_HOST}:${TV_PORT}/health"
+BANDIT_HEALTH_URL="http://${TV_HOST}:8767/health"
 echo "Health check: $HEALTH_URL"
 HEALTH="$(curl -fsS "$HEALTH_URL")"
 echo "$HEALTH"
 
 if ! python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get('status')=='ok' else 1)" <<<"$HEALTH"; then
-  echo "FAIL: overlay listener not healthy after deploy" >&2
+  echo "FAIL: Hail overlay listener not healthy after deploy" >&2
   exit 1
 fi
 
-echo "OK: Arcade Hail listener ready on $TV_HOST:$TV_PORT"
+echo "Health check: $BANDIT_HEALTH_URL"
+BANDIT_HEALTH="$(curl -fsS "$BANDIT_HEALTH_URL")"
+echo "$BANDIT_HEALTH"
+
+if ! python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get('status')=='ok' else 1)" <<<"$BANDIT_HEALTH"; then
+  echo "FAIL: Bandit overlay listener not healthy after deploy" >&2
+  exit 1
+fi
+
+echo "OK: Arcade adapters ready on $TV_HOST:8765 (Hails) and $TV_HOST:8767 (Bandit)"
