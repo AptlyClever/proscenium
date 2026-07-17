@@ -63,7 +63,7 @@ class BanditOverlayController(
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
     }
 
-    fun show(wsUrlOverride: String? = null) {
+    fun show(options: BanditShowOptions = BanditShowOptions()) {
         mainHandler.post {
             // Always fully tear down the prior Bandit surface first. A soft
             // removeView without WebView.destroy left Chromium targets alive,
@@ -78,7 +78,7 @@ class BanditOverlayController(
                 setViewTreeViewModelStoreOwner(this@BanditOverlayController)
                 setContent {
                     SlotsOverlay(
-                        wsUrlOverride = wsUrlOverride,
+                        options = options,
                         onDismiss = { dismissInternal() },
                     )
                 }

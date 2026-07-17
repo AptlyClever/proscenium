@@ -125,7 +125,7 @@ class HailOverlayService : Service() {
             stopBanditHttpServer()
         }
         banditHttpServer = BanditHttpServer(
-            onShow = { wsUrlOverride -> banditOverlayController.show(wsUrlOverride) },
+            onShow = { options -> banditOverlayController.show(options) },
             onDismiss = { banditOverlayController.dismiss() },
         ).also { server ->
             runCatching { server.start() }

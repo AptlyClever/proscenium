@@ -5,15 +5,13 @@ import fi.iki.elonen.NanoHTTPD
 import org.json.JSONObject
 
 /**
- * Bandit's own trigger endpoint, deliberately separate from [HailHttpServer]/
+ * Bandit's own trigger endpoint, deliberately separate from [HailHttpServer]'s
  * `/hail/show` -- Bandit is a persistent game session, not a Hail (a brief
  * message+image+effect impression), so it does not go through
- * [HailRegistry]'s allowlist/broker-proof/duration validation at all. Its
- * request shape is intentionally minimal: it only needs enough to launch the
- * session, not a Hail's full glyph/choreography/palette contract.
+ * [HailRegistry]'s allowlist/broker-proof/duration validation at all.
  */
 class BanditHttpServer(
-    private val onShow: (wsUrlOverride: String?) -> Unit,
+    private val onShow: (BanditShowOptions) -> Unit,
     private val onDismiss: () -> Unit,
 ) : NanoHTTPD(HTTP_PORT) {
 
@@ -31,12 +29,8 @@ class BanditHttpServer(
         if (uri == "/bandit/show" && method == Method.POST) {
             return try {
                 val body = readBody(session)
-                val wsUrlOverride = if (body.isBlank()) {
-                    null
-                } else {
-                    JSONObject(body).optString("ws_url").ifBlank { null }
-                }
-                onShow(wsUrlOverride)
+                val options = parseShowOptions(body)
+                onShow(options)
                 jsonResponse(status = Response.Status.OK, body = """{"status":"shown"}""")
             } catch (error: Exception) {
                 Log.e(TAG, "Failed to handle bandit show request", error)
@@ -50,6 +44,19 @@ class BanditHttpServer(
         }
 
         return jsonResponse(status = Response.Status.NOT_FOUND, body = """{"error":"not_found"}""")
+    }
+
+    private fun parseShowOptions(body: String): BanditShowOptions {
+        if (body.isBlank()) return BanditShowOptions()
+        val json = JSONObject(body)
+        fun opt(key: String): String? = json.optString(key).ifBlank { null }
+        return BanditShowOptions(
+            wsUrlOverride = opt("ws_url"),
+            audioOutput = opt("audio_output"),
+            anchor = opt("anchor"),
+            size = opt("size"),
+            revision = opt("revision"),
+        )
     }
 
     private fun readBody(session: IHTTPSession): String {

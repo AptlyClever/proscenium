@@ -21,10 +21,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
 fun SlotsOverlay(
-    wsUrlOverride: String?,
+    options: BanditShowOptions = BanditShowOptions(),
     onDismiss: () -> Unit,
 ) {
-    val rawUrl = wsUrlOverride?.trim()?.ifBlank { null } ?: "ws://192.168.68.93:8766/api/games/slots/stream"
+    val rawUrl = options.wsUrlOverride?.trim()?.ifBlank { null }
+        ?: "ws://192.168.68.93:8766/api/games/slots/stream"
 
     val baseHttpUrl = rawUrl
         .replace("ws://", "http://")
@@ -33,11 +34,17 @@ fun SlotsOverlay(
 
     // Cache-bust so Bandit redeploys reach the TV WebView without a manual
     // DevTools reload. Server also sends no-cache headers for HTML/JS/CSS.
-    val httpUrl = if (baseHttpUrl.contains("?")) {
-        "$baseHttpUrl&_cb=${System.currentTimeMillis()}"
-    } else {
-        "$baseHttpUrl?_cb=${System.currentTimeMillis()}"
+    val query = linkedMapOf<String, String>()
+    options.audioOutput?.takeIf { it.isNotBlank() }?.let { query["audio_output"] = it }
+    options.anchor?.takeIf { it.isNotBlank() }?.let { query["anchor"] = it }
+    options.size?.takeIf { it.isNotBlank() }?.let { query["size"] = it }
+    options.revision?.takeIf { it.isNotBlank() }?.let { query["revision"] = it }
+    query["_cb"] = System.currentTimeMillis().toString()
+    val sep = if (baseHttpUrl.contains("?")) "&" else "?"
+    val httpUrl = baseHttpUrl + sep + query.entries.joinToString("&") { (k, v) ->
+        "$k=${java.net.URLEncoder.encode(v, "UTF-8")}"
     }
+    Log.i(TAG, "Bandit overlay URL prepared: $httpUrl")
 
     // Keep an explicit handle so dismiss / composition disposal always destroys
     // the Chromium target. Without this, show/dismiss stacks live WebViews that
