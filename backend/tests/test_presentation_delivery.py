@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 from unittest.mock import MagicMock
@@ -9,6 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from presentation import delivery
+from routers import presentation
 
 
 def _registry() -> dict:
@@ -71,11 +73,15 @@ def test_bandit_show_posts_dynamic_adapter_payload(
     result = delivery.deliver_product_action(
         "bandit",
         "show",
-        payload={"ws_url": "ws://override/stream"},
+        payload={
+            "ws_url": "ws://override/stream",
+            "game_id": "factory_prove_hold_001",
+        },
         urlopen=fake_urlopen,
     )
     assert captured["url"] == "http://tv:8767/bandit/show"
     assert captured["body"]["ws_url"] == "ws://override/stream"
+    assert captured["body"]["game_id"] == "factory_prove_hold_001"
     assert captured["body"]["product_id"] == "bandit"
     assert result["renderer"] == "bandit_webview"
 
@@ -91,3 +97,28 @@ def test_unconfigured_product_target_is_rejected(
 def test_unsupported_action_is_rejected() -> None:
     with pytest.raises(ValueError, match="unsupported_presentation_action"):
         delivery.deliver_product_action("bandit", "explode")
+
+
+def test_route_forwards_machine_selection_to_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict = {}
+
+    def fake_deliver(product_id, action, **kwargs):
+        captured.update({"product_id": product_id, "action": action, **kwargs})
+        return {"ok": True}
+
+    monkeypatch.setattr(presentation, "deliver_product_action", fake_deliver)
+    result = asyncio.run(
+        presentation.post_product_delivery_action(
+            "bandit",
+            "show",
+            {
+                "delivery_target_id": "arcade",
+                "game_id": "factory_prove_hold_001",
+            },
+        )
+    )
+
+    assert result == {"ok": True}
+    assert captured["payload"]["game_id"] == "factory_prove_hold_001"

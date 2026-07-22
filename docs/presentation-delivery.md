@@ -48,6 +48,10 @@ Example:
 The `ws_url` override is optional for Bandit; its normal source is the
 server-side target registry.
 
+Bandit `show` also accepts `game_id`. Proscenium forwards it unchanged to the
+APK adapter, which pins the WebView to that server-authoritative machine while
+the associated LCARD session is active.
+
 ## Ownership
 
 - Proscenium: target inventory, product adapter selection, delivery action.

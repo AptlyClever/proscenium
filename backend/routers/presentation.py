@@ -33,7 +33,7 @@ async def post_product_delivery_action(
         raise HTTPException(status_code=400, detail="presentation_payload_must_be_object")
     # Convenience fields remain outside `payload` for LCARD/operator callers.
     adapter_payload = dict(payload or {})
-    for key in ("ws_url", "audio_output", "anchor", "size", "revision"):
+    for key in ("ws_url", "audio_output", "anchor", "size", "revision", "game_id"):
         value = request_body.get(key)
         if isinstance(value, str) and value.strip():
             adapter_payload[key] = value.strip()

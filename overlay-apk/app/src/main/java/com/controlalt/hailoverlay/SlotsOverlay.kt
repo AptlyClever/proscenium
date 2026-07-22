@@ -26,24 +26,7 @@ fun SlotsOverlay(
 ) {
     val rawUrl = options.wsUrlOverride?.trim()?.ifBlank { null }
         ?: "ws://192.168.68.93:8766/api/games/slots/stream"
-
-    val baseHttpUrl = rawUrl
-        .replace("ws://", "http://")
-        .replace("wss://", "https://")
-        .replace("/api/games/slots/stream", "/overlay?embed=apk")
-
-    // Cache-bust so Bandit redeploys reach the TV WebView without a manual
-    // DevTools reload. Server also sends no-cache headers for HTML/JS/CSS.
-    val query = linkedMapOf<String, String>()
-    options.audioOutput?.takeIf { it.isNotBlank() }?.let { query["audio_output"] = it }
-    options.anchor?.takeIf { it.isNotBlank() }?.let { query["anchor"] = it }
-    options.size?.takeIf { it.isNotBlank() }?.let { query["size"] = it }
-    options.revision?.takeIf { it.isNotBlank() }?.let { query["revision"] = it }
-    query["_cb"] = System.currentTimeMillis().toString()
-    val sep = if (baseHttpUrl.contains("?")) "&" else "?"
-    val httpUrl = baseHttpUrl + sep + query.entries.joinToString("&") { (k, v) ->
-        "$k=${java.net.URLEncoder.encode(v, "UTF-8")}"
-    }
+    val httpUrl = buildBanditOverlayUrl(rawUrl, options, System.currentTimeMillis())
     Log.i(TAG, "Bandit overlay URL prepared: $httpUrl")
 
     // Keep an explicit handle so dismiss / composition disposal always destroys
@@ -144,6 +127,28 @@ fun SlotsOverlay(
                 destroyBanditWebView(webView)
             },
         )
+    }
+}
+
+internal fun buildBanditOverlayUrl(
+    rawUrl: String,
+    options: BanditShowOptions,
+    cacheBust: Long,
+): String {
+    val baseHttpUrl = rawUrl
+        .replace("ws://", "http://")
+        .replace("wss://", "https://")
+        .replace("/api/games/slots/stream", "/overlay?embed=apk")
+    val query = linkedMapOf<String, String>()
+    options.audioOutput?.takeIf { it.isNotBlank() }?.let { query["audio_output"] = it }
+    options.anchor?.takeIf { it.isNotBlank() }?.let { query["anchor"] = it }
+    options.size?.takeIf { it.isNotBlank() }?.let { query["size"] = it }
+    options.revision?.takeIf { it.isNotBlank() }?.let { query["revision"] = it }
+    options.gameId?.takeIf { it.isNotBlank() }?.let { query["game_id"] = it }
+    query["_cb"] = cacheBust.toString()
+    val sep = if (baseHttpUrl.contains("?")) "&" else "?"
+    return baseHttpUrl + sep + query.entries.joinToString("&") { (key, value) ->
+        "$key=${java.net.URLEncoder.encode(value, "UTF-8")}"
     }
 }
 

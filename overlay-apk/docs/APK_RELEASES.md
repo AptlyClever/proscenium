@@ -8,6 +8,7 @@ See **`APK_VERSIONING.md`** for scheme rules.
 
 | versionName | versionCode | Branch / PR | Notes |
 | --- | --- | --- | --- |
+| `2.0.0-alpha.43` | `2000043` | `main` | Bandit `game_id` selection forwarded from Proscenium into the APK WebView URL. |
 | `2.0.0-alpha.2` | `2000002` | `main` | Transporter variation profiles on device (`effect_variation_id`, `android_effect_tuning`, `effect_identity.particle_style`). Palettes: `transporter_generation_next`, `transporter_spoon`. |
 | `2.0.0-alpha.1` | `2000001` | `task/lcard-overlay-service-owned-launcher-trampoline-v001` / #173 | G2 version reset. Service-owned listener, `LauncherStartActivity` HOME return, separate `DiagnosticsActivity`, broker-gated dynamic Hails (PR #171). Arcade validation target. |
 

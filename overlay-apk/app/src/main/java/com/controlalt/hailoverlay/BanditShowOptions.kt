@@ -10,4 +10,5 @@ data class BanditShowOptions(
     val anchor: String? = null,
     val size: String? = null,
     val revision: String? = null,
+    val gameId: String? = null,
 )

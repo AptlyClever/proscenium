@@ -56,6 +56,7 @@ class BanditHttpServer(
             anchor = opt("anchor"),
             size = opt("size"),
             revision = opt("revision"),
+            gameId = opt("game_id"),
         )
     }
 
